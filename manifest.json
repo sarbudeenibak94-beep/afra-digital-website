@@ -1,0 +1,17 @@
+{
+  "name": "AFRA DIGITAL",
+  "short_name": "AFRA",
+  "description": "Premium AI, Web Development, Mobile Apps & Digital Marketing.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "afra-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
