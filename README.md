@@ -29,12 +29,28 @@ Server-side Vercel environment variables (Project → Settings → Environment V
 If configuration is missing or invalid, the form shows a truthful "temporarily unavailable" message (WhatsApp, phone and email alternatives) and the function logs a diagnostic such as `[contact] email provider not configured: missing_api_key`.
 Delivery failures are logged as `[contact] delivery failed kind=<auth|test_sender_restriction|sender_unverified|...> status=<code>` with email addresses stripped. Secrets and visitor data are never logged.
 
+## Analytics and consent (Phase 03)
+
+- `assets/js/analytics.js` (all pages) shows the "Your privacy choices" banner and loads **Google Analytics 4** and **Vercel Speed Insights** only after the visitor clicks **Accept**. Rejecting stops all analytics requests. "Cookie settings" in every footer reopens the choice; withdrawing deletes GA cookies.
+- Which tools exist is decided by server env vars via `GET /api/analytics-config` (no code change needed; redeploy after changing):
+
+| Variable | Effect |
+|---|---|
+| `GA4_MEASUREMENT_ID` | `G-XXXXXXXXXX` enables GA4 (public ID, not a secret). Unset = GA4 off. |
+| `SPEED_INSIGHTS` | `on`/`off`. Default `on` on Vercel. |
+| `ANALYTICS_DISABLED` | `1` = everything off, no banner (kill switch). |
+
+- Events (fixed names, allow-listed params, PII filtered): `contact_form_start`, `generate_lead` (only after a confirmed successful enquiry), `whatsapp_click`, `phone_click`, `email_click`, `service_cta_click`, `cta_click`, `form_submit_attempt`, `form_error`.
+- GA4 receives a cleaned page URL (path + `utm_*` tags only), with Google signals and ad personalisation disabled.
+- In GA4 Admin: turn **off** Enhanced measurement → "Page changes based on browser history events" and "Outbound clicks"; set data retention to **14 months**; mark `generate_lead` (and optionally the click events) as key events.
+
 ## Local development and tests (Node 18+, Chrome installed, no npm install needed)
 
 ```sh
 node dev/server.mjs 4173            # preview at http://localhost:4173 (applies vercel.json headers)
 node --test "tests/*.test.mjs"      # contact backend unit tests
 node tests/site.e2e.mjs             # end-to-end checks (uses a mock email provider; sends nothing)
+node tests/analytics.e2e.mjs        # consent/analytics checks (Google endpoints intercepted; sends nothing)
 node tests/responsive.mjs http://localhost:4173/ run --shots
 node tests/perf.mjs http://localhost:4173/ 3 run
 node dev/build-images.mjs           # regenerate optimised images

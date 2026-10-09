@@ -37,6 +37,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap" rel="stylesheet">
+<script src="/assets/js/analytics.js" defer></script>
 <script src="/assets/js/site.js" defer></script>
 <noscript><style>[rv]{opacity:1!important;transform:none!important}#loader{display:none!important}.faq-a{max-height:none!important}</style></noscript>
 <script type="application/ld+json">
@@ -3189,6 +3190,10 @@ body.menu-open{overflow:hidden;}
 .form-error a{color:var(--gold-bright);text-decoration:underline;}
 .form-note{font-size:.75rem;color:var(--gray-500);margin:4px 0 16px;line-height:1.6;}
 .form-note a{color:var(--gold);text-decoration:underline;}
+/* Phase 03: persistent cookie-settings control */
+.foot-legal .cookie-settings{font:inherit;font-size:0.72rem;color:var(--gray-700);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;transition:color var(--t);}
+.foot-legal .cookie-settings:hover{color:var(--gold);}
+@media (max-width:768px){.foot-legal .cookie-settings{font-size:0.7rem;min-height:32px;}}
 .hp-field{position:absolute!important;left:-10000px!important;width:1px;height:1px;overflow:hidden;}
 #form-btn[disabled]{opacity:.7;cursor:progress;}
 #form-success:focus{outline:none;}
@@ -4118,7 +4123,7 @@ body.menu-open{overflow:hidden;}
     <div class="foot-bottom">
       <div class="foot-copy">© 2026 AFRA DIGITAL. All rights reserved.</div>
       <div class="foot-loc"><span aria-hidden="true">📍</span> Doha, Qatar — serving the GCC</div>
-      <div class="foot-legal"><a href="/privacy-policy">Privacy Policy</a><a href="/terms">Terms</a><a href="/privacy-policy#cookies">Cookies</a></div>
+      <div class="foot-legal"><a href="/privacy-policy">Privacy Policy</a><a href="/terms">Terms</a><a href="/privacy-policy#cookies">Cookies</a><button type="button" class="cookie-settings" data-cookie-settings>Cookie settings</button></div>
     </div>
   </div>
 </footer>

@@ -44,3 +44,5 @@ strong{color:var(--gray-100);}
 .btn-prime{background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,#B8920F);color:#050800;}
 .btn-ghost{border:1px solid var(--gold-border);color:var(--gray-100);}
 @media (max-width:480px){.brand{font-size:.85rem}.back{padding:8px 12px;font-size:.82rem}main{padding:40px 0 56px}}
+.site-footer .cookie-settings{font:inherit;color:var(--gray-400);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;}
+.site-footer .cookie-settings:hover{color:var(--gold-bright);}

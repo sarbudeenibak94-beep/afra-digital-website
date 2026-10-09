@@ -13,40 +13,12 @@
   root.classList.add('js');
   if (finePointer) root.classList.add('fine-pointer');
 
-  /* ------------------------------------------------------------
-     Analytics event layer (no vendor script is loaded here).
-     Events are pushed to window.dataLayer so a tag manager can be
-     connected later with consent. NEVER pass personal data
-     (names, emails, phone numbers, message text) as parameters.
-  ------------------------------------------------------------ */
-  window.dataLayer = window.dataLayer || [];
-  var ALLOWED_PARAMS = { location: 1, label: 1, service: 1, error_code: 1, method: 1 };
+  /* Analytics: events go through assets/js/analytics.js (consent-aware, allow-listed,
+     PII-filtered). Link/CTA clicks are tracked there for every page; this file only
+     reports contact-form events. Never pass personal data as parameters. */
   function track(event, params) {
-    var clean = { event: event };
-    if (params) for (var k in params) if (ALLOWED_PARAMS[k] && typeof params[k] === 'string') clean[k] = params[k].slice(0, 100);
-    window.dataLayer.push(clean);
+    if (typeof window.afraTrack === 'function') window.afraTrack(event, params);
   }
-  window.afraTrack = track;
-
-  function sectionOf(el) {
-    var s = el.closest('section[id], footer, nav, #mob-nav, .cta-strip');
-    if (!s) return 'page';
-    if (s.tagName === 'FOOTER') return 'footer';
-    if (s.id === 'nav' || s.id === 'mob-nav') return 'header';
-    if (s.classList.contains('cta-strip')) return 'cta-strip';
-    return s.id;
-  }
-
-  doc.addEventListener('click', function (e) {
-    var a = e.target.closest && e.target.closest('a');
-    if (!a) return;
-    var href = a.getAttribute('href') || '';
-    var loc = sectionOf(a);
-    if (href.indexOf('https://wa.me/') === 0) track('whatsapp_click', { location: loc });
-    else if (href.indexOf('tel:') === 0) track('phone_click', { location: loc });
-    else if (href.indexOf('mailto:') === 0) track('email_click', { location: loc });
-    else if (a.hasAttribute('data-cta')) track('cta_click', { location: loc, label: a.getAttribute('data-cta') });
-  }, true);
 
   /* ---------- PREMIUM CURSOR (decorative, fine pointers only; native cursor stays visible) ---------- */
   (function () {
@@ -255,7 +227,8 @@
     if (!t) return;
     e.preventDefault();
     t.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    if (history.replaceState) history.replaceState(null, '', '#' + id);
+    // No history.replaceState here: changing the URL on every in-page jump could be
+    // counted as extra page views by analytics (Phase 03).
     if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
     t.focus({ preventScroll: true });
   });
@@ -294,7 +267,7 @@
     var GENERIC = 'Sorry, your message could not be sent right now. Please contact us on WhatsApp or by email.';
     var FIELDS = ['firstName', 'lastName', 'email', 'phone', 'company', 'service', 'message'];
 
-    form.addEventListener('focusin', function () { if (!started) { started = true; track('form_start', { location: 'contact' }); } });
+    form.addEventListener('focusin', function () { if (!started) { started = true; track('contact_form_start', { form_id: 'contact' }); } });
 
     function fieldEl(name) { return form.elements[name]; }
     function setFieldError(name, code) {
@@ -347,7 +320,7 @@
       if (names.length) {
         names.forEach(function (n) { setFieldError(n, errs[n]); });
         fieldEl(names[0]).focus();
-        track('form_error', { location: 'contact', error_code: 'client_validation' });
+        track('form_error', { form_id: 'contact', error_code: 'client_validation' });
         return;
       }
       var payload = {};
@@ -357,7 +330,7 @@
       if (elapsedInput) elapsedInput.value = String(payload.elapsed);
 
       setLoading(true);
-      track('form_submit_attempt', { location: 'contact' });
+      track('form_submit_attempt', { form_id: 'contact' });
       var controller = window.AbortController ? new AbortController() : null;
       var timer = setTimeout(function () { if (controller) controller.abort(); }, 20000);
 
@@ -376,7 +349,7 @@
           form.hidden = true;
           success.hidden = false;
           success.focus();
-          if (!r.body.duplicate) track('generate_lead', { location: 'contact', method: 'contact_form', service: d.service || 'unspecified' });
+          if (!r.body.duplicate) track('generate_lead', { form_id: 'contact', method: 'contact_form', service: d.service || 'unspecified' });
           return;
         }
         var code = (r.body && r.body.error) || ('http_' + r.status);
@@ -389,7 +362,7 @@
           showFormError((r.body && r.body.message) || GENERIC);
           errBox.focus();
         }
-        track('form_error', { location: 'contact', error_code: String(code) });
+        track('form_error', { form_id: 'contact', error_code: String(code) });
       }).catch(function (err) {
         clearTimeout(timer);
         setLoading(false);
@@ -398,7 +371,7 @@
           ? 'Sending is taking too long and your message may not have been delivered. Please contact us on WhatsApp or by email.'
           : 'We could not reach our server. Please check your connection, or contact us on WhatsApp or by email.');
         errBox.focus();
-        track('form_error', { location: 'contact', error_code: aborted ? 'client_timeout' : 'network' });
+        track('form_error', { form_id: 'contact', error_code: aborted ? 'client_timeout' : 'network' });
       });
     });
   })();

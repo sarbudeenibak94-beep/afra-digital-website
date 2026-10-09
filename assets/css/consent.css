@@ -1,0 +1,45 @@
+/* AFRA DIGITAL — privacy choices banner (loaded only when the banner is shown) */
+.afra-consent{
+  position:fixed;left:16px;right:16px;bottom:16px;z-index:9500;
+  display:flex;justify-content:center;pointer-events:none;
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+}
+.afra-consent-inner{
+  position:relative;pointer-events:auto;
+  width:100%;max-width:760px;
+  background:rgba(9,14,30,0.97);color:#F1F5F9;
+  border:1px solid rgba(212,175,55,0.35);border-radius:18px;
+  box-shadow:0 18px 50px rgba(0,0,0,0.55);
+  padding:20px 22px 18px;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+.afra-consent-title{margin:0 0 8px;font-size:1rem;font-weight:800;letter-spacing:-0.01em;color:#FFFFFF;}
+.afra-consent-text p{margin:0 0 8px;font-size:0.86rem;line-height:1.6;color:#CBD5E1;}
+.afra-consent-text .afra-consent-small{font-size:0.78rem;color:#94A3B8;}
+.afra-consent-text a{color:#F0CF5A;text-decoration:underline;}
+.afra-consent-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px;}
+/* Equal prominence: both choices share exactly the same style. */
+.afra-consent-btn{
+  min-width:132px;min-height:44px;padding:11px 22px;
+  border-radius:12px;border:1px solid #D4AF37;
+  background:#D4AF37;color:#050800;
+  font:700 0.9rem/1 'Inter',system-ui,sans-serif;cursor:pointer;
+}
+.afra-consent-btn:hover{background:#F0CF5A;border-color:#F0CF5A;}
+.afra-consent-btn:focus-visible,.afra-consent-close:focus-visible,.afra-consent-text a:focus-visible{outline:2px solid #FFFFFF;outline-offset:3px;}
+.afra-consent-close{
+  position:absolute;top:8px;right:10px;width:36px;height:36px;
+  border:0;border-radius:10px;background:transparent;color:#CBD5E1;
+  font-size:1.4rem;line-height:1;cursor:pointer;
+}
+.afra-consent-close:hover{color:#FFFFFF;background:rgba(255,255,255,0.06);}
+@media (max-width:520px){
+  .afra-consent{left:10px;right:10px;bottom:10px;}
+  .afra-consent-inner{padding:18px 16px 14px;}
+  .afra-consent-actions{justify-content:stretch;}
+  .afra-consent-btn{flex:1 1 0;min-width:0;}
+}
+@media (prefers-reduced-motion:no-preference){
+  .afra-consent-inner{animation:afraConsentIn .25s ease-out both;}
+  @keyframes afraConsentIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+}

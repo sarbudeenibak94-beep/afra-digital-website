@@ -152,7 +152,7 @@ try {
     const fill = (p, extra = '') => p.eval(`(() => { const f = document.getElementById('contact-form');
       f.firstName.value = 'Test'; f.lastName.value = 'Automated'; f.email.value = 'e2e-test@example.org'; f.phone.value = '+974 0000 0000';
       f.company.value = 'AUTOMATED TEST - not a real lead'; f.service.value = 'Website Development'; f.message.value = 'AUTOMATED E2E TEST ' + Date.now() + ' - please ignore'; ${extra} })()`);
-    const state = p => p.eval(`({ success: !document.getElementById('form-success').hidden, formHidden: document.getElementById('contact-form').hidden, error: document.getElementById('form-error').hidden ? '' : document.getElementById('form-error-msg').textContent, btn: document.getElementById('form-btn').textContent.trim(), disabled: document.getElementById('form-btn').disabled, dl: window.dataLayer.map(e => e.event) , dlRaw: JSON.stringify(window.dataLayer) })`);
+    const state = p => p.eval(`({ success: !document.getElementById('form-success').hidden, formHidden: document.getElementById('contact-form').hidden, error: document.getElementById('form-error').hidden ? '' : document.getElementById('form-error-msg').textContent, btn: document.getElementById('form-btn').textContent.trim(), disabled: document.getElementById('form-btn').disabled, dl: (window.afraEvents || []).map(e => e.event), dlRaw: JSON.stringify(window.afraEvents || []) })`);
     const apiCalls = p => p.log.requests.filter(r => r.url.endsWith('/api/contact') && r.method === 'POST');
 
     // 1. client validation: nothing sent
@@ -269,9 +269,9 @@ try {
         document.querySelector('#contact a[href^="tel:"]').click();
         document.querySelector('#contact a[href^="mailto:"]').click(); })()`);
       await sleep(200);
-      const dl = await p.eval(`window.dataLayer`);
+      const dl = await p.eval(`window.afraEvents || []`);
       const ev = dl.map(e => e.event);
-      check('CTA / WhatsApp / phone / email clicks produce dataLayer events', ['cta_click', 'whatsapp_click', 'phone_click', 'email_click'].every(e => ev.includes(e)), ev.join(','));
+      check('CTA / WhatsApp / phone / email clicks produce analytics events (in-memory log)', ['cta_click', 'whatsapp_click', 'phone_click', 'email_click'].every(e => ev.includes(e)), ev.join(','));
       check('analytics events carry no personal data', !/@|\+974|3002|afradigital\.hello/.test(JSON.stringify(dl)), JSON.stringify(dl).slice(0, 200));
       const thirdParty = p.log.requests.filter(r => !/^(http:\/\/localhost|data:|https:\/\/fonts\.(googleapis|gstatic)\.com)/.test(r.url));
       check('no third-party tracking requests', thirdParty.length === 0, thirdParty.map(r => r.url).join(', '));

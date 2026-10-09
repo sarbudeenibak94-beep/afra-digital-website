@@ -22,6 +22,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/legal.css">
+<script src="/assets/js/analytics.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -69,6 +70,7 @@
       <li>To reply to your enquiry and discuss your project</li>
       <li>To prepare proposals and, if you become a client, to deliver and manage our services</li>
       <li>To keep the website secure and protect it from spam and misuse</li>
+      <li>Only if you agree: to measure how the website is used and how fast it loads, so we can improve it (see section 6)</li>
       <li>To meet legal, tax or accounting obligations that apply to us</li>
     </ul>
     <p>We do not sell your personal information. We will not add you to a marketing mailing list without your permission.</p>
@@ -80,18 +82,32 @@
       <li><strong>Resend</strong> is the email delivery service used to forward contact-form enquiries to our inbox.</li>
       <li><strong>Google</strong> hosts our business email inbox (Gmail) and provides the website fonts (Google Fonts).</li>
       <li><strong>WhatsApp (Meta)</strong> and <strong>Instagram (Meta)</strong> are used only if you choose to contact us through them.</li>
+      <li><strong>Google Analytics</strong> (Google) and <strong>Vercel Speed Insights</strong> (Vercel) are used <strong>only if you accept analytics</strong> in our privacy choices banner (see section 6).</li>
     </ul>
     <p>These providers may process information on servers outside Qatar. We only share what is needed for them to provide their service.</p>
 
     <h2 id="retention">5. How long we keep information</h2>
     <p>We keep enquiries only for as long as needed to respond to you, to manage any business relationship that follows, and to meet legal or accounting obligations. You can ask us to delete your enquiry at any time (see section 8).</p>
 
-    <h2 id="cookies">6. Cookies and analytics</h2>
+    <h2 id="cookies">6. Cookies, analytics and your choices</h2>
     <div class="card">
-      <p><strong>This website does not currently set cookies and does not use analytics, advertising or tracking tools.</strong></p>
-      <p>Your browser may cache files such as images and stylesheets so that pages load faster on your next visit. This cache stays on your device and you can clear it in your browser settings.</p>
-      <p>If we introduce analytics or other cookies in the future, we will update this policy before doing so and, where required, ask for your consent first.</p>
+      <p><strong>We only use analytics if you accept it.</strong> When you first visit, a “Your privacy choices” banner lists the analytics tools that are currently active and offers equal <strong>Accept</strong> and <strong>Reject</strong> buttons. Nothing is loaded from these tools before you choose, and nothing is loaded if you reject.</p>
+      <p>You can change or withdraw your choice at any time with <strong>“Cookie settings”</strong> at the bottom of every page. If you withdraw, the tools stop and Google Analytics cookies are deleted from your browser.</p>
     </div>
+
+    <h3>Tools used only after you accept</h3>
+    <ul>
+      <li><strong>Google Analytics 4</strong> (when active): measures visits, the pages and sections people use, the general source of a visit (for example a campaign link’s “utm” tags) and interactions such as clicking our WhatsApp, phone or email links, starting the contact form or successfully sending an enquiry. It sets the cookies <code>_ga</code> and <code>_ga_&lt;ID&gt;</code> (lasting up to 2 years) to recognise a returning browser. We switch off Google signals and advertising personalisation, and Google Analytics event data is kept for 14 months.</li>
+      <li><strong>Vercel Speed Insights</strong> (when active): measures how quickly pages load and respond (for example loading time and layout stability). It does not set cookies.</li>
+    </ul>
+    <p>We never send your name, email address, phone number, company or message to these tools. Page addresses are shortened before they are measured so that only the page and any campaign tags are included.</p>
+
+    <h3>What we store on your device</h3>
+    <ul>
+      <li><code>afra_consent_v1</code> (your browser’s local storage): remembers your privacy choice for up to 12 months so we don’t ask on every page. This is necessary for the choice to work and is not used for tracking.</li>
+      <li>Google Analytics cookies, only if you accept (see above).</li>
+    </ul>
+    <p>Your browser may also cache files such as images and stylesheets so pages load faster. You can clear cookies, local storage and cache at any time in your browser settings.</p>
 
     <h2 id="security">7. How we protect information</h2>
     <p>The website is served over an encrypted connection (HTTPS). Contact-form submissions are checked and processed on the server, delivered by email, and accessible only to the people who handle enquiries at AFRA DIGITAL. No method of transmission or storage is completely secure, but we take reasonable steps to protect your information.</p>
@@ -126,6 +142,7 @@
       <a href="/">Home</a>
       <a href="/#contact">Contact</a>
       <a href="/privacy-policy" aria-current="page">Privacy Policy</a>
+      <button type="button" class="cookie-settings" data-cookie-settings>Cookie settings</button>
       <a href="/terms">Terms</a>
     </nav>
   </div>

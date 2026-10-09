@@ -35,7 +35,9 @@ export async function launch({ port = 9340 } = {}) {
     const i = ++id; pending.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method, params, sessionId }));
   });
 
-  async function newPage({ width = 1440, height = 900, mobile = false, throttle = null, disableCache = true, initScript = '' } = {}) {
+  // intercept: [{ urlPattern, respond: (url) => ({ status, contentType, body }) }] — requests to analytics
+  // hosts/paths are answered locally and never reach the network (used to stub analytics in tests).
+  async function newPage({ width = 1440, height = 900, mobile = false, throttle = null, disableCache = true, initScript = '', intercept = null } = {}) {
     const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
     const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
     const S = (m, p) => send(m, p, sessionId);
@@ -53,6 +55,15 @@ export async function launch({ port = 9340 } = {}) {
       }
       if (m.method === 'Network.requestWillBeSent') log.requests.push({ url: p.request.url, method: p.request.method, postData: p.request.postData });
       if (m.method === 'Network.responseReceived') log.responses.push({ url: p.response.url, status: p.response.status, headers: p.response.headers });
+      if (m.method === 'Fetch.requestPaused' && intercept) {
+        const rule = intercept.find(r => new RegExp(r.urlPattern).test(p.request.url));
+        log.intercepted = log.intercepted || [];
+        log.intercepted.push({ url: p.request.url, method: p.request.method, postData: p.request.postData || '' });
+        const out = rule ? rule.respond(p.request.url) : { status: 404, contentType: 'text/plain', body: '' };
+        send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: out.status || 200,
+          responseHeaders: [{ name: 'Content-Type', value: out.contentType || 'application/javascript' }],
+          body: Buffer.from(out.body || '').toString('base64') }, sessionId).catch(() => {});
+      }
       waiters.forEach(w => w(m));
     };
     listeners.add(listener);
@@ -64,6 +75,13 @@ export async function launch({ port = 9340 } = {}) {
       await S('Emulation.setCPUThrottlingRate', { rate: throttle.cpu });
     }
     await S('Network.setCacheDisabled', { cacheDisabled: disableCache });
+    if (intercept) {
+      // Catch every request to analytics hosts/paths, including ones without a stub rule (answered 404).
+      await S('Fetch.enable', { patterns: [
+        { urlPattern: '*googletagmanager.com*' }, { urlPattern: '*google-analytics.com*' }, { urlPattern: '*analytics.google.com*' },
+        { urlPattern: '*doubleclick.net*' }, { urlPattern: '*/_vercel/speed-insights/*' }, { urlPattern: '*vercel-insights.com*' },
+      ] });
+    }
     if (initScript) await S('Page.addScriptToEvaluateOnNewDocument', { source: initScript });
 
     const page = {
