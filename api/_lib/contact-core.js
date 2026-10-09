@@ -4,7 +4,10 @@
 // Files in /api prefixed with "_" are helpers, not deployed as endpoints.
 
 const DEFAULT_TO = 'afradigital.hello@gmail.com';
-const DEFAULT_FROM = 'AFRA DIGITAL Website <onboarding@resend.dev>';
+// Sender must be on the domain verified in Resend. Resend's shared test sender (onboarding@resend.dev)
+// can only deliver to the Resend account owner's own address, so it is never used here.
+const DEFAULT_SENDER_DOMAIN = 'afra-digital.com';
+const DEFAULT_FROM = 'AFRA DIGITAL Website <website@afra-digital.com>';
 const DEFAULT_API_URL = 'https://api.resend.com/emails';
 
 // Must match the <option> values in the contact form.
@@ -160,48 +163,130 @@ function composeEmail(data, { submittedAt = new Date() } = {}) {
   return { subject, text: lines.join('\n') };
 }
 
+/**
+ * Delivery failure. `kind` is a stable diagnostic code (safe to log, never shown verbatim to visitors):
+ *   auth                     – API key missing/invalid/restricted (401/403)
+ *   test_sender_restriction  – resend.dev test sender used for a non-owner recipient (403)
+ *   sender_unverified        – from-address domain not verified in Resend (403/422)
+ *   recipient_rejected       – recipient not allowed by the account (403/422)
+ *   validation               – provider rejected the payload (400/422)
+ *   provider_rate_limited    – provider 429
+ *   rejected                 – other 4xx
+ *   provider_unavailable     – provider 5xx
+ *   network                  – could not reach provider
+ *   timeout                  – no response within the time limit (delivery state unknown)
+ */
 class DeliveryError extends Error {
-  constructor(kind, status) { super(`delivery ${kind}`); this.kind = kind; this.status = status; }
+  constructor(kind, status, detail) { super(`delivery ${kind}`); this.kind = kind; this.status = status; this.detail = detail || ''; }
 }
 
-/** Read provider configuration from the environment. Never returns secret values to callers outside the server. */
+const EMAIL_IN_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+/** Strip email addresses and control characters, cap length — provider messages can echo account emails. */
+function sanitizeForLog(s, max = 200) {
+  return String(s || '').replace(EMAIL_IN_TEXT, '[email]').replace(/[\u0000-\u001F\u007F]+/g, ' ').slice(0, max);
+}
+
+/** Map a Resend error response to a diagnostic kind. */
+function classifyProviderError(status, body) {
+  const name = String((body && body.name) || '').toLowerCase();
+  const msg = String((body && body.message) || '').toLowerCase();
+  if (status === 401 || /api[_ ]?key/.test(name) || /api key is invalid|invalid api key|missing api key|restricted/.test(msg)) return 'auth';
+  if (/resend\.dev|testing emails|for testing/.test(msg)) return 'test_sender_restriction';
+  if (/domain.*not verified|verify a domain|not verified|invalid_from_address|from.*address/.test(msg + ' ' + name)) return 'sender_unverified';
+  if (/recipient|not allowed to send|to.*not allowed/.test(msg)) return 'recipient_rejected';
+  if (status === 429) return 'provider_rate_limited';
+  if (status >= 500) return 'provider_unavailable';
+  if (status === 400 || status === 422 || name === 'validation_error') return 'validation';
+  return 'rejected';
+}
+
+/** Parse "Display Name <addr@domain>" or "addr@domain"; returns the bare address or null. */
+function addressOf(from) {
+  const m = String(from || '').match(/<([^<>\s]+)>\s*$/);
+  const addr = (m ? m[1] : String(from || '')).trim();
+  return /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[A-Za-z]{2,}$/.test(addr) ? addr.toLowerCase() : null;
+}
+
+/**
+ * Read and validate provider configuration from the environment (server-side only).
+ * `problem` is set when delivery must not be attempted. Secret values are never logged or returned to clients.
+ */
 function getConfig(env = process.env) {
-  const apiKey = (env.RESEND_API_KEY || '').trim();
+  const apiKey = String(env.RESEND_API_KEY || '').trim();
+  const senderDomain = String(env.CONTACT_SENDER_DOMAIN || DEFAULT_SENDER_DOMAIN).trim().toLowerCase();
+  const from = String(env.CONTACT_FROM_EMAIL || DEFAULT_FROM).trim();
+  const to = String(env.CONTACT_TO_EMAIL || DEFAULT_TO).trim();
+  const fromAddr = addressOf(from);
+  const fromDomain = fromAddr ? fromAddr.split('@')[1] : '';
+
+  let problem = null;
+  if (!apiKey) problem = 'missing_api_key';
+  else if (/[\r\n]/.test(from) || !fromAddr) problem = 'invalid_from';
+  else if (fromDomain === 'resend.dev' || fromDomain.endsWith('.resend.dev')) problem = 'test_sender_not_allowed';
+  else if (fromDomain !== senderDomain && !fromDomain.endsWith('.' + senderDomain)) problem = 'sender_domain_mismatch';
+  else if (!addressOf(to) || /[\r\n,;]/.test(to)) problem = 'invalid_to';
+
   return {
-    configured: apiKey.length > 0,
+    configured: problem === null,
+    problem,
     apiKey,
-    apiUrl: (env.RESEND_API_URL || DEFAULT_API_URL).trim(),
-    to: (env.CONTACT_TO_EMAIL || DEFAULT_TO).trim(),
-    from: (env.CONTACT_FROM_EMAIL || DEFAULT_FROM).trim(),
-    allowedOrigins: (env.CONTACT_ALLOWED_ORIGINS || 'https://www.afra-digital.com,https://afra-digital.com')
+    apiUrl: String(env.RESEND_API_URL || DEFAULT_API_URL).trim(),
+    to,
+    from,
+    fromDomain,
+    senderDomain,
+    allowedOrigins: String(env.CONTACT_ALLOWED_ORIGINS || 'https://www.afra-digital.com,https://afra-digital.com')
       .split(',').map(s => s.trim()).filter(Boolean),
   };
 }
 
-/** Send via the Resend HTTP API. Throws DeliveryError('timeout'|'rejected'|'failed'). */
-async function deliver(config, data, { fetchImpl = fetch, timeoutMs = 8000, submittedAt } = {}) {
-  const { subject, text } = composeEmail(data, { submittedAt });
+/** Stable key per submission so a retry (or provider-side dedupe) never produces two notifications. */
+function idempotencyKey(data) {
+  const crypto = require('node:crypto');
+  return 'afra-contact-' + crypto.createHash('sha256')
+    .update([data.email, data.firstName, data.lastName, data.service, data.message].join('\u0001'))
+    .digest('hex').slice(0, 40);
+}
+
+async function attempt(config, payload, key, { fetchImpl, timeoutMs }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res;
   try {
     res = await fetchImpl(config.apiUrl, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: config.from, to: [config.to], reply_to: data.email, subject, text }),
+      headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': key },
+      body: payload,
       signal: controller.signal,
     });
   } catch (err) {
-    throw new DeliveryError(err && err.name === 'AbortError' ? 'timeout' : 'failed');
+    throw new DeliveryError(err && err.name === 'AbortError' ? 'timeout' : 'network');
   } finally {
     clearTimeout(timer);
   }
-  if (res.status >= 200 && res.status < 300) {
-    let id = null;
-    try { id = (await res.json()).id || null; } catch { /* body not needed */ }
-    return { id };
+  let body = null;
+  try { body = await res.json(); } catch { /* non-JSON body */ }
+  if (res.status >= 200 && res.status < 300) return { id: (body && body.id) || null };
+  const kind = classifyProviderError(res.status, body);
+  const detail = body ? `${sanitizeForLog(body.name, 40)}: ${sanitizeForLog(body.message)}` : '';
+  throw new DeliveryError(kind, res.status, detail);
+}
+
+/**
+ * Send via the Resend HTTP API (no SDK). Resolves only when Resend accepts the email (2xx).
+ * Permanent rejections (4xx) are never retried; one retry for network errors / 5xx, same idempotency key.
+ */
+async function deliver(config, data, { fetchImpl = fetch, timeoutMs = 7000, retryDelayMs = 400, submittedAt } = {}) {
+  const { subject, text } = composeEmail(data, { submittedAt });
+  const payload = JSON.stringify({ from: config.from, to: [config.to], reply_to: data.email, subject, text });
+  const key = idempotencyKey(data);
+  try {
+    return await attempt(config, payload, key, { fetchImpl, timeoutMs });
+  } catch (err) {
+    if (err.kind !== 'network' && err.kind !== 'provider_unavailable') throw err;
+    await new Promise(r => setTimeout(r, retryDelayMs));
+    return attempt(config, payload, key, { fetchImpl, timeoutMs });
   }
-  throw new DeliveryError(res.status >= 400 && res.status < 500 ? 'rejected' : 'failed', res.status);
 }
 
 /** Same-origin or allow-listed Origin. Requests without Origin (e.g. no-JS form posts in some browsers) are allowed. */
@@ -216,4 +301,5 @@ module.exports = {
   SERVICES, LIMITS, MAX_BODY_BYTES, MIN_FILL_MS,
   cleanText, validateSubmission, checkBotSignals, createRateLimiter, createDuplicateGuard,
   composeEmail, deliver, DeliveryError, getConfig, isOriginAllowed,
+  classifyProviderError, sanitizeForLog, addressOf, idempotencyKey, DEFAULT_FROM, DEFAULT_TO,
 };

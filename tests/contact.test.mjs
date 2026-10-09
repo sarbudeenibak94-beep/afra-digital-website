@@ -259,3 +259,177 @@ test('responses are never cached', async () => {
   const res = await run({ body: { ...VALID, message: 'cache ' + Date.now() } }, { env: ENV, fetch: okFetch([]) });
   assert.equal(res.headers['cache-control'], 'no-store');
 });
+
+// ======================================================================
+// Resend delivery fix (sender domain, 403 classification, retries, leakage)
+// ======================================================================
+const SECRET = 're_TESTSECRET_should_never_appear_123456';
+const ENV2 = { RESEND_API_KEY: SECRET, RESEND_API_URL: 'https://mock.invalid/emails', VERCEL_ENV: 'preview' };
+const respond = (status, body) => ({ status, json: async () => body });
+
+/** Run the handler while capturing console.error output. */
+async function runLogged(reqOpts, deps) {
+  const logs = []; const orig = console.error;
+  console.error = (...a) => logs.push(a.join(' '));
+  try { const res = mockRes(); await handler(mockReq(reqOpts), res, deps); return { res, logs: logs.join('\n') }; }
+  finally { console.error = orig; }
+}
+const uniq = label => ({ ...VALID, message: `${label} ${Date.now()} ${Math.random()}` });
+function assertNoLeak(res, logs) {
+  for (const s of [SECRET, 'test.enquiry@example.org', 'TEST.enquiry', 'Enquiry', 'AUTOMATED TEST']) {
+    assert.ok(!logs.includes(s), `log leaked: ${s}`);
+    assert.ok(!res.body.includes(s), `response leaked: ${s}`);
+  }
+}
+
+test('default sender is on the verified domain (never resend.dev); recipient fixed; visitor is reply_to', async () => {
+  const calls = [];
+  const { res } = await runLogged({ body: { ...uniq('sender'), to: 'attacker@evil.test', from: 'x@evil.test', reply_to: 'y@evil.test' } }, { env: ENV2, fetch: okFetch(calls) });
+  assert.equal(res.statusCode, 200);
+  const b = calls[0].body;
+  assert.equal(b.from, 'AFRA DIGITAL Website <website@afra-digital.com>');
+  assert.deepEqual(b.to, ['afradigital.hello@gmail.com']);
+  assert.equal(b.reply_to, 'test.enquiry@example.org');
+  assert.ok(!JSON.stringify(b).includes('evil.test'), 'visitor must not control from/to');
+  assert.ok(!/resend\.dev/.test(b.from));
+});
+
+test('CONTACT_FROM_EMAIL override on the verified domain is used', async () => {
+  const calls = [];
+  await runLogged({ body: uniq('override') }, { env: { ...ENV2, CONTACT_FROM_EMAIL: 'AFRA DIGITAL Website <enquiries@afra-digital.com>' }, fetch: okFetch(calls) });
+  assert.equal(calls[0].body.from, 'AFRA DIGITAL Website <enquiries@afra-digital.com>');
+});
+
+test('missing RESEND_API_KEY -> 503, diagnostic log, provider never called', async () => {
+  const calls = [];
+  const { res, logs } = await runLogged({ body: uniq('nokey') }, { env: { RESEND_API_URL: 'x', VERCEL_ENV: 'preview' }, fetch: okFetch(calls) });
+  assert.equal(res.statusCode, 503); assert.equal(res.json.error, 'not_configured'); assert.equal(calls.length, 0);
+  assert.match(logs, /not configured: missing_api_key/); assert.match(logs, /env=preview/);
+});
+
+test('whitespace-only RESEND_API_KEY is treated as missing', async () => {
+  const { res, logs } = await runLogged({ body: uniq('blank') }, { env: { RESEND_API_KEY: '   ' }, fetch: okFetch([]) });
+  assert.equal(res.statusCode, 503); assert.match(logs, /missing_api_key/);
+});
+
+test('resend.dev sender is refused before calling the provider', async () => {
+  const calls = [];
+  const { res, logs } = await runLogged({ body: uniq('testsender') }, { env: { ...ENV2, CONTACT_FROM_EMAIL: 'AFRA <onboarding@resend.dev>' }, fetch: okFetch(calls) });
+  assert.equal(res.statusCode, 503); assert.equal(calls.length, 0); assert.match(logs, /test_sender_not_allowed/);
+});
+
+test('sender outside the verified domain is refused', async () => {
+  const calls = [];
+  const { res, logs } = await runLogged({ body: uniq('mismatch') }, { env: { ...ENV2, CONTACT_FROM_EMAIL: 'AFRA <afradigital.hello@gmail.com>' }, fetch: okFetch(calls) });
+  assert.equal(res.statusCode, 503); assert.equal(calls.length, 0); assert.match(logs, /sender_domain_mismatch/);
+});
+
+test('malformed / header-injecting sender config is refused', async () => {
+  for (const from of ['not an address', 'AFRA <website@afra-digital.com>\r\nBcc: x@y.com']) {
+    const { res, logs } = await runLogged({ body: uniq('badfrom') }, { env: { ...ENV2, CONTACT_FROM_EMAIL: from }, fetch: okFetch([]) });
+    assert.equal(res.statusCode, 503); assert.match(logs, /invalid_from/);
+  }
+});
+
+test('invalid recipient config is refused', async () => {
+  const { res, logs } = await runLogged({ body: uniq('badto') }, { env: { ...ENV2, CONTACT_TO_EMAIL: 'a@b.com, c@d.com' }, fetch: okFetch([]) });
+  assert.equal(res.statusCode, 503); assert.match(logs, /invalid_to/);
+});
+
+test('Resend 403 test-sender restriction -> 502, classified, NOT retried, emails stripped from log', async () => {
+  let n = 0;
+  const f = async () => { n++; return respond(403, { statusCode: 403, name: 'validation_error', message: 'The resend.dev domain is for testing and can only send to your own email address (owner@private.test). To send to other recipients, verify a domain and update the from address to use it.' }); };
+  const { res, logs } = await runLogged({ body: uniq('403test') }, { env: ENV2, fetch: f });
+  assert.equal(res.statusCode, 502); assert.equal(res.json.error, 'delivery_failed'); assert.equal(n, 1);
+  assert.match(logs, /kind=test_sender_restriction status=403/);
+  assert.ok(!logs.includes('owner@private.test')); assert.match(logs, /\[email\]/);
+  assertNoLeak(res, logs);
+});
+
+test('Resend 403 domain not verified -> sender_unverified, not retried', async () => {
+  let n = 0;
+  const f = async () => { n++; return respond(403, { statusCode: 403, name: 'validation_error', message: 'The afra-digital.com domain is not verified. Please, add and verify your domain on https://resend.com/domains' }); };
+  const { res, logs } = await runLogged({ body: uniq('403dom') }, { env: ENV2, fetch: f });
+  assert.equal(res.statusCode, 502); assert.equal(n, 1); assert.match(logs, /kind=sender_unverified/);
+});
+
+test('invalid / missing / restricted API key -> kind=auth, key never logged', async () => {
+  for (const [status, body] of [
+    [403, { statusCode: 403, name: 'invalid_api_key', message: 'API key is invalid' }],
+    [401, { statusCode: 401, name: 'missing_api_key', message: 'Missing API key in the authorization header.' }],
+    [401, { statusCode: 401, name: 'restricted_api_key', message: 'This API key is restricted to only send emails.' }],
+  ]) {
+    let n = 0;
+    const { res, logs } = await runLogged({ body: uniq('auth' + status) }, { env: ENV2, fetch: async () => { n++; return respond(status, body); } });
+    assert.equal(res.statusCode, 502); assert.equal(n, 1); assert.match(logs, /kind=auth/);
+    assertNoLeak(res, logs);
+  }
+});
+
+test('Resend 422 validation -> kind=validation, not retried', async () => {
+  let n = 0;
+  const { logs } = await runLogged({ body: uniq('422') }, { env: ENV2, fetch: async () => { n++; return respond(422, { name: 'validation_error', message: 'Invalid `subject` field.' }); } });
+  assert.equal(n, 1); assert.match(logs, /kind=validation status=422/);
+});
+
+test('Resend 429 -> provider_rate_limited, not retried', async () => {
+  let n = 0;
+  const { res, logs } = await runLogged({ body: uniq('429') }, { env: ENV2, fetch: async () => { n++; return respond(429, { name: 'rate_limit_exceeded', message: 'Too many requests' }); } });
+  assert.equal(res.statusCode, 502); assert.equal(n, 1); assert.match(logs, /kind=provider_rate_limited/);
+});
+
+test('Resend 5xx once then success -> retried once with the same Idempotency-Key -> 200', async () => {
+  const keys = []; let n = 0;
+  const f = async (url, init) => { n++; keys.push(init.headers['Idempotency-Key']); return n === 1 ? respond(503, { message: 'unavailable' }) : respond(200, { id: 'ok' }); };
+  const { res } = await runLogged({ body: uniq('5xxretry') }, { env: ENV2, fetch: f, retryDelayMs: 5 });
+  assert.equal(res.statusCode, 200); assert.equal(n, 2); assert.equal(keys[0], keys[1]); assert.match(keys[0], /^afra-contact-[0-9a-f]{40}$/);
+});
+
+test('persistent 5xx -> 2 attempts total, then 502 provider_unavailable', async () => {
+  let n = 0;
+  const { res, logs } = await runLogged({ body: uniq('5xx') }, { env: ENV2, fetch: async () => { n++; return respond(500, {}); }, retryDelayMs: 5 });
+  assert.equal(res.statusCode, 502); assert.equal(n, 2); assert.match(logs, /kind=provider_unavailable/);
+});
+
+test('network failure -> retried once, then 502 kind=network', async () => {
+  let n = 0;
+  const { res, logs } = await runLogged({ body: uniq('net') }, { env: ENV2, fetch: async () => { n++; throw new TypeError('fetch failed'); }, retryDelayMs: 5 });
+  assert.equal(res.statusCode, 502); assert.equal(n, 2); assert.match(logs, /kind=network/);
+});
+
+test('timeout -> 504, not retried (delivery state unknown)', async () => {
+  let n = 0;
+  const slow = (url, init) => { n++; return new Promise((_, rej) => init.signal.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), { name: 'AbortError' })))); };
+  const { res, logs } = await runLogged({ body: uniq('to') }, { env: ENV2, fetch: slow, timeoutMs: 30 });
+  assert.equal(res.statusCode, 504); assert.equal(n, 1); assert.match(logs, /kind=timeout/);
+});
+
+test('client-facing errors are generic: no provider message, status or kind exposed', async () => {
+  const f = async () => respond(403, { name: 'validation_error', message: 'The resend.dev domain is for testing (owner@private.test)' });
+  const { res } = await runLogged({ body: uniq('generic') }, { env: ENV2, fetch: f });
+  assert.deepEqual(Object.keys(res.json).sort(), ['error', 'message', 'ok']);
+  assert.ok(!/resend|403|test_sender|owner@/i.test(res.body));
+});
+
+test('successful delivery logs nothing and leaks nothing', async () => {
+  const { res, logs } = await runLogged({ body: uniq('quiet') }, { env: ENV2, fetch: okFetch([]) });
+  assert.equal(res.statusCode, 200); assert.equal(logs, ''); assertNoLeak(res, logs);
+});
+
+test('classifyProviderError mapping', () => {
+  const c = core.classifyProviderError;
+  assert.equal(c(401, { name: 'missing_api_key' }), 'auth');
+  assert.equal(c(403, { name: 'invalid_api_key' }), 'auth');
+  assert.equal(c(403, { name: 'validation_error', message: 'You can only send testing emails to your own email address' }), 'test_sender_restriction');
+  assert.equal(c(403, { message: 'The x.com domain is not verified.' }), 'sender_unverified');
+  assert.equal(c(422, { name: 'invalid_from_address' }), 'sender_unverified');
+  assert.equal(c(429, {}), 'provider_rate_limited');
+  assert.equal(c(502, null), 'provider_unavailable');
+  assert.equal(c(400, { name: 'validation_error', message: 'bad' }), 'validation');
+  assert.equal(c(404, {}), 'rejected');
+});
+
+test('idempotency key is stable per submission and differs between submissions', () => {
+  const a = core.idempotencyKey(VALID), b = core.idempotencyKey({ ...VALID }), d = core.idempotencyKey({ ...VALID, message: 'other' });
+  assert.equal(a, b); assert.notEqual(a, d);
+});

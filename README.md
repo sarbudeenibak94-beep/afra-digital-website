@@ -17,8 +17,17 @@ Static website for https://www.afra-digital.com/ (hosted on Vercel) with one ser
 
 ## Contact form configuration
 
-Set `RESEND_API_KEY` (server-side) in the Vercel project. See `.env.example` for optional variables.
-Until it is set, the form shows a truthful "temporarily unavailable" message with WhatsApp, phone and email alternatives — it never shows a false success.
+Server-side Vercel environment variables (Project → Settings → Environment Variables), set **per environment**:
+
+| Variable | Required | Notes |
+|---|---|---|
+| `RESEND_API_KEY` | Yes | Resend API key with sending access. Add to **Preview** and **Production** separately; mark Sensitive. Env changes apply only to **new** deployments — redeploy after changing. |
+| `CONTACT_FROM_EMAIL` | No | Default `AFRA DIGITAL Website <website@afra-digital.com>`. Must be on the Resend-verified domain; `resend.dev` is refused. |
+| `CONTACT_SENDER_DOMAIN` | No | Default `afra-digital.com`. |
+| `CONTACT_TO_EMAIL` | No | Default `afradigital.hello@gmail.com`. Visitors can never change the recipient. |
+
+If configuration is missing or invalid, the form shows a truthful "temporarily unavailable" message (WhatsApp, phone and email alternatives) and the function logs a diagnostic such as `[contact] email provider not configured: missing_api_key`.
+Delivery failures are logged as `[contact] delivery failed kind=<auth|test_sender_restriction|sender_unverified|...> status=<code>` with email addresses stripped. Secrets and visitor data are never logged.
 
 ## Local development and tests (Node 18+, Chrome installed, no npm install needed)
 

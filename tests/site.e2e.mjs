@@ -207,14 +207,30 @@ try {
       const pl = received[0] && received[0].payload;
       check('email delivered to afradigital.hello@gmail.com with reply-to = enquirer, plain text', pl && pl.to[0] === 'afradigital.hello@gmail.com' && pl.reply_to === 'e2e-test@example.org' && !pl.html && /AUTOMATED E2E TEST/.test(pl.text) && received[0].hasBearer, pl && pl.subject);
       check('generate_lead tracked once, without personal data', s.dl.filter(e => e === 'generate_lead').length === 1 && !/e2e-test|Automated|0000|AUTOMATED/.test(s.dlRaw), s.dlRaw.slice(0, 200));
+      check('sender is on the verified domain (not resend.dev) and an Idempotency-Key is sent', pl && pl.from === 'AFRA DIGITAL Website <website@afra-digital.com>' && /^afra-contact-[0-9a-f]{40}$/.test(received[0].idempotencyKey || ''), pl && `${pl.from} key=${received[0].idempotencyKey}`);
       await p.close();
     }
+    // 4b. real-world Resend 403 rejections -> generic error, input preserved, no retry, no false success
+    for (const mode of ['testing403', 'unverified403', 'badkey']) {
+      const before = (await (await fetch(`${MOCK}/__received`)).json()).length;
+      const p = await browser.newPage({ width: 1280, height: 900 });
+      await setMode(mode);
+      await p.goto(B + '/'); await sleep(3000);
+      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await sleep(1500);
+      const s = await state(p);
+      const kept = await p.eval(`(() => { const f = document.getElementById('contact-form'); return !f.hidden && f.email.value === 'e2e-test@example.org' && f.firstName.value === 'Test' && /AUTOMATED E2E TEST/.test(f.message.value); })()`);
+      const attempts = (await (await fetch(`${MOCK}/__received`)).json()).length - before;
+      const body = await p.eval(`document.getElementById('form-error').textContent`);
+      check(`Resend ${mode}: generic error, NO success, input kept, provider called once`, !s.success && /could not be sent/.test(s.error) && kept && attempts === 1 && !/resend|403|verify|api key/i.test(body), `attempts=${attempts} kept=${kept} msg=${s.error}`);
+      await p.close();
+    }
+    await setMode('success');
     // 5. provider failure -> honest error
     {
       const p = await browser.newPage({ width: 1280, height: 900 });
       await setMode('fail');
       await p.goto(B + '/'); await sleep(3000);
-      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await sleep(1500);
+      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await sleep(2500);
       const s = await state(p);
       check('provider 500: error with WhatsApp/email alternatives, NO success', !s.success && /could not be sent/.test(s.error), s.error);
       const links = await p.eval(`[...document.querySelectorAll('#form-error a')].map(a => a.getAttribute('href').split('?')[0])`);

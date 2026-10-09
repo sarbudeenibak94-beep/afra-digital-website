@@ -25,10 +25,14 @@ http.createServer((req, res) => {
     req.on('end', () => {
       const auth = req.headers.authorization || '';
       const parsed = (() => { try { return JSON.parse(body); } catch { return null; } })();
-      received.push({ at: new Date().toISOString(), mode, hasBearer: auth.startsWith('Bearer '), payload: parsed });
+      received.push({ at: new Date().toISOString(), mode, hasBearer: auth.startsWith('Bearer '), idempotencyKey: req.headers['idempotency-key'] || null, payload: parsed });
       const send = (code, obj) => { res.statusCode = code; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(obj)); };
       if (mode === 'fail') return send(500, { name: 'internal_server_error', message: 'mock failure' });
       if (mode === 'reject') return send(422, { name: 'validation_error', message: 'mock rejection' });
+      // Real-world Resend rejections observed / documented:
+      if (mode === 'testing403') return send(403, { statusCode: 403, name: 'validation_error', message: 'The resend.dev domain is for testing and can only send to your own email address. To send to other recipients, verify a domain and update the from address to use it.' });
+      if (mode === 'unverified403') return send(403, { statusCode: 403, name: 'validation_error', message: 'The afra-digital.com domain is not verified. Please, add and verify your domain on https://resend.com/domains' });
+      if (mode === 'badkey') return send(403, { statusCode: 403, name: 'invalid_api_key', message: 'API key is invalid' });
       if (mode === 'slow') return setTimeout(() => send(200, { id: 'mock-slow' }), 20000);
       return send(200, { id: 'mock-' + received.length });
     });

@@ -1,8 +1,8 @@
 'use strict';
 // POST /api/contact — receives website enquiries and delivers them by email.
 // Vercel Node.js serverless function (no npm dependencies).
-// Required server-side env var: RESEND_API_KEY. Optional: CONTACT_TO_EMAIL, CONTACT_FROM_EMAIL,
-// CONTACT_ALLOWED_ORIGINS, RESEND_API_URL (tests only). See docs/CONTACT_FORM_SETUP.md.
+// Required server-side env var: RESEND_API_KEY. Optional: CONTACT_FROM_EMAIL, CONTACT_SENDER_DOMAIN,
+// CONTACT_TO_EMAIL, CONTACT_ALLOWED_ORIGINS, RESEND_API_URL (tests only). See README.md / .env.example.
 const core = require('./_lib/contact-core');
 
 // Per-instance, best-effort limits (serverless instances are short-lived and may run in parallel).
@@ -26,6 +26,26 @@ const MESSAGES = {
   method_not_allowed: 'Method not allowed.',
   unsupported_type: 'Unsupported request format.',
   too_large: 'Your message is too long. Please shorten it and try again.',
+};
+
+// Server-log hints for operators (never sent to the browser).
+const CONFIG_HINTS = {
+  missing_api_key: 'RESEND_API_KEY is not set for this Vercel environment; add it and redeploy',
+  invalid_from: 'CONTACT_FROM_EMAIL is not a valid "Name <address>" or address',
+  test_sender_not_allowed: 'resend.dev test sender only delivers to the Resend account owner; use an address on the verified domain',
+  sender_domain_mismatch: 'CONTACT_FROM_EMAIL must use the verified sender domain (CONTACT_SENDER_DOMAIN)',
+  invalid_to: 'CONTACT_TO_EMAIL must be a single valid address',
+};
+const DELIVERY_HINTS = {
+  auth: 'Resend rejected the API key (missing, invalid, revoked or restricted) - check RESEND_API_KEY for this environment',
+  test_sender_restriction: 'Resend test sender restriction - use a from-address on the verified domain',
+  sender_unverified: 'from-address domain is not verified in Resend - check Resend > Domains',
+  recipient_rejected: 'Resend refused the recipient - check account/domain restrictions',
+  validation: 'Resend rejected the request payload',
+  provider_rate_limited: 'Resend rate limit reached',
+  provider_unavailable: 'Resend returned a server error (retried once)',
+  network: 'could not reach Resend (retried once)',
+  timeout: 'no response from Resend in time; delivery state unknown',
 };
 
 function clientIp(req) {
@@ -143,16 +163,21 @@ async function handler(req, res, deps = {}) {
   }
 
   if (!config.configured) {
-    // Logged without any personal data.
-    console.error('[contact] email provider not configured (RESEND_API_KEY missing)');
+    // Configuration diagnostics only — no secret values, no visitor data.
+    console.error(`[contact] email provider not configured: ${config.problem} (${CONFIG_HINTS[config.problem] || 'check environment'})` +
+      ` env=${env.VERCEL_ENV || 'unknown'}`);
     return fail(res, 503, 'not_configured', mode);
   }
 
   try {
-    await core.deliver(config, data, { fetchImpl, timeoutMs: deps.timeoutMs || 8000 });
+    await core.deliver(config, data, { fetchImpl, timeoutMs: deps.timeoutMs || 7000, retryDelayMs: deps.retryDelayMs });
   } catch (err) {
-    console.error(`[contact] delivery ${err.kind || 'error'}${err.status ? ' status=' + err.status : ''}`);
-    return err.kind === 'timeout' ? fail(res, 504, 'timeout', mode) : fail(res, 502, 'delivery_failed', mode);
+    const kind = err.kind || 'error';
+    console.error(`[contact] delivery failed kind=${kind}${err.status ? ' status=' + err.status : ''}` +
+      ` sender_domain=${config.fromDomain} env=${env.VERCEL_ENV || 'unknown'}` +
+      (DELIVERY_HINTS[kind] ? ` hint="${DELIVERY_HINTS[kind]}"` : '') +
+      (err.detail ? ` provider="${err.detail}"` : ''));
+    return kind === 'timeout' ? fail(res, 504, 'timeout', mode) : fail(res, 502, 'delivery_failed', mode);
   }
 
   duplicates.remember(data);
