@@ -162,6 +162,9 @@ try {
       const text = await p.eval(`document.body.innerText`);
       const hits = CLAIMS.filter(re => re.test(text)).map(String);
       check(`${path}: no unsupported claims (counts, stars, awards, "leading", guarantees, client projects, testimonials)`, hits.length === 0, hits.join(' '));
+      // Owner-approved wording (Batch 1 review): Launch step must match exactly.
+      const launchText = await p.eval(`[...document.querySelectorAll('.svp-steps li')].find(li => li.querySelector('h3').textContent.trim() === 'Launch').querySelector('p').textContent.trim()`);
+      check(`${path}: Launch step uses the owner-approved wording`, launchText === 'We test the finished website, publish it after your approval, and verify that it works as agreed.', launchText);
       // shared blocks parity with the homepage (behaviour-relevant structure)
       const sig = `(() => { const norm = h => { if (!h) return h; if (h === '/' || h === '#hero') return 'HOME'; return h.replace(/^\\/(?=#)/, ''); };
         const links = sel => [...document.querySelectorAll(sel + ' a')].map(a => a.textContent.trim().replace(/\\s+/g, ' ') + ' => ' + norm(a.getAttribute('href')));
