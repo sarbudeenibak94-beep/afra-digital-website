@@ -175,6 +175,47 @@ footer{border-top:1px solid var(--gold-border);padding:clamp(56px,7vw,80px) 0 28
 .svp-hero{position:relative;overflow:hidden;padding:clamp(150px,16vw,200px) 0 clamp(64px,8vw,104px);}
 .svp-hero::before{content:'';position:absolute;width:720px;height:520px;border-radius:50%;background:var(--gold);filter:blur(160px);opacity:0.07;top:-120px;right:-160px;pointer-events:none;}
 .svp-hero .c{position:relative;}
+/* Hero visual: decorative website-on-desktop-and-phone composition with the AFRA DIGITAL logo.
+   Rendered (and its logo image downloaded) only on wide screens; transform/opacity-only motion; static with reduced motion. */
+.svp-hero-grid{display:block;}
+.svp-visual{display:none;}
+@media (min-width:901px){
+  .svp-hero-grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,0.88fr);gap:clamp(24px,4vw,64px);align-items:center;}
+  .svp-visual{display:block;position:relative;width:100%;max-width:470px;aspect-ratio:1/1;justify-self:end;animation:svpEnter .9s var(--ease) .15s both;}
+  .svp-visual::before{content:'';position:absolute;inset:18%;border-radius:50%;background:radial-gradient(circle,rgba(212,175,55,0.22),rgba(212,175,55,0) 70%);filter:blur(30px);}
+  .svp-orbit{position:absolute;border-radius:50%;pointer-events:none;}
+  .svp-orbit-1{inset:6%;border:1px solid rgba(240,207,90,.18);}
+  .svp-orbit-2{inset:0;border:1px dashed rgba(240,207,90,.14);animation:svpSpin 60s linear infinite;}
+  .svp-window{position:absolute;left:9%;right:3%;top:17%;height:56%;border-radius:18px;overflow:hidden;
+    border:1px solid var(--gold-border);background:linear-gradient(180deg,rgba(15,23,42,.94),rgba(6,13,26,.96));
+    box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.02) inset,0 0 44px rgba(212,175,55,.12);animation:svpFloat 7s ease-in-out infinite;}
+  .svp-window-bar{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-bottom:1px solid var(--glass-border);background:rgba(255,255,255,.025);}
+  .svp-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.16);}
+  .svp-dot:first-child{background:rgba(212,175,55,.55);}
+  .svp-url{flex:1;height:12px;margin-left:10px;max-width:58%;border-radius:999px;background:rgba(255,255,255,.06);}
+  /* left padding keeps the window's content clear of the overlapping phone frame */
+  .svp-window-body{display:grid;grid-template-columns:40% 1fr;gap:7%;align-items:center;height:calc(100% - 30px);padding:0 7% 0 25%;}
+  .svp-logo{background:url(/assets/img/afra-logo-384.webp) center/contain no-repeat;}
+  .svp-logo-lg{aspect-ratio:1/1;width:100%;filter:drop-shadow(0 6px 22px rgba(212,175,55,.28));}
+  .svp-skel{display:flex;flex-direction:column;gap:10px;}
+  .svp-skel i{display:block;height:9px;border-radius:999px;background:rgba(255,255,255,.08);}
+  .svp-skel i.w-90{width:90%;background:rgba(240,207,90,.30);}
+  .svp-skel i.w-70{width:70%;}
+  .svp-skel i.w-80{width:80%;}
+  .svp-skel b{display:block;width:52%;height:22px;margin-top:6px;border-radius:8px;background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,#B8920F);opacity:.9;}
+  .svp-phone{position:absolute;left:0;bottom:7%;width:27%;aspect-ratio:9/18;border-radius:22px;padding:14% 10% 10%;
+    border:1px solid var(--gold-border);background:linear-gradient(180deg,rgba(15,23,42,.97),rgba(6,13,26,.98));
+    box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 30px rgba(212,175,55,.10);display:flex;flex-direction:column;align-items:center;gap:12%;
+    animation:svpFloat 6s ease-in-out -2.5s infinite;}
+  .svp-phone-notch{position:absolute;top:5%;left:50%;width:34%;height:3.5%;transform:translateX(-50%);border-radius:999px;background:rgba(255,255,255,.10);}
+  .svp-logo-sm{width:80%;aspect-ratio:1/1;}
+  .svp-skel-sm{width:100%;gap:7px;}
+  .svp-skel-sm i{height:6px;}
+  .svp-skel-sm b{width:70%;height:14px;margin-top:2px;border-radius:6px;}
+}
+@keyframes svpEnter{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+@keyframes svpFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+@keyframes svpSpin{to{transform:rotate(360deg);}}
 .svp-crumbs ol{list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.78rem;color:var(--gray-500);margin-bottom:28px;}
 .svp-crumbs li+li::before{content:'›';margin-right:6px;color:var(--gray-700);}
 .svp-crumbs a{color:var(--gray-400);text-decoration:underline;text-underline-offset:3px;}
@@ -333,4 +374,5 @@ footer{border-top:1px solid var(--gold-border);padding:clamp(56px,7vw,80px) 0 28
   *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;}
   .btn:hover,.btn-prime:hover,.btn-ghost:hover,.btn-wa:hover,#wa-float:hover,.c-method:hover{transform:none;}
   #wa-float{animation:none;}
+  .svp-visual,.svp-window,.svp-phone,.svp-orbit-2{animation:none!important;}
 }

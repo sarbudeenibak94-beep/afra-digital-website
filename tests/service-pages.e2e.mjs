@@ -202,6 +202,13 @@ try {
       const hp = await browser.newPage({ width: 1280, height: 900 }); await hp.goto(S + '/'); await sleep(1500);
       const hpBytes = await hp.eval(`performance.getEntriesByType('resource').concat(performance.getEntriesByType('navigation')).reduce((s, e) => s + (e.transferSize || 0), 0)`); await hp.close();
       check(`${path}: CLS < 0.05 and page transfer smaller than the homepage`, perf.cls < 0.05 && perf.bytes < hpBytes, `cls=${perf.cls} bytes=${perf.bytes} home=${hpBytes}`);
+      const hv = await p.eval(`(() => { const v = document.querySelector('.svp-visual'), c = document.querySelector('.svp-hero-copy'), ph = document.querySelector('.svp-phone'), lg = document.querySelector('.svp-logo-lg');
+        const rv = v.getBoundingClientRect(), rc = c.getBoundingClientRect();
+        return { shown: getComputedStyle(v).display !== 'none', hidden: v.getAttribute('aria-hidden'), focusables: v.querySelectorAll('a,button,input,[tabindex]').length,
+          clearOfCopy: rv.left >= rc.right - 1, logoClear: lg.getBoundingClientRect().left >= ph.getBoundingClientRect().right,
+          anim: [getComputedStyle(document.querySelector('.svp-window')).animationName, getComputedStyle(ph).animationName, getComputedStyle(document.querySelector('.svp-orbit-2')).animationName] }; })()`);
+      check(`${path}: desktop hero visual shown, decorative (aria-hidden, no focusable content), clear of the copy, logo not covered, restrained motion`,
+        hv.shown && hv.hidden === 'true' && hv.focusables === 0 && hv.clearOfCopy && hv.logoClear && JSON.stringify(hv.anim) === JSON.stringify(['svpFloat', 'svpFloat', 'svpSpin']), JSON.stringify(hv));
       check(`${path}: floating WhatsApp button uses the homepage "waFloat" motion on desktop`, await p.eval(`getComputedStyle(document.getElementById('wa-float')).animationName === 'waFloat'`));
       check(`${path} desktop: no exceptions, console errors or CSP violations`, !p.log.exceptions.length && !p.log.console.filter(c => /^error/.test(c)).length && !p.log.cspViolations.length, JSON.stringify([p.log.exceptions, p.log.console, p.log.cspViolations]).slice(0, 300));
       await p.close();
@@ -212,10 +219,11 @@ try {
       const p = await browser.newPage({ width: 1280, height: 900 });
       await p.S('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
       await p.goto(S + path); await sleep(600);
-      const r = await p.eval(`(() => { const b = document.querySelector('.svp-btns .btn'); return { sb: getComputedStyle(document.documentElement).scrollBehavior, td: parseFloat(getComputedStyle(b).transitionDuration), wa: getComputedStyle(document.getElementById('wa-float')).animationName }; })()`);
+      const r = await p.eval(`(() => { const b = document.querySelector('.svp-btns .btn'); return { sb: getComputedStyle(document.documentElement).scrollBehavior, td: parseFloat(getComputedStyle(b).transitionDuration), wa: getComputedStyle(document.getElementById('wa-float')).animationName,
+        hero: ['.svp-visual', '.svp-window', '.svp-phone', '.svp-orbit-2'].map(s => getComputedStyle(document.querySelector(s)).animationName).join(',') }; })()`);
       await p.eval(`document.querySelector('a[data-cta="lp_web_hero"]').click(); true`); await sleep(60);
       const jumped = await p.eval(`Math.abs(document.getElementById('contact').getBoundingClientRect().top) < 5`);
-      check(`${path}: prefers-reduced-motion → no smooth scrolling, transitions effectively off, no floating animation, instant jump to the form`, r.sb === 'auto' && r.td <= 0.001 && r.wa === 'none' && jumped, JSON.stringify({ ...r, jumped }));
+      check(`${path}: prefers-reduced-motion → no smooth scrolling, transitions effectively off, no floating or hero animation, instant jump to the form`, r.sb === 'auto' && r.td <= 0.001 && r.wa === 'none' && r.hero === 'none,none,none,none' && jumped, JSON.stringify({ ...r, jumped }));
       await p.close();
     }
 
@@ -291,8 +299,10 @@ try {
       await p.goto(S + path); await sleep(1200);
       const m = await p.eval(`(() => { const r = el => el.getBoundingClientRect(); const vis = el => el && el.offsetWidth > 0;
         const small = [...document.querySelectorAll('.svp-btns .btn, #form-btn, .price-card .btn-full, #hamburger, .nav-right .btn-prime, .svp-related a')].filter(vis).filter(el => r(el).height < 44).map(el => el.textContent.trim().slice(0, 20) || el.id);
-        return { sw: document.documentElement.scrollWidth, vw: innerWidth, hamburger: vis(document.getElementById('hamburger')), navLinksHidden: !vis(document.querySelector('.nav-links')), small, waAnim: getComputedStyle(document.getElementById('wa-float')).animationName }; })()`);
+        return { sw: document.documentElement.scrollWidth, vw: innerWidth, hamburger: vis(document.getElementById('hamburger')), navLinksHidden: !vis(document.querySelector('.nav-links')), small, waAnim: getComputedStyle(document.getElementById('wa-float')).animationName,
+          heroVisual: getComputedStyle(document.querySelector('.svp-visual')).display, logoFetched: performance.getEntriesByType('resource').filter(e => /afra-logo-384/.test(e.name)).length }; })()`);
       check(`${path} 390×844: no horizontal scroll, hamburger shown, desktop links hidden, touch targets ≥ 44px, no floating animation on phones (as homepage)`, m.sw <= m.vw && m.hamburger && m.navLinksHidden && m.small.length === 0 && m.waAnim === 'none', JSON.stringify(m));
+      check(`${path} 390×844: hero visual not rendered on phones and its logo image not downloaded`, m.heroVisual === 'none' && m.logoFetched === 0, JSON.stringify({ heroVisual: m.heroVisual, logoFetched: m.logoFetched }));
       await p.eval(`document.getElementById('hamburger').focus(); true`); await p.key('Enter', 'Enter', 13); await sleep(450);
       const menu = await p.eval(`({ open: document.getElementById('hamburger').getAttribute('aria-expanded'), items: [...document.querySelectorAll('#mob-nav a')].map(a => a.textContent.trim()) })`);
       check(`${path}: mobile menu opens by keyboard with WhatsApp, Call and "Start Your Project →"`, menu.open === 'true' && menu.items.includes('WhatsApp us') && menu.items.includes('Call +974 3002 9799') && menu.items.at(-1) === 'Start Your Project →', menu.items.join(' | '));
@@ -351,6 +361,16 @@ try {
     check('homepage: "Learn more about website development" link visible on the card', learn && learn.href === '/services/website-development' && learn.visible, JSON.stringify(learn));
     check('homepage: no exceptions, console errors or CSP violations', !p.log.exceptions.length && !fresh.log.exceptions.length && !p.log.cspViolations.length && !fresh.log.cspViolations.length && !fresh.log.console.filter(c => /^error/.test(c)).length, JSON.stringify([p.log.exceptions, fresh.log.exceptions, fresh.log.console]).slice(0, 300));
     await fresh.close(); await p.close();
+    // Homepage header "Start Project": 44px touch target on phones; header height and tablet/desktop unchanged.
+    const hdr = [];
+    for (const [w, expectH, expectNav] of [[320, 44, 75], [360, 44, 75], [390, 44, 75], [414, 44, 75], [768, 44, 75], [769, null, 85], [1024, null, 85], [1280, null, 105]]) {
+      const q = await browser.newPage({ width: w, height: 800, mobile: w <= 1024 }); await q.goto(S + '/'); await sleep(600);
+      const r = await q.eval(`({ btnH: +document.querySelector('#nav .nav-right .btn-prime').getBoundingClientRect().height.toFixed(1), navH: Math.round(document.getElementById('nav').getBoundingClientRect().height), sw: document.documentElement.scrollWidth, vw: innerWidth })`);
+      await q.close();
+      const ok = (expectH === null ? r.btnH < 44 && r.btnH > 30 : r.btnH >= expectH) && r.navH === expectNav && r.sw <= r.vw;
+      if (!ok) hdr.push(`${w}:${JSON.stringify(r)}`);
+    }
+    check('homepage: header "Start Project" is ≥ 44px on phones (≤768), header height unchanged (75/85/105), tablet/desktop button unchanged', hdr.length === 0, hdr.join(' '));
   }
 } catch (err) {
   check('harness error', false, err.stack);
