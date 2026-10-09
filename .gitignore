@@ -1,0 +1,10 @@
+# Local/test artefacts
+tests/results/
+node_modules/
+.vercel/
+.env
+.env.*
+!.env.example
+# Internal reports must never live in (or be committed to) the site repo
+AFRA_DIGITAL_PHASE_*_REPORT.md
+*.log
