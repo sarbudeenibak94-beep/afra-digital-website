@@ -85,7 +85,9 @@ export async function launch({ port = 9340 } = {}) {
       },
       async screenshot(opts = {}) { return Buffer.from((await S('Page.captureScreenshot', { format: 'png', ...opts })).data, 'base64'); },
       async key(key, code = key, keyCode = 0, modifiers = 0) {
-        await S('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode: keyCode, modifiers });
+        // Enter/Space need `text` so Chrome performs default activation (e.g. clicking a focused button).
+        const text = key === 'Enter' ? '\r' : key === ' ' ? ' ' : undefined;
+        await S('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode: keyCode, modifiers, ...(text ? { text } : {}) });
         await S('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: keyCode, modifiers });
       },
       async close() { listeners.delete(listener); await send('Target.closeTarget', { targetId }); },

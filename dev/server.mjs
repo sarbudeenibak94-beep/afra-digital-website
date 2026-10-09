@@ -71,6 +71,8 @@ const server = http.createServer(async (req, res) => {
   const p = url.pathname;
   try {
     if (BLOCKED.some(r => r.test(p))) { res.statusCode = 404; return res.end('Not found'); }
+    const redirect = (cfg.redirects || []).find(r => sourceToRegex(r.source).test(p));
+    if (redirect) { res.statusCode = redirect.permanent ? 308 : 307; res.setHeader('Location', redirect.destination); return res.end(); }
     if (p.startsWith('/api/')) {
       const name = p.slice(5).replace(/[^a-z0-9-]/gi, '');
       const file = path.join(ROOT, 'api', name + '.js');
