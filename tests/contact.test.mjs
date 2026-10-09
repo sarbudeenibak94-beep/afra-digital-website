@@ -433,3 +433,107 @@ test('idempotency key is stable per submission and differs between submissions',
   const a = core.idempotencyKey(VALID), b = core.idempotencyKey({ ...VALID }), d = core.idempotencyKey({ ...VALID, message: 'other' });
   assert.equal(a, b); assert.notEqual(a, d);
 });
+
+// ======================================================================
+// Phase 04 Batch 1: qualification fields, plan, source, reference ID
+// ======================================================================
+const QUAL = Object.freeze({ budget: 'QAR 10,000–25,000', timeline: 'Within 1–3 months', contactPref: 'Email', plan: 'Business', source: 'pricing_business' });
+const ENV4 = { RESEND_API_KEY: 'test_key_not_real', RESEND_API_URL: 'https://mock.invalid/emails' };
+const uniq4 = (label, extra = {}) => ({ ...VALID, ...extra, message: `${label} ${Date.now()} ${Math.random()}` });
+
+test('P4 all confirmed qualification options are accepted', () => {
+  for (const budget of core.BUDGETS) assert.equal(core.validateSubmission({ ...VALID, budget }).ok, true, budget);
+  for (const timeline of core.TIMELINES) assert.equal(core.validateSubmission({ ...VALID, timeline }).ok, true, timeline);
+  for (const contactPref of ['Email']) assert.equal(core.validateSubmission({ ...VALID, contactPref }).ok, true);
+  for (const plan of core.PLANS) assert.equal(core.validateSubmission({ ...VALID, plan }).ok, true, plan);
+  assert.deepEqual([...core.BUDGETS], ['Under QAR 10,000', 'QAR 10,000–25,000', 'QAR 25,000–50,000', 'Over QAR 50,000', 'Not sure yet']);
+  assert.deepEqual([...core.TIMELINES], ['As soon as possible', 'Within 1–3 months', 'Within 3–6 months', 'Just exploring']);
+  assert.deepEqual([...core.CONTACT_PREFS], ['Email', 'WhatsApp', 'Phone']);
+});
+
+test('P4 qualification fields are optional', () => {
+  const r = core.validateSubmission({ ...VALID });
+  assert.equal(r.ok, true);
+  assert.equal(r.data.budget, ''); assert.equal(r.data.timeline, ''); assert.equal(r.data.contactPref, ''); assert.equal(r.data.plan, ''); assert.equal(r.data.source, '');
+});
+
+test('P4 values outside the allow-lists are rejected with field codes', () => {
+  const r = core.validateSubmission({ ...VALID, budget: 'One million', timeline: 'Yesterday', contactPref: 'Fax', plan: 'Gold' });
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.fields, { budget: 'invalid', timeline: 'invalid', contactPref: 'invalid', plan: 'invalid' });
+  assert.equal(core.validateSubmission({ ...VALID, budget: 'Under QAR 10,000\r\nBcc: x@y.com' }).fields.budget, 'invalid');
+  assert.equal(core.validateSubmission({ ...VALID, plan: { $ne: 1 } }).fields.plan, 'invalid');
+});
+
+test('P4 WhatsApp/Phone preference requires a phone number; Email does not', () => {
+  assert.equal(core.validateSubmission({ ...VALID, phone: '', contactPref: 'WhatsApp' }).fields.phone, 'required_for_contact');
+  assert.equal(core.validateSubmission({ ...VALID, phone: '', contactPref: 'Phone' }).fields.phone, 'required_for_contact');
+  assert.equal(core.validateSubmission({ ...VALID, phone: '+974 5555 1234', contactPref: 'WhatsApp' }).ok, true);
+  assert.equal(core.validateSubmission({ ...VALID, phone: '', contactPref: 'Email' }).ok, true);
+});
+
+test('P4 source CTA: valid ids kept, anything else silently dropped (never an error)', () => {
+  assert.equal(core.validateSubmission({ ...VALID, source: 'pricing_business' }).data.source, 'pricing_business');
+  for (const bad of ['Pricing Business', '<script>', 'x'.repeat(41), 'a@b.com', 'quick-after', 123]) {
+    const r = core.validateSubmission({ ...VALID, source: bad });
+    assert.equal(r.ok, true, String(bad)); assert.equal(r.data.source, '', String(bad));
+  }
+});
+
+test('P4 reference ids are random, well-formed and have no ambiguous characters', () => {
+  const seen = new Set();
+  for (let i = 0; i < 500; i++) { const r = core.makeReference(); assert.match(r, core.REFERENCE_RE); assert.ok(!/[01IO]/.test(r.slice(5))); seen.add(r); }
+  assert.ok(seen.size > 495, 'references should not repeat in a small sample');
+});
+
+test('P4 email includes package, budget, timeline, preferred contact, source and reference', async () => {
+  const calls = [];
+  const res = await run({ body: uniq4('qual', QUAL) }, { env: ENV4, fetch: okFetch(calls) });
+  assert.equal(res.statusCode, 200);
+  const ref = res.json.reference;
+  assert.match(ref, core.REFERENCE_RE);
+  const b = calls[0].body;
+  assert.ok(b.subject.startsWith(`Website enquiry [${ref}]: Website Development`), b.subject);
+  for (const line of ['Package:  Business', 'Budget:   QAR 10,000–25,000', 'Timeline: Within 1–3 months', 'Preferred contact: Email', `Reference: ${ref}`, 'Source:    website button "pricing_business"']) {
+    assert.ok(b.text.includes(line), 'missing line: ' + line);
+  }
+});
+
+test('P4 email shows dashes for unanswered optional fields and "direct" source', async () => {
+  const calls = [];
+  await run({ body: uniq4('noqual') }, { env: ENV4, fetch: okFetch(calls) });
+  const t = calls[0].body.text;
+  for (const line of ['Package:  —', 'Budget:   —', 'Timeline: —', 'Preferred contact: —', 'Source:    direct']) assert.ok(t.includes(line), line);
+});
+
+test('P4 duplicate submission returns the original reference and sends one email', async () => {
+  const calls = []; const body = uniq4('dupref', QUAL);
+  const a = await run({ body }, { env: ENV4, fetch: okFetch(calls) });
+  const b = await run({ body }, { env: ENV4, fetch: okFetch(calls) });
+  assert.equal(calls.length, 1);
+  assert.equal(b.json.duplicate, true);
+  assert.equal(b.json.reference, a.json.reference);
+});
+
+test('P4 failed delivery returns no reference', async () => {
+  const res = await run({ body: uniq4('noref') }, { env: ENV4, fetch: async () => ({ status: 500, json: async () => ({}) }), retryDelayMs: 1 });
+  assert.equal(res.statusCode, 502); assert.equal(res.json.reference, undefined);
+});
+
+test('P4 invalid qualification value -> 400 and nothing sent', async () => {
+  const calls = [];
+  const res = await run({ body: uniq4('badqual', { budget: 'Free please' }) }, { env: ENV4, fetch: okFetch(calls) });
+  assert.equal(res.statusCode, 400); assert.equal(res.json.fields.budget, 'invalid'); assert.equal(calls.length, 0);
+});
+
+test('P4 no-JS success page shows the reference', async () => {
+  const params = new URLSearchParams({ firstName: 'Test', lastName: 'NoJS', email: 'nojs4@example.org', budget: 'Not sure yet', message: 'p4 nojs ' + Date.now(), hp: '' });
+  const res = await run({ raw: params.toString(), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, { env: ENV4, fetch: okFetch([]) });
+  assert.equal(res.statusCode, 200);
+  assert.match(res.body, /Your reference: <strong>AFRA-[2-9A-HJ-NP-Z]{6}<\/strong>/);
+});
+
+test('P4 composeEmail ignores a malformed reference', () => {
+  const { subject, text } = core.composeEmail({ ...VALID, budget: '', timeline: '', contactPref: '', plan: '', source: '' }, { reference: 'AFRA-<x>\r\nBcc:' });
+  assert.ok(!subject.includes('[')); assert.ok(!text.includes('Reference:'));
+});

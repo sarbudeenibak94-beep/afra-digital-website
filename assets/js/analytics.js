@@ -26,7 +26,7 @@
     contact_form_start: 1, generate_lead: 1, whatsapp_click: 1, phone_click: 1, email_click: 1,
     service_cta_click: 1, cta_click: 1, form_submit_attempt: 1, form_error: 1,
   };
-  var PARAMS = { link_location: 1, service: 1, cta_id: 1, form_id: 1, method: 1, error_code: 1 };
+  var PARAMS = { link_location: 1, service: 1, plan: 1, cta_id: 1, form_id: 1, method: 1, error_code: 1 };
   var SAFE_VALUE = /^[A-Za-z0-9 _\-\/().&]{1,60}$/;
   var UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id'];
 
@@ -92,7 +92,7 @@
   }
   function linkLocation(el) {
     if (el.id === 'wa-float') return 'floating_button';
-    var s = el.closest('#form-error, #form-success, section[id], footer, header, .cta-strip');
+    var s = el.closest('#form-error, #form-success, section[id], aside[id], footer, header, .cta-strip');
     if (!s) return pageSlug();
     if (s.tagName === 'FOOTER') return 'footer';
     if (s.tagName === 'HEADER') return 'header';
@@ -106,11 +106,21 @@
     if (!a) return;
     var href = a.getAttribute('href') || '';
     var loc = linkLocation(a);
-    if (/^https:\/\/wa\.me\//i.test(href)) track('whatsapp_click', { link_location: loc });
+    // Context comes only from fixed data-* attributes on the link, never from anything the visitor typed.
+    if (/^https:\/\/wa\.me\//i.test(href)) {
+      var wp = { link_location: loc };
+      if (a.hasAttribute('data-wa-service')) wp.service = a.getAttribute('data-wa-service');
+      if (a.hasAttribute('data-wa-plan')) wp.plan = a.getAttribute('data-wa-plan');
+      track('whatsapp_click', wp);
+    }
     else if (/^tel:/i.test(href)) track('phone_click', { link_location: loc });
     else if (/^mailto:/i.test(href)) track('email_click', { link_location: loc });
     else if (a.hasAttribute('data-service')) track('service_cta_click', { service: a.getAttribute('data-service'), link_location: loc });
-    else if (a.hasAttribute('data-cta')) track('cta_click', { cta_id: a.getAttribute('data-cta'), link_location: loc });
+    else if (a.hasAttribute('data-cta')) {
+      var cp = { cta_id: a.getAttribute('data-cta'), link_location: loc };
+      if (a.hasAttribute('data-plan')) cp.plan = a.getAttribute('data-plan');
+      track('cta_click', cp);
+    }
   }, true);
 
   /* ---------- tools (only ever started after consent) ---------- */

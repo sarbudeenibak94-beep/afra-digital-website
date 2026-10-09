@@ -3194,6 +3194,57 @@ body.menu-open{overflow:hidden;}
 .foot-legal .cookie-settings{font:inherit;font-size:0.72rem;color:var(--gray-700);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;transition:color var(--t);}
 .foot-legal .cookie-settings:hover{color:var(--gold);}
 @media (max-width:768px){.foot-legal .cookie-settings{font-size:0.7rem;min-height:32px;}}
+
+/* ============================================================
+   PHASE 04 — conversion (Batch 1): contextual WhatsApp, quick
+   enquiry blocks, plan chip, reference, shorter mobile journey.
+============================================================ */
+.svc-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-top:14px;}
+.svc-actions .svc-link{margin-top:0;}
+.svc-wa{display:inline-flex;align-items:center;min-height:32px;font-size:.8rem;font-weight:600;color:#4ADE80;text-decoration:underline;text-underline-offset:3px;}
+.svc-wa:hover{color:#86EFAC;}
+.price-wa{display:block;margin-top:12px;text-align:center;font-size:.8rem;color:var(--gray-400);text-decoration:underline;text-underline-offset:3px;}
+.price-wa:hover{color:var(--gold-bright);}
+.quick-enquiry{padding:28px 0;}
+.qe-inner{display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;padding:20px 24px;border:1px solid var(--gold-border);border-radius:var(--r-lg);background:var(--glass-2);}
+.qe-text{color:var(--gray-400);font-size:.95rem;margin:0;}
+.qe-text strong{color:var(--white);}
+.qe-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.qe-actions .btn{min-height:44px;}
+.plan-chip{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 17px;padding:6px 6px 6px 14px;border:1px solid var(--gold-border);border-radius:var(--r-sm);background:var(--gold-dim);font-size:.85rem;color:var(--gray-100);}
+.plan-chip strong{color:var(--gold-bright);}
+.plan-chip-clear{min-width:36px;min-height:36px;border-radius:8px;font-size:1.25rem;line-height:1;color:var(--gray-100);cursor:pointer;}
+.plan-chip-clear:hover{background:rgba(255,255,255,.08);}
+.form-ref{font-size:.95rem;color:var(--gray-100);margin:0 0 10px;}
+.form-ref strong{color:var(--gold-bright);letter-spacing:.06em;}
+.sp-feats-toggle{display:none;}
+#mob-nav .mob-contact{font-size:1.1rem;}
+@media (max-width:768px){
+  .quick-enquiry{padding:20px 0;}
+  .qe-inner{padding:18px 16px;}
+  .qe-actions{width:100%;}
+  .qe-actions .btn{flex:1 1 auto;justify-content:center;}
+  /* Shorter mobile journey: decorative or duplicate content is hidden on phones only (desktop unchanged). */
+  .svc-tags{display:none;}
+  .port-vis{display:none;}
+  #software-products .sp-product-visual{display:none;}
+  .sp-why-block{display:none;}
+  .sp-feats-collapsible:not(.expanded) .sp-feat:nth-child(n+7){display:none;}
+  .sp-feats-toggle{display:inline-flex;align-items:center;min-height:44px;margin-top:12px;padding:8px 16px;border:1px solid var(--gold-border);border-radius:var(--r-sm);color:var(--gold-bright);font-size:.85rem;font-weight:600;}
+  #mob-nav{justify-content:flex-start;overflow-y:auto;}
+  /* Decorative-only elements removed on phones (all text content stays). */
+  section.s{padding:52px 0;}
+  .about-left-panel{display:none;}
+  #software-products .sp-label-strip{display:none;}
+  .sp-compare-vs{display:none;}
+  .why-n,.why-ic{display:none;}
+  .proc-icon{display:none;}
+  .svc-icon{display:none;}
+  .map-wrap{display:none;}
+  .section-cta{margin-top:24px;}
+}
+.section-cta{text-align:center;margin-top:36px;}
+.section-cta .svc-link{font-size:.9rem;min-height:44px;}
 .hp-field{position:absolute!important;left:-10000px!important;width:1px;height:1px;overflow:hidden;}
 #form-btn[disabled]{opacity:.7;cursor:progress;}
 #form-success:focus{outline:none;}
@@ -3254,7 +3305,9 @@ body.menu-open{overflow:hidden;}
   <a href="#pricing">Pricing</a>
   <a href="#faq">FAQ</a>
   <a href="#contact">Contact</a>
-  <a href="#contact" style="color:var(--gold);margin-top:10px;" data-cta="mobile_menu_start_project">Start Project →</a>
+  <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="mob-contact">WhatsApp us</a>
+  <a href="tel:+97430029799" class="mob-contact">Call +974 3002 9799</a>
+  <a href="#contact" style="color:var(--gold);margin-top:10px;" data-cta="mobile_menu_start_project">Start Your Project →</a>
 </nav>
 </header>
 
@@ -3306,23 +3359,34 @@ body.menu-open{overflow:hidden;}
       <p class="t1" rv="u" d2 style="margin-top:14px;max-width:560px;">From strategy and design to development and marketing — one team that plans, builds and launches the digital solutions your business needs.</p>
     </div>
     <div class="svc-grid" rv="sc" d2>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🤖</div><h3 class="svc-name">AI Solutions</h3><p class="svc-desc">Custom AI assistants, GPT-powered agents and document and data intelligence — built around real business problems.</p><div class="svc-tags"><span class="svc-tag">GPT Agents</span><span class="svc-tag">RAG</span><span class="svc-tag">Analytics</span></div><a class="svc-link" href="#contact" data-service="AI Solutions" data-cta="service_ai_solutions">Discuss AI solutions <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">⚙️</div><h3 class="svc-name">Business Automation</h3><p class="svc-desc">Workflow automation and API integrations that remove repetitive manual work across sales, operations and finance.</p><div class="svc-tags"><span class="svc-tag">Workflows</span><span class="svc-tag">APIs</span><span class="svc-tag">Integrations</span></div><a class="svc-link" href="#contact" data-service="Business Automation" data-cta="service_business_automation">Discuss automation <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🌐</div><h3 class="svc-name">Website Development</h3><p class="svc-desc">Fast, SEO-ready, mobile-first business websites that explain what you do and turn visitors into enquiries.</p><div class="svc-tags"><span class="svc-tag">Next.js</span><span class="svc-tag">React</span><span class="svc-tag">SEO</span></div><a class="svc-link" href="#contact" data-service="Website Development" data-cta="service_website_development">Discuss a website <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🧩</div><h3 class="svc-name">Web Applications</h3><p class="svc-desc">Customer portals, booking systems, dashboards and internal tools that run in the browser on any device.</p><div class="svc-tags"><span class="svc-tag">Portals</span><span class="svc-tag">Dashboards</span><span class="svc-tag">TypeScript</span></div><a class="svc-link" href="#contact" data-service="Web Applications" data-cta="service_web_applications">Discuss a web app <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🛠️</div><h3 class="svc-name">Custom Software</h3><p class="svc-desc">Software built around your exact processes when off-the-shelf tools don’t fit — from first prototype to production.</p><div class="svc-tags"><span class="svc-tag">Discovery</span><span class="svc-tag">Architecture</span><span class="svc-tag">Support</span></div><a class="svc-link" href="#contact" data-service="Custom Software" data-cta="service_custom_software">Discuss custom software <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">☁️</div><h3 class="svc-name">SaaS Development</h3><p class="svc-desc">Multi-tenant SaaS products with subscriptions, user roles and secure data separation — the approach behind our own platforms.</p><div class="svc-tags"><span class="svc-tag">Multi-Tenant</span><span class="svc-tag">Billing</span><span class="svc-tag">Security</span></div><a class="svc-link" href="#contact" data-service="SaaS Development" data-cta="service_saas_development">Discuss a SaaS product <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">📱</div><h3 class="svc-name">Mobile Apps</h3><p class="svc-desc">Cross-platform iOS and Android apps built with React Native or Flutter and connected to your backend and services.</p><div class="svc-tags"><span class="svc-tag">iOS</span><span class="svc-tag">Android</span><span class="svc-tag">Flutter</span></div><a class="svc-link" href="#contact" data-service="Mobile App Development" data-cta="service_mobile_app_development">Discuss a mobile app <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">✏️</div><h3 class="svc-name">UI/UX Design</h3><p class="svc-desc">Research-led interface design, wireframes, interactive Figma prototypes and design systems that are easy to use.</p><div class="svc-tags"><span class="svc-tag">Research</span><span class="svc-tag">Prototypes</span><span class="svc-tag">Design Systems</span></div><a class="svc-link" href="#contact" data-service="UI/UX Design" data-cta="service_ui_ux_design">Discuss UI/UX design <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">💎</div><h3 class="svc-name">Branding</h3><p class="svc-desc">Logo, visual identity, brand guidelines and assets that position your business as a premium choice in its market.</p><div class="svc-tags"><span class="svc-tag">Logo</span><span class="svc-tag">Identity</span><span class="svc-tag">Guidelines</span></div><a class="svc-link" href="#contact" data-service="Branding" data-cta="service_branding">Discuss branding <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🛒</div><h3 class="svc-name">E-Commerce</h3><p class="svc-desc">Online stores with payment gateways, inventory, multi-currency and Arabic RTL support, designed to convert.</p><div class="svc-tags"><span class="svc-tag">Storefronts</span><span class="svc-tag">Payments</span><span class="svc-tag">RTL</span></div><a class="svc-link" href="#contact" data-service="E-Commerce Development" data-cta="service_e_commerce_development">Discuss an online store <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">📈</div><h3 class="svc-name">Digital Marketing</h3><p class="svc-desc">SEO, paid advertising and social media campaigns for GCC audiences in English and Arabic, tracked against clear goals.</p><div class="svc-tags"><span class="svc-tag">SEO</span><span class="svc-tag">Paid Ads</span><span class="svc-tag">Social</span></div><a class="svc-link" href="#contact" data-service="Digital Marketing" data-cta="service_digital_marketing">Discuss marketing <span aria-hidden="true">→</span></a></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🚀</div><h3 class="svc-name">Digital Transformation</h3><p class="svc-desc">Turning paper, spreadsheets and disconnected tools into connected digital systems — planned in clear, manageable phases.</p><div class="svc-tags"><span class="svc-tag">Strategy</span><span class="svc-tag">Systems</span><span class="svc-tag">Training</span></div><a class="svc-link" href="#contact" data-service="Digital Transformation" data-cta="service_digital_transformation">Discuss transformation <span aria-hidden="true">→</span></a></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🤖</div><h3 class="svc-name">AI Solutions</h3><p class="svc-desc">Custom AI assistants, GPT-powered agents and document and data intelligence — built around real business problems.</p><div class="svc-tags"><span class="svc-tag">GPT Agents</span><span class="svc-tag">RAG</span><span class="svc-tag">Analytics</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="AI Solutions" data-cta="service_ai_solutions">Discuss AI solutions <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20AI%20Solutions.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="AI Solutions" aria-label="Ask about AI Solutions on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">⚙️</div><h3 class="svc-name">Business Automation</h3><p class="svc-desc">Workflow automation and API integrations that remove repetitive manual work across sales, operations and finance.</p><div class="svc-tags"><span class="svc-tag">Workflows</span><span class="svc-tag">APIs</span><span class="svc-tag">Integrations</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Business Automation" data-cta="service_business_automation">Discuss automation <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Business%20Automation.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Business Automation" aria-label="Ask about Business Automation on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🌐</div><h3 class="svc-name">Website Development</h3><p class="svc-desc">Fast, SEO-ready, mobile-first business websites that explain what you do and turn visitors into enquiries.</p><div class="svc-tags"><span class="svc-tag">Next.js</span><span class="svc-tag">React</span><span class="svc-tag">SEO</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Website Development" data-cta="service_website_development">Discuss a website <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Website%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Website Development" aria-label="Ask about Website Development on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🧩</div><h3 class="svc-name">Web Applications</h3><p class="svc-desc">Customer portals, booking systems, dashboards and internal tools that run in the browser on any device.</p><div class="svc-tags"><span class="svc-tag">Portals</span><span class="svc-tag">Dashboards</span><span class="svc-tag">TypeScript</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Web Applications" data-cta="service_web_applications">Discuss a web app <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Web%20Applications.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Web Applications" aria-label="Ask about Web Applications on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🛠️</div><h3 class="svc-name">Custom Software</h3><p class="svc-desc">Software built around your exact processes when off-the-shelf tools don’t fit — from first prototype to production.</p><div class="svc-tags"><span class="svc-tag">Discovery</span><span class="svc-tag">Architecture</span><span class="svc-tag">Support</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Custom Software" data-cta="service_custom_software">Discuss custom software <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Custom%20Software.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Custom Software" aria-label="Ask about Custom Software on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">☁️</div><h3 class="svc-name">SaaS Development</h3><p class="svc-desc">Multi-tenant SaaS products with subscriptions, user roles and secure data separation — the approach behind our own platforms.</p><div class="svc-tags"><span class="svc-tag">Multi-Tenant</span><span class="svc-tag">Billing</span><span class="svc-tag">Security</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="SaaS Development" data-cta="service_saas_development">Discuss a SaaS product <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20SaaS%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="SaaS Development" aria-label="Ask about SaaS Development on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">📱</div><h3 class="svc-name">Mobile Apps</h3><p class="svc-desc">Cross-platform iOS and Android apps built with React Native or Flutter and connected to your backend and services.</p><div class="svc-tags"><span class="svc-tag">iOS</span><span class="svc-tag">Android</span><span class="svc-tag">Flutter</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Mobile App Development" data-cta="service_mobile_app_development">Discuss a mobile app <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Mobile%20App%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Mobile App Development" aria-label="Ask about Mobile App Development on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">✏️</div><h3 class="svc-name">UI/UX Design</h3><p class="svc-desc">Research-led interface design, wireframes, interactive Figma prototypes and design systems that are easy to use.</p><div class="svc-tags"><span class="svc-tag">Research</span><span class="svc-tag">Prototypes</span><span class="svc-tag">Design Systems</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="UI/UX Design" data-cta="service_ui_ux_design">Discuss UI/UX design <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20UI%2FUX%20Design.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="UI/UX Design" aria-label="Ask about UI/UX Design on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">💎</div><h3 class="svc-name">Branding</h3><p class="svc-desc">Logo, visual identity, brand guidelines and assets that position your business as a premium choice in its market.</p><div class="svc-tags"><span class="svc-tag">Logo</span><span class="svc-tag">Identity</span><span class="svc-tag">Guidelines</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Branding" data-cta="service_branding">Discuss branding <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Branding.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Branding" aria-label="Ask about Branding on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🛒</div><h3 class="svc-name">E-Commerce</h3><p class="svc-desc">Online stores with payment gateways, inventory, multi-currency and Arabic RTL support, designed to convert.</p><div class="svc-tags"><span class="svc-tag">Storefronts</span><span class="svc-tag">Payments</span><span class="svc-tag">RTL</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="E-Commerce Development" data-cta="service_e_commerce_development">Discuss an online store <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20E-Commerce%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="E-Commerce Development" aria-label="Ask about E-Commerce Development on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">📈</div><h3 class="svc-name">Digital Marketing</h3><p class="svc-desc">SEO, paid advertising and social media campaigns for GCC audiences in English and Arabic, tracked against clear goals.</p><div class="svc-tags"><span class="svc-tag">SEO</span><span class="svc-tag">Paid Ads</span><span class="svc-tag">Social</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Digital Marketing" data-cta="service_digital_marketing">Discuss marketing <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Digital%20Marketing.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Digital Marketing" aria-label="Ask about Digital Marketing on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🚀</div><h3 class="svc-name">Digital Transformation</h3><p class="svc-desc">Turning paper, spreadsheets and disconnected tools into connected digital systems — planned in clear, manageable phases.</p><div class="svc-tags"><span class="svc-tag">Strategy</span><span class="svc-tag">Systems</span><span class="svc-tag">Training</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Digital Transformation" data-cta="service_digital_transformation">Discuss transformation <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Digital%20Transformation.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Digital Transformation" aria-label="Ask about Digital Transformation on WhatsApp">WhatsApp</a></div></article>
     </div>
   </div>
 </section>
 
 <div class="divider"></div>
+
+<aside class="quick-enquiry" id="quick-after-services" aria-label="Contact AFRA DIGITAL">
+  <div class="c"><div class="qe-inner">
+    <p class="qe-text"><strong>Have a project in mind?</strong> Tell us what you need — we aim to reply within 24 hours.</p>
+    <div class="qe-actions">
+      <a href="#contact" class="btn btn-prime btn-sm" data-cta="quick_after_services">Send a message</a>
+      <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="btn btn-wa btn-sm">WhatsApp</a>
+      <a href="tel:+97430029799" class="btn btn-ghost btn-sm">Call</a>
+    </div>
+  </div></div>
+</aside>
 
 <!-- ============================================================ INDUSTRIES -->
 <section class="s" id="industries">
@@ -3364,6 +3428,7 @@ body.menu-open{overflow:hidden;}
       <div class="why-card" rv="u" d2><div class="why-n">05</div><div class="why-ic" aria-hidden="true">🏗</div><h3 class="why-title">Scalable Architecture</h3><div class="why-txt">Cloud-native, multi-tenant architecture designed to grow with your business, so you are not forced into a rebuild as you scale.</div></div>
       <div class="why-card" rv="u" d3><div class="why-n">06</div><div class="why-ic" aria-hidden="true">🌟</div><h3 class="why-title">Dedicated Support</h3><div class="why-txt">Direct access to the team that built your product, with support plans matched to your needs.</div></div>
     </div>
+    <p class="section-cta"><a href="#contact" class="svc-link" data-cta="why_start_project">Start Your Project <span aria-hidden="true">→</span></a></p>
   </div>
 </section>
 
@@ -3378,7 +3443,7 @@ body.menu-open{overflow:hidden;}
         <h2 class="d2" rv="u" d1>Products &amp; Projects <span class="gold">We&#39;ve Built</span></h2>
         <p class="t1 port-intro" rv="u" d2>Our own platforms and brand, designed and built in-house. Ask us for examples relevant to your industry.</p>
       </div>
-      <a href="#contact" class="btn btn-ghost" rv="u" d2 data-cta="portfolio_discuss">Discuss Your Project →</a>
+      <a href="#contact" class="btn btn-ghost" rv="u" d2 data-cta="portfolio_discuss">Start Your Project →</a>
     </div>
     <div class="port-grid">
       <div class="port-card wide" rv="u">
@@ -3398,6 +3463,17 @@ body.menu-open{overflow:hidden;}
 </section>
 
 <div class="divider"></div>
+
+<aside class="quick-enquiry" id="quick-after-work" aria-label="Contact AFRA DIGITAL">
+  <div class="c"><div class="qe-inner">
+    <p class="qe-text"><strong>Want something similar for your business?</strong> Let’s talk about your project.</p>
+    <div class="qe-actions">
+      <a href="#contact" class="btn btn-prime btn-sm" data-cta="quick_after_work">Send a message</a>
+      <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="btn btn-wa btn-sm">WhatsApp</a>
+      <a href="tel:+97430029799" class="btn btn-ghost btn-sm">Call</a>
+    </div>
+  </div></div>
+</aside>
 
 <!-- ============================================================ OWN SOFTWARE PRODUCTS -->
 <section class="s" id="software-products">
@@ -3468,6 +3544,7 @@ body.menu-open{overflow:hidden;}
               <span class="sp-shine-sweep" aria-hidden="true"></span>
             </a>
             <a href="#platform-fit" class="btn btn-ghost">Compare Platforms</a>
+            <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'd%20like%20a%20demo%20of%20Cook%20With%20Fire%20for%20my%20restaurant." target="_blank" rel="noopener" class="btn btn-ghost sp-wa-btn" data-wa-service="Cook With Fire (Restaurant Platform)">Ask on WhatsApp</a>
           </div>
         </div>
 
@@ -3670,6 +3747,7 @@ body.menu-open{overflow:hidden;}
               <span class="sp-shine-sweep" aria-hidden="true"></span>
             </a>
             <a href="#platform-fit" class="btn btn-ghost">Compare Platforms</a>
+            <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'd%20like%20a%20demo%20of%20SAANIX%20for%20my%20business." target="_blank" rel="noopener" class="btn btn-ghost sp-wa-btn" data-wa-service="SAANIX (Business Platform)">Ask on WhatsApp</a>
           </div>
         </div>
       </div>
@@ -3741,7 +3819,7 @@ body.menu-open{overflow:hidden;}
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- WHY AFRA DIGITAL                                                    -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
-    <div rv="u" d1>
+    <div class="sp-why-block" rv="u" d1>
       <div class="section-head" style="text-align:center;margin-bottom:44px;">
         <div class="eyebrow" style="justify-content:center;margin-bottom:14px;">Why Our Platforms</div>
         <h2 class="d3">Built for <span class="gold">Serious Business</span></h2>
@@ -3865,6 +3943,7 @@ body.menu-open{overflow:hidden;}
         </div>
       </div>
     </div>
+    <p class="section-cta"><a href="#contact" class="svc-link" data-cta="about_start_project">Start Your Project <span aria-hidden="true">→</span></a></p>
   </div>
 </section>
 
@@ -3886,6 +3965,7 @@ body.menu-open{overflow:hidden;}
       <div class="proc-step"><div class="proc-num-w"><div class="proc-n">05</div></div><div class="proc-icon" aria-hidden="true">🚀</div><h3 class="proc-title">Launch</h3><div class="proc-desc">Cloud deployment, full QA and go-to-market support for a smooth launch.</div></div>
       <div class="proc-step"><div class="proc-num-w"><div class="proc-n">06</div></div><div class="proc-icon" aria-hidden="true">📈</div><h3 class="proc-title">Growth</h3><div class="proc-desc">Analytics, A/B testing, and growth loops. We compound your advantage long after launch.</div></div>
     </div>
+    <p class="section-cta"><a href="#contact" class="svc-link" data-cta="process_start_project">Start Your Project <span aria-hidden="true">→</span></a></p>
   </div>
 </section>
 
@@ -3915,7 +3995,8 @@ body.menu-open{overflow:hidden;}
           <li class="price-feat dim"><span class="pf-check" aria-hidden="true">—</span>AI features <span class="sr-only">(not included)</span></li>
           <li class="price-feat dim"><span class="pf-check" aria-hidden="true">—</span>Priority support <span class="sr-only">(not included)</span></li>
         </ul>
-        <a href="#contact" class="btn btn-ghost btn-full" data-cta="pricing_starter">Get Started</a>
+        <a href="#contact" class="btn btn-ghost btn-full" data-cta="pricing_starter" data-plan="Starter">Choose Starter</a>
+        <a class="price-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20the%20Starter%20package.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-plan="Starter">or ask about Starter on WhatsApp</a>
       </div>
       <div class="price-card featured">
         <div class="price-pop">Most Popular</div>
@@ -3933,7 +4014,8 @@ body.menu-open{overflow:hidden;}
           <li class="price-feat"><span class="pf-check" aria-hidden="true">✓</span>Priority support</li>
           <li class="price-feat"><span class="pf-check" aria-hidden="true">✓</span>Quarterly strategy sessions</li>
         </ul>
-        <a href="#contact" class="btn btn-prime btn-full" data-cta="pricing_business">Get Started →</a>
+        <a href="#contact" class="btn btn-prime btn-full" data-cta="pricing_business" data-plan="Business">Choose Business →</a>
+        <a class="price-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20the%20Business%20package.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-plan="Business">or ask about Business on WhatsApp</a>
       </div>
       <div class="price-card">
         <div class="price-plan">Enterprise</div>
@@ -3949,7 +4031,8 @@ body.menu-open{overflow:hidden;}
           <li class="price-feat"><span class="pf-check" aria-hidden="true">✓</span>Agreed support plan</li>
           <li class="price-feat"><span class="pf-check" aria-hidden="true">✓</span>White-label options</li>
         </ul>
-        <a href="#contact" class="btn btn-ghost btn-full" data-cta="pricing_enterprise">Request a Discovery Call</a>
+        <a href="#contact" class="btn btn-ghost btn-full" data-cta="pricing_enterprise" data-plan="Enterprise">Choose Enterprise</a>
+        <a class="price-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20the%20Enterprise%20package.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-plan="Enterprise">or ask about Enterprise on WhatsApp</a>
       </div>
     </div>
   </div>
@@ -4055,6 +4138,44 @@ body.menu-open{overflow:hidden;}
               </select>
               <p class="f-err" id="cf-service-err" hidden></p>
             </div>
+            <div id="cf-plan-chip" class="plan-chip" hidden><span>Selected package: <strong id="cf-plan-name"></strong></span><button type="button" id="cf-plan-clear" class="plan-chip-clear" aria-label="Remove selected package">×</button></div>
+            <input type="hidden" name="plan" id="cf-plan" value="">
+            <input type="hidden" name="source" id="cf-source" value="">
+            <div class="f-row">
+              <div class="fg">
+                <label class="fl" for="cf-budget">Budget <span class="opt">(optional)</span></label>
+                <select id="cf-budget" name="budget" class="fsel" aria-describedby="cf-budget-err">
+                <option value="">Select a range...</option>
+                <option value="Under QAR 10,000">Under QAR 10,000</option>
+                <option value="QAR 10,000–25,000">QAR 10,000–25,000</option>
+                <option value="QAR 25,000–50,000">QAR 25,000–50,000</option>
+                <option value="Over QAR 50,000">Over QAR 50,000</option>
+                <option value="Not sure yet">Not sure yet</option>
+                </select>
+                <p class="f-err" id="cf-budget-err" hidden></p>
+              </div>
+              <div class="fg">
+                <label class="fl" for="cf-timeline">Timeline <span class="opt">(optional)</span></label>
+                <select id="cf-timeline" name="timeline" class="fsel" aria-describedby="cf-timeline-err">
+                <option value="">Select a timeline...</option>
+                <option value="As soon as possible">As soon as possible</option>
+                <option value="Within 1–3 months">Within 1–3 months</option>
+                <option value="Within 3–6 months">Within 3–6 months</option>
+                <option value="Just exploring">Just exploring</option>
+                </select>
+                <p class="f-err" id="cf-timeline-err" hidden></p>
+              </div>
+            </div>
+            <div class="fg">
+              <label class="fl" for="cf-contact-pref">Preferred contact <span class="opt">(optional)</span></label>
+              <select id="cf-contact-pref" name="contactPref" class="fsel" aria-describedby="cf-contact-pref-err">
+                <option value="">No preference</option>
+                <option value="Email">Email</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Phone">Phone</option>
+              </select>
+              <p class="f-err" id="cf-contact-pref-err" hidden></p>
+            </div>
             <div class="fg"><label class="fl" for="cf-message">Project Brief <span class="opt">(optional)</span></label><textarea id="cf-message" name="message" class="fta" maxlength="5000" placeholder="Tell us about your project, goals and timeline..." style="min-height:110px;" aria-describedby="cf-message-err"></textarea><p class="f-err" id="cf-message-err" hidden></p></div>
             <div class="hp-field" aria-hidden="true"><label for="cf-hp">Leave this field empty</label><input id="cf-hp" name="hp" type="text" tabindex="-1" autocomplete="off"></div>
             <input type="hidden" name="elapsed" id="cf-elapsed" value="">
@@ -4064,6 +4185,7 @@ body.menu-open{overflow:hidden;}
           <div id="form-success" role="status" tabindex="-1" hidden style="text-align:center;padding:40px 20px;">
             <div style="font-size:3rem;margin-bottom:16px;" aria-hidden="true">✅</div>
             <div style="font-size:1.2rem;font-weight:700;color:var(--white);margin-bottom:8px;">Message sent</div>
+            <p class="form-ref" id="form-ref" hidden>Your reference: <strong id="form-ref-code"></strong></p>
             <div class="t2">Thank you — your enquiry has been delivered to AFRA DIGITAL. We’ll reply by email. For anything urgent, <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" style="color:var(--gold);text-decoration:underline;">message us on WhatsApp</a>.</div>
           </div>
         </div>

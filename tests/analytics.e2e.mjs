@@ -160,7 +160,8 @@ try {
     const lev = (await gtagEvents(p)).slice(lb);
     const leads = lev.filter(e => e[1] === 'generate_lead');
     check('T9 successful submission: exactly one generate_lead (double-click included)', leads.length === 1 && await p.eval(`!document.getElementById('form-success').hidden`), lev.map(e => e[1]).join(','));
-    check('T9 generate_lead params are fixed values only', leads[0] && JSON.stringify(leads[0][2]) === JSON.stringify({ form_id: 'contact', method: 'contact_form', service: 'Website Development' }), JSON.stringify(leads[0] && leads[0][2]));
+    // Phase 04 (C7): generate_lead also carries the package ("none" when no plan was chosen). Budget is never included.
+    check('T9 generate_lead params are fixed values only', leads[0] && JSON.stringify(leads[0][2]) === JSON.stringify({ form_id: 'contact', method: 'contact_form', service: 'Website Development', plan: 'none' }), JSON.stringify(leads[0] && leads[0][2]));
 
     // ---------- T12: PII scan of everything that would go to analytics ----------
     // The fake measurement ID (G-TEST1234AB) legitimately appears in config/script URLs; remove it so

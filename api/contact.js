@@ -90,10 +90,11 @@ function escapeHtml(s) {
 }
 
 // Minimal HTML response for browsers that submitted the form without JavaScript.
-function htmlPage(ok, message) {
+function htmlPage(ok, message, reference) {
   const title = ok ? 'Message sent' : 'Message not sent';
+  const ref = ok && core.REFERENCE_RE.test(reference || '') ? ` Your reference: <strong>${reference}</strong>.` : '';
   const body = ok
-    ? 'Thank you — your enquiry has been sent to AFRA DIGITAL. We will reply by email.'
+    ? 'Thank you — your enquiry has been sent to AFRA DIGITAL. We will reply by email.' + ref
     : escapeHtml(message);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>${title} — AFRA DIGITAL</title>
@@ -111,7 +112,7 @@ function send(res, status, payload, mode, extraHeaders = {}) {
   for (const [k, v] of Object.entries(extraHeaders)) res.setHeader(k, v);
   if (mode === 'form') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.end(htmlPage(payload.ok, payload.message || ''));
+    res.end(htmlPage(payload.ok, payload.message || '', payload.reference));
   } else {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.end(JSON.stringify(payload));
@@ -153,7 +154,10 @@ async function handler(req, res, deps = {}) {
   if (!result.ok) return fail(res, 400, 'validation', mode, {}, result.fields);
   const data = result.data;
 
-  if (duplicates.isDuplicate(data)) return send(res, 200, { ok: true, duplicate: true }, mode);
+  if (duplicates.isDuplicate(data)) {
+    const prev = duplicates.referenceFor(data);
+    return send(res, 200, { ok: true, duplicate: true, ...(prev ? { reference: prev } : {}) }, mode);
+  }
 
   const ipLimit = sendLimiter.check(ip);
   const globalLimit = ipLimit.allowed ? globalSendLimiter.check('global') : { allowed: true };
@@ -169,8 +173,9 @@ async function handler(req, res, deps = {}) {
     return fail(res, 503, 'not_configured', mode);
   }
 
+  const reference = core.makeReference();
   try {
-    await core.deliver(config, data, { fetchImpl, timeoutMs: deps.timeoutMs || 7000, retryDelayMs: deps.retryDelayMs });
+    await core.deliver(config, data, { fetchImpl, timeoutMs: deps.timeoutMs || 7000, retryDelayMs: deps.retryDelayMs, reference });
   } catch (err) {
     const kind = err.kind || 'error';
     console.error(`[contact] delivery failed kind=${kind}${err.status ? ' status=' + err.status : ''}` +
@@ -180,8 +185,9 @@ async function handler(req, res, deps = {}) {
     return kind === 'timeout' ? fail(res, 504, 'timeout', mode) : fail(res, 502, 'delivery_failed', mode);
   }
 
-  duplicates.remember(data);
-  return send(res, 200, { ok: true }, mode);
+  duplicates.remember(data, reference);
+  // The reference is returned only after the provider accepted the email (shown to the visitor, not sent to analytics).
+  return send(res, 200, { ok: true, reference }, mode);
 }
 
 module.exports = handler;

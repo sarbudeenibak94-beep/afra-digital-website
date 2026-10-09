@@ -233,14 +233,34 @@
     t.focus({ preventScroll: true });
   });
 
-  /* ---------- SERVICE / PRODUCT CTAs pre-select the enquiry type ---------- */
+  /* ---------- CTAs carry context into the form: service, package (plan) and source button ---------- */
+  var planInput = doc.getElementById('cf-plan');
+  var planChip = doc.getElementById('cf-plan-chip');
+  var planName = doc.getElementById('cf-plan-name');
+  var sourceInput = doc.getElementById('cf-source');
+  var PLAN_NAMES = { Starter: 1, Business: 1, Enterprise: 1 };
+  function setPlan(plan) {
+    if (!planInput) return;
+    plan = PLAN_NAMES[plan] ? plan : '';
+    planInput.value = plan;
+    if (planName) planName.textContent = plan;
+    if (planChip) planChip.hidden = !plan;
+  }
+  var planClear = doc.getElementById('cf-plan-clear');
+  if (planClear) planClear.addEventListener('click', function () { setPlan(''); var s = doc.getElementById('cf-service'); if (s) s.focus(); });
+
   doc.addEventListener('click', function (e) {
-    var a = e.target.closest && e.target.closest('[data-service]');
+    var a = e.target.closest && e.target.closest('a[href="#contact"]');
     if (!a) return;
-    var sel = doc.getElementById('cf-service');
-    if (!sel) return;
-    var want = a.getAttribute('data-service');
-    for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === want) { sel.value = want; break; }
+    var svc = a.getAttribute('data-service');
+    if (svc) {
+      var sel = doc.getElementById('cf-service');
+      if (sel) for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === svc) { sel.value = svc; break; }
+    }
+    if (a.hasAttribute('data-plan')) setPlan(a.getAttribute('data-plan'));
+    // Which button brought the visitor here (a fixed id such as "pricing_business"), for the enquiry email.
+    var cta = a.getAttribute('data-cta');
+    if (sourceInput && cta && /^[a-z0-9_]{1,40}$/.test(cta)) sourceInput.value = cta;
   });
 
   /* ---------- CONTACT FORM — real submission, honest states ---------- */
@@ -259,13 +279,17 @@
       firstName: { required: 'Please enter your first name.', too_long: 'First name is too long.', invalid: 'Please enter a valid first name.' },
       lastName: { required: 'Please enter your last name.', too_long: 'Last name is too long.', invalid: 'Please enter a valid last name.' },
       email: { required: 'Please enter your email address.', too_long: 'Email address is too long.', invalid: 'Please enter a valid email address, e.g. name@company.com.' },
-      phone: { too_long: 'Phone number is too long.', invalid: 'Please enter a valid phone number, e.g. +974 1234 5678.' },
+      phone: { too_long: 'Phone number is too long.', invalid: 'Please enter a valid phone number, e.g. +974 1234 5678.', required_for_contact: 'Please add a phone number so we can contact you by WhatsApp or phone.' },
+      budget: { invalid: 'Please choose a budget range from the list.' },
+      timeline: { invalid: 'Please choose a timeline from the list.' },
+      contactPref: { invalid: 'Please choose a contact method from the list.' },
+      plan: { invalid: 'Please choose the package again from the pricing section.' },
       company: { too_long: 'Company name is too long (max 120 characters).', invalid: 'Please check the company name.' },
       service: { invalid: 'Please choose a service from the list.' },
       message: { too_long: 'Please keep your brief under 5,000 characters.', invalid: 'Please check your project brief.' },
     };
     var GENERIC = 'Sorry, your message could not be sent right now. Please contact us on WhatsApp or by email.';
-    var FIELDS = ['firstName', 'lastName', 'email', 'phone', 'company', 'service', 'message'];
+    var FIELDS = ['firstName', 'lastName', 'email', 'phone', 'company', 'service', 'budget', 'timeline', 'contactPref', 'plan', 'source', 'message'];
 
     form.addEventListener('focusin', function () { if (!started) { started = true; track('contact_form_start', { form_id: 'contact' }); } });
 
@@ -293,16 +317,19 @@
       if (d.phone) { var digits = d.phone.replace(/\D/g, '').length; if (!/^\+?[0-9 ().-]{6,30}$/.test(d.phone) || digits < 6 || digits > 15) f.phone = 'invalid'; }
       if (d.company.length > 120) f.company = 'too_long';
       if (d.message.length > 5000) f.message = 'too_long';
+      if (!f.phone && !d.phone && (d.contactPref === 'WhatsApp' || d.contactPref === 'Phone')) f.phone = 'required_for_contact';
       return f;
     }
 
     // Live re-validation clears an error as soon as it is fixed.
-    form.addEventListener('input', function (e) {
-      var name = e.target.name;
-      if (FIELDS.indexOf(name) === -1 || e.target.getAttribute('aria-invalid') !== 'true') return;
-      var d = collect(); var f = clientValidate(d);
+    function revalidate(name) {
+      var el = fieldEl(name);
+      if (!el || el.getAttribute('aria-invalid') !== 'true') return;
+      var f = clientValidate(collect());
       setFieldError(name, f[name] || null);
-    });
+    }
+    form.addEventListener('input', function (e) { if (FIELDS.indexOf(e.target.name) !== -1) revalidate(e.target.name); });
+    form.addEventListener('change', function (e) { if (e.target.name === 'contactPref') revalidate('phone'); });
 
     function collect() {
       var d = {};
@@ -347,9 +374,14 @@
         setLoading(false);
         if (r.status === 200 && r.body && r.body.ok === true) {
           form.hidden = true;
+          var refBox = doc.getElementById('form-ref'), refCode = doc.getElementById('form-ref-code');
+          if (refBox && refCode && typeof r.body.reference === 'string' && /^AFRA-[2-9A-HJ-NP-Z]{6}$/.test(r.body.reference)) {
+            refCode.textContent = r.body.reference; refBox.hidden = false;
+          }
           success.hidden = false;
           success.focus();
-          if (!r.body.duplicate) track('generate_lead', { form_id: 'contact', method: 'contact_form', service: d.service || 'unspecified' });
+          // Conversion only after confirmed delivery; business categories only (no budget, no personal data).
+          if (!r.body.duplicate) track('generate_lead', { form_id: 'contact', method: 'contact_form', service: d.service || 'unspecified', plan: d.plan || 'none' });
           return;
         }
         var code = (r.body && r.body.error) || ('http_' + r.status);
@@ -474,6 +506,26 @@
     st.textContent = '@keyframes spFlash{0%{opacity:1;}40%{opacity:0.3;}100%{opacity:1;}}.sp-flash{animation:spFlash 0.4s var(--ease);}@keyframes spRipple{to{transform:scale(80);opacity:0;}}';
     doc.head.appendChild(st);
   }
+
+  /* Long feature lists: collapsible on phones (CSS shows the toggle only <= 768px; desktop and no-JS show all) */
+  doc.querySelectorAll('#software-products .sp-feats-grid').forEach(function (grid, idx) {
+    var chips = grid.querySelectorAll('.sp-feat');
+    if (chips.length <= 6) return;
+    if (!grid.id) grid.id = 'sp-feats-' + (idx + 1);
+    grid.classList.add('sp-feats-collapsible');
+    var btn = doc.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sp-feats-toggle';
+    btn.setAttribute('aria-controls', grid.id);
+    btn.setAttribute('aria-expanded', 'false');
+    btn.textContent = 'Show all ' + chips.length + ' features';
+    btn.addEventListener('click', function () {
+      var open = grid.classList.toggle('expanded');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.textContent = open ? 'Show fewer features' : 'Show all ' + chips.length + ' features';
+    });
+    grid.parentNode.insertBefore(btn, grid.nextSibling);
+  });
 
   /* Touch feedback for feature chips */
   doc.querySelectorAll('.sp-feat').forEach(function (el) {
