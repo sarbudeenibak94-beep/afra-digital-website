@@ -537,3 +537,16 @@ test('P4 composeEmail ignores a malformed reference', () => {
   const { subject, text } = core.composeEmail({ ...VALID, budget: '', timeline: '', contactPref: '', plan: '', source: '' }, { reference: 'AFRA-<x>\r\nBcc:' });
   assert.ok(!subject.includes('[')); assert.ok(!text.includes('Reference:'));
 });
+
+// Phase 05: service-page source ids ("lp_<page>_<position>") pass the existing allow-list and reach the email.
+test('P5 service-page source ids are accepted and shown in the enquiry email', async () => {
+  for (const id of ['lp_web_form', 'lp_web_hero', 'lp_web_nav', 'lp_web_mobile_menu', 'lp_web_pricing_starter', 'lp_web_final']) {
+    assert.equal(core.validateSubmission({ ...VALID, source: id }).data.source, id, id);
+  }
+  const calls = [];
+  const res = await run({ body: uniq4('p5lp', { plan: 'Starter', source: 'lp_web_pricing_starter' }) }, { env: ENV4, fetch: okFetch(calls) });
+  assert.equal(res.statusCode, 200);
+  const b = calls[0].body;
+  assert.ok(b.text.includes('Source:    website button "lp_web_pricing_starter"'), b.text);
+  assert.ok(b.text.includes('Package:  Starter'), b.text);
+});

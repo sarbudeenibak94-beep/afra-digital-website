@@ -35,8 +35,10 @@ function loadConfig() {
 }
 
 // Minimal path-to-regexp for the patterns used in vercel.json ("/(.*)", "/assets/(.*)", exact paths).
+// Each "(.*)" is kept as a wildcard; everything else is matched literally. (Before Phase 05 the "." inside
+// "(.*)" was escaped first, so "/(.*)" only matched "/" and nested paths got no headers locally.)
 function sourceToRegex(source) {
-  const esc = source.replace(/[.+?^${}|[\]\\]/g, '\\$&').replace(/\\\(\.\*\\\)|\(\.\*\)/g, '(.*)');
+  const esc = source.split('(.*)').map(s => s.replace(/[.+?^${}()|[\]\\*]/g, '\\$&')).join('(.*)');
   return new RegExp('^' + esc + '$');
 }
 

@@ -28,7 +28,7 @@ const setMode = m => fetch(`${MOCK}/__mode/${m}`, { method: 'POST' });
 try {
   // ---------------- HTTP-level checks ----------------
   const get = (p, base = A) => fetch(base + p, { redirect: 'manual' });
-  for (const p of ['/', '/privacy-policy', '/terms', '/robots.txt', '/sitemap.xml', '/manifest.json', '/favicon.ico', '/apple-touch-icon.png', '/assets/img/og-afra-digital-1200x630.jpg', '/assets/js/site.js', '/assets/css/legal.css']) {
+  for (const p of ['/', '/privacy-policy', '/terms', '/robots.txt', '/sitemap.xml', '/manifest.json', '/favicon.ico', '/apple-touch-icon.png', '/assets/img/og-afra-digital-1200x630.jpg', '/assets/js/site.js', '/assets/css/legal.css', '/services/website-development', '/assets/js/contact-form.js', '/assets/js/service-page.js', '/assets/css/service-page.css']) {
     const r = await get(p); check(`GET ${p} -> 200`, r.status === 200, String(r.status));
   }
   { const r = await get('/index.html'); check('/index.html -> 308 /', r.status === 308 && r.headers.get('location') === '/', `${r.status} ${r.headers.get('location')}`); }
@@ -45,7 +45,9 @@ try {
     check('robots.txt: correct sitemap, nothing essential blocked', /Sitemap: https:\/\/www\.afra-digital\.com\/sitemap\.xml/.test(t) && !/Disallow: \/\s*$/m.test(t) && !/Disallow: \/assets/.test(t), t.replace(/\n/g, ' | ')); }
   { const xml = await (await get('/sitemap.xml')).text();
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
-    check('sitemap: only www https URLs, no placeholder', locs.length === 3 && locs.every(u => u.startsWith(PROD + '/')) && !/yourdomain/.test(xml), locs.join(', '));
+    // Phase 05: the expected URL list is explicit, so adding or removing a page is a deliberate test change.
+    const EXPECTED_LOCS = ['/', '/services/website-development', '/privacy-policy', '/terms'].map(p => PROD + p);
+    check('sitemap: exactly the expected www https URLs, no placeholder', JSON.stringify(locs) === JSON.stringify(EXPECTED_LOCS) && !/yourdomain/.test(xml), locs.join(', '));
     for (const u of locs) {
       const path = u.slice(PROD.length) || '/';
       const r = await get(path); const html = await r.text();

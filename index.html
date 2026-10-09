@@ -38,7 +38,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap" rel="stylesheet">
 <script src="/assets/js/analytics.js" defer></script>
-<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/site.js?v=p5b1" defer></script>
+<script src="/assets/js/contact-form.js?v=p5b1" defer></script>
 <noscript><style>[rv]{opacity:1!important;transform:none!important}#loader{display:none!important}.faq-a{max-height:none!important}</style></noscript>
 <script type="application/ld+json">
 {
@@ -3248,6 +3249,10 @@ body.menu-open{overflow:hidden;}
 .hp-field{position:absolute!important;left:-10000px!important;width:1px;height:1px;overflow:hidden;}
 #form-btn[disabled]{opacity:.7;cursor:progress;}
 #form-success:focus{outline:none;}
+/* Phase 05: link from a service card to its dedicated service page */
+.svc-more{margin-top:10px;}
+.svc-more a{display:inline-flex;align-items:center;gap:6px;min-height:32px;font-size:.8rem;font-weight:500;color:var(--gray-400);text-decoration:underline;text-underline-offset:3px;transition:color var(--t);}
+.svc-more a:hover{color:var(--gold-bright);}
 </style>
 </head>
 <body>
@@ -3361,7 +3366,7 @@ body.menu-open{overflow:hidden;}
     <div class="svc-grid" rv="sc" d2>
       <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🤖</div><h3 class="svc-name">AI Solutions</h3><p class="svc-desc">Custom AI assistants, GPT-powered agents and document and data intelligence — built around real business problems.</p><div class="svc-tags"><span class="svc-tag">GPT Agents</span><span class="svc-tag">RAG</span><span class="svc-tag">Analytics</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="AI Solutions" data-cta="service_ai_solutions">Discuss AI solutions <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20AI%20Solutions.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="AI Solutions" aria-label="Ask about AI Solutions on WhatsApp">WhatsApp</a></div></article>
       <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">⚙️</div><h3 class="svc-name">Business Automation</h3><p class="svc-desc">Workflow automation and API integrations that remove repetitive manual work across sales, operations and finance.</p><div class="svc-tags"><span class="svc-tag">Workflows</span><span class="svc-tag">APIs</span><span class="svc-tag">Integrations</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Business Automation" data-cta="service_business_automation">Discuss automation <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Business%20Automation.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Business Automation" aria-label="Ask about Business Automation on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🌐</div><h3 class="svc-name">Website Development</h3><p class="svc-desc">Fast, SEO-ready, mobile-first business websites that explain what you do and turn visitors into enquiries.</p><div class="svc-tags"><span class="svc-tag">Next.js</span><span class="svc-tag">React</span><span class="svc-tag">SEO</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Website Development" data-cta="service_website_development">Discuss a website <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Website%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Website Development" aria-label="Ask about Website Development on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🌐</div><h3 class="svc-name">Website Development</h3><p class="svc-desc">Fast, SEO-ready, mobile-first business websites that explain what you do and turn visitors into enquiries.</p><div class="svc-tags"><span class="svc-tag">Next.js</span><span class="svc-tag">React</span><span class="svc-tag">SEO</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Website Development" data-cta="service_website_development">Discuss a website <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Website%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Website Development" aria-label="Ask about Website Development on WhatsApp">WhatsApp</a></div><p class="svc-more"><a href="/services/website-development">Learn more about website development <span aria-hidden="true">→</span></a></p></article>
       <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🧩</div><h3 class="svc-name">Web Applications</h3><p class="svc-desc">Customer portals, booking systems, dashboards and internal tools that run in the browser on any device.</p><div class="svc-tags"><span class="svc-tag">Portals</span><span class="svc-tag">Dashboards</span><span class="svc-tag">TypeScript</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Web Applications" data-cta="service_web_applications">Discuss a web app <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Web%20Applications.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Web Applications" aria-label="Ask about Web Applications on WhatsApp">WhatsApp</a></div></article>
       <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🛠️</div><h3 class="svc-name">Custom Software</h3><p class="svc-desc">Software built around your exact processes when off-the-shelf tools don’t fit — from first prototype to production.</p><div class="svc-tags"><span class="svc-tag">Discovery</span><span class="svc-tag">Architecture</span><span class="svc-tag">Support</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Custom Software" data-cta="service_custom_software">Discuss custom software <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Custom%20Software.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Custom Software" aria-label="Ask about Custom Software on WhatsApp">WhatsApp</a></div></article>
       <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">☁️</div><h3 class="svc-name">SaaS Development</h3><p class="svc-desc">Multi-tenant SaaS products with subscriptions, user roles and secure data separation — the approach behind our own platforms.</p><div class="svc-tags"><span class="svc-tag">Multi-Tenant</span><span class="svc-tag">Billing</span><span class="svc-tag">Security</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="SaaS Development" data-cta="service_saas_development">Discuss a SaaS product <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20SaaS%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="SaaS Development" aria-label="Ask about SaaS Development on WhatsApp">WhatsApp</a></div></article>
@@ -3486,7 +3491,7 @@ body.menu-open{overflow:hidden;}
       <div class="eyebrow" rv="u" style="justify-content:center;margin-bottom:16px;">Our Own Software Products</div>
       <h2 class="d2" rv="u" d1>Powerful Software Built for <br><span class="gold">Modern Businesses</span></h2>
       <p class="t1" rv="u" d2 style="margin:18px auto 0;max-width:620px;">
-        Alongside client projects, AFRA DIGITAL builds and owns its own software platforms for restaurants, retailers and service businesses. Dashboards shown below are illustrative demos.
+        AFRA DIGITAL designs, builds and owns its own software platforms for restaurants, retailers and service businesses. Dashboards shown below are illustrative demos.
       </p>
     </div>
 
@@ -4217,7 +4222,7 @@ body.menu-open{overflow:hidden;}
       <div>
         <h2 class="foot-col-h">Services</h2>
         <ul class="foot-links">
-          <li><a href="#services">AI Solutions &amp; Automation</a></li><li><a href="#services">Website Development</a></li>
+          <li><a href="#services">AI Solutions &amp; Automation</a></li><li><a href="/services/website-development">Website Development</a></li>
           <li><a href="#services">Web Apps &amp; Custom Software</a></li><li><a href="#services">SaaS Development</a></li>
           <li><a href="#services">Mobile Apps</a></li><li><a href="#services">UI/UX Design &amp; Branding</a></li>
           <li><a href="#services">E-Commerce</a></li><li><a href="#services">Digital Marketing</a></li>
