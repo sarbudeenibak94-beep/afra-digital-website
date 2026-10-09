@@ -47,7 +47,7 @@ const STUBS = [
 const ANALYTICS_URL = /googletagmanager\.com|google-analytics\.com|analytics\.google\.com|doubleclick\.net|_vercel\/speed-insights|vercel-insights\.com/;
 const meta = (html, re) => { const m = html.match(re); return m ? m[1] : null; };
 const decode = s => s.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-const CLAIMS = [/\b\d+\s*\+\s*(projects|clients|businesses|customers)\b/i, /★/, /\baward/i, /#1\b/, /\bbest in\b/i, /\bleading\b/i, /\bguarantee/i, /%\s*(increase|more|growth)/i, /\btrusted by\b/i, /\btestimonial/i, /\bclient projects\b/i];
+const CLAIMS = [/\b\d+\s*\+\s*(projects|clients|businesses|customers)\b/i, /★/, /\baward/i, /#1\b/, /\bbest in\b/i, /\bleading\b/i, /\bguarantee/i, /%\s*(increase|more|growth)/i, /\btrusted by\b/i, /\btestimonial/i, /\bclient projects\b/i, /\bnot from a template\b/i];
 
 const browser = await launch({ port: 9430 });
 try {
@@ -202,6 +202,7 @@ try {
       const hp = await browser.newPage({ width: 1280, height: 900 }); await hp.goto(S + '/'); await sleep(1500);
       const hpBytes = await hp.eval(`performance.getEntriesByType('resource').concat(performance.getEntriesByType('navigation')).reduce((s, e) => s + (e.transferSize || 0), 0)`); await hp.close();
       check(`${path}: CLS < 0.05 and page transfer smaller than the homepage`, perf.cls < 0.05 && perf.bytes < hpBytes, `cls=${perf.cls} bytes=${perf.bytes} home=${hpBytes}`);
+      check(`${path}: floating WhatsApp button uses the homepage "waFloat" motion on desktop`, await p.eval(`getComputedStyle(document.getElementById('wa-float')).animationName === 'waFloat'`));
       check(`${path} desktop: no exceptions, console errors or CSP violations`, !p.log.exceptions.length && !p.log.console.filter(c => /^error/.test(c)).length && !p.log.cspViolations.length, JSON.stringify([p.log.exceptions, p.log.console, p.log.cspViolations]).slice(0, 300));
       await p.close();
     }
@@ -214,7 +215,7 @@ try {
       const r = await p.eval(`(() => { const b = document.querySelector('.svp-btns .btn'); return { sb: getComputedStyle(document.documentElement).scrollBehavior, td: parseFloat(getComputedStyle(b).transitionDuration), wa: getComputedStyle(document.getElementById('wa-float')).animationName }; })()`);
       await p.eval(`document.querySelector('a[data-cta="lp_web_hero"]').click(); true`); await sleep(60);
       const jumped = await p.eval(`Math.abs(document.getElementById('contact').getBoundingClientRect().top) < 5`);
-      check(`${path}: prefers-reduced-motion → no smooth scrolling, transitions effectively off, instant jump to the form`, r.sb === 'auto' && r.td <= 0.001 && jumped, JSON.stringify({ ...r, jumped }));
+      check(`${path}: prefers-reduced-motion → no smooth scrolling, transitions effectively off, no floating animation, instant jump to the form`, r.sb === 'auto' && r.td <= 0.001 && r.wa === 'none' && jumped, JSON.stringify({ ...r, jumped }));
       await p.close();
     }
 
@@ -290,8 +291,8 @@ try {
       await p.goto(S + path); await sleep(1200);
       const m = await p.eval(`(() => { const r = el => el.getBoundingClientRect(); const vis = el => el && el.offsetWidth > 0;
         const small = [...document.querySelectorAll('.svp-btns .btn, #form-btn, .price-card .btn-full, #hamburger, .nav-right .btn-prime, .svp-related a')].filter(vis).filter(el => r(el).height < 44).map(el => el.textContent.trim().slice(0, 20) || el.id);
-        return { sw: document.documentElement.scrollWidth, vw: innerWidth, hamburger: vis(document.getElementById('hamburger')), navLinksHidden: !vis(document.querySelector('.nav-links')), small }; })()`);
-      check(`${path} 390×844: no horizontal scroll, hamburger shown, desktop links hidden, touch targets ≥ 44px`, m.sw <= m.vw && m.hamburger && m.navLinksHidden && m.small.length === 0, JSON.stringify(m));
+        return { sw: document.documentElement.scrollWidth, vw: innerWidth, hamburger: vis(document.getElementById('hamburger')), navLinksHidden: !vis(document.querySelector('.nav-links')), small, waAnim: getComputedStyle(document.getElementById('wa-float')).animationName }; })()`);
+      check(`${path} 390×844: no horizontal scroll, hamburger shown, desktop links hidden, touch targets ≥ 44px, no floating animation on phones (as homepage)`, m.sw <= m.vw && m.hamburger && m.navLinksHidden && m.small.length === 0 && m.waAnim === 'none', JSON.stringify(m));
       await p.eval(`document.getElementById('hamburger').focus(); true`); await p.key('Enter', 'Enter', 13); await sleep(450);
       const menu = await p.eval(`({ open: document.getElementById('hamburger').getAttribute('aria-expanded'), items: [...document.querySelectorAll('#mob-nav a')].map(a => a.textContent.trim()) })`);
       check(`${path}: mobile menu opens by keyboard with WhatsApp, Call and "Start Your Project →"`, menu.open === 'true' && menu.items.includes('WhatsApp us') && menu.items.includes('Call +974 3002 9799') && menu.items.at(-1) === 'Start Your Project →', menu.items.join(' | '));

@@ -85,7 +85,9 @@ section.s{padding:clamp(80px,9vw,128px) 0;position:relative;}
 #mob-nav .mob-start{color:var(--gold);margin-top:10px;}
 body.menu-open{overflow:hidden;}
 #wa-float{position:fixed;bottom:32px;right:32px;z-index:8000;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#25D366,#128C7E);display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 8px 32px rgba(37,211,102,0.4);transition:all var(--t) var(--ease);}
-#wa-float:hover{transform:translateY(-4px) scale(1.08);box-shadow:0 12px 40px rgba(37,211,102,0.6);}
+#wa-float:hover{transform:translateY(-4px) scale(1.08);box-shadow:0 12px 40px rgba(37,211,102,0.6);animation:none;}
+#wa-float{animation:waFloat 3s ease-in-out infinite;}
+@keyframes waFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
 
 /* ---------- 4. Pricing card (from index.html) ---------- */
 .price-card{padding:40px 34px;border-radius:var(--r-xl);border:1px solid var(--gold);background:linear-gradient(180deg,rgba(212,175,55,0.07),var(--glass));box-shadow:var(--shadow-gold);position:relative;}
@@ -258,7 +260,7 @@ footer{border-top:1px solid var(--gold-border);padding:clamp(56px,7vw,80px) 0 28
   #mob-nav{padding:96px 28px 48px;gap:4px;align-items:flex-start;justify-content:flex-start;overflow-y:auto;}
   #mob-nav a{font-size:1.35rem;padding:14px 18px;border-radius:14px;width:100%;display:block;letter-spacing:-0.01em;}
   #mob-nav .mob-contact{font-size:1.1rem;}
-  #wa-float{bottom:20px;right:20px;width:52px;height:52px;font-size:1.3rem;}
+  #wa-float{bottom:20px;right:20px;width:52px;height:52px;font-size:1.3rem;animation:none;}
   .svp-hero{padding:112px 0 52px;}
   .svp-hero::before{width:420px;height:360px;right:-200px;}
   .svp-crumbs ol{margin-bottom:20px;}
@@ -330,4 +332,5 @@ footer{border-top:1px solid var(--gold-border);padding:clamp(56px,7vw,80px) 0 28
   html{scroll-behavior:auto;}
   *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;}
   .btn:hover,.btn-prime:hover,.btn-ghost:hover,.btn-wa:hover,#wa-float:hover,.c-method:hover{transform:none;}
+  #wa-float{animation:none;}
 }
