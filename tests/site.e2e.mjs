@@ -2,9 +2,10 @@
 // Starts its own servers: an unconfigured site (4180), a site wired to the mock email provider (4181)
 // and the mock provider itself (4182). No real email is ever sent.
 // Usage: node tests/site.e2e.mjs
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { launch, sleep } from './lib/cdp.mjs';
+import { fileURLToPath } from 'node:url';
+import { launch, sleep, MOBILE_THROTTLE } from './lib/cdp.mjs';
 
 const ROOT = new URL('..', import.meta.url);
 const PROD = 'https://www.afra-digital.com';
@@ -240,6 +241,63 @@ try {
       const mh = await m.eval(`(() => { const b = document.querySelector('#services a[href="/services"]').getBoundingClientRect(); return { h: Math.round(b.height), fits: b.left >= 0 && b.right <= innerWidth, sw: document.documentElement.scrollWidth, vw: innerWidth }; })()`);
       check('homepage 320px: "View all services" is a ≥ 44px target, fits the screen, no horizontal scroll', mh.h >= 44 && mh.fits && mh.sw <= mh.vw, JSON.stringify(mh));
       await m.close();
+    }
+
+    // ---------------- Phase 06 Batch 2: loader, reveal safety net, tap targets, sitemap, legacy images ----------------
+    {
+      const state = `(() => { const l = document.getElementById('loader'); const ls = l ? getComputedStyle(l) : null;
+        const below = [...document.querySelectorAll('[rv]')].filter(e => e.getBoundingClientRect().top > innerHeight * 2);
+        return { js: document.documentElement.classList.contains('js'), loader: l ? { opacity: +ls.opacity, visibility: ls.visibility, pe: ls.pointerEvents } : 'removed',
+          h1: +getComputedStyle(document.querySelector('.hero-h1 .l3 span')).opacity,
+          belowCount: below.length, belowVisible: below.filter(e => +getComputedStyle(e).opacity > 0.5).length, belowOn: below.filter(e => e.classList.contains('on')).length,
+          allRv: document.querySelectorAll('[rv]').length, allRvVisible: [...document.querySelectorAll('[rv]')].filter(e => +getComputedStyle(e).opacity > 0.5).length }; })()`;
+      // Fast load: site.js hides and removes the loader; hero visible; scroll reveal untouched.
+      { const p = await browser.newPage({ width: 1440, height: 900 }); await p.goto(A + '/'); await sleep(2500); const s = await p.eval(state);
+        check('loader (fast load): removed by site.js, hero visible, html.js set', s.loader === 'removed' && s.h1 > 0.99 && s.js, JSON.stringify(s));
+        check('reveal (fast load): below-the-fold sections still wait for scroll (reveal effect intact)', s.belowCount > 5 && s.belowVisible === 0, JSON.stringify(s));
+        await p.close(); }
+      // Delayed load (throttled mobile: slow network + 4x CPU): loader never stuck; safety net never fires while site.js runs.
+      { const p = await browser.newPage({ width: 390, height: 844, mobile: true, throttle: MOBILE_THROTTLE }); await p.goto(A + '/'); await sleep(10000); const s = await p.eval(state);
+        check('loader (throttled mobile): removed, hero visible after load (not stuck)', s.loader === 'removed' && s.h1 > 0.99 && s.js, JSON.stringify(s));
+        check('reveal (throttled mobile, 10 s): no fallback flash; below-the-fold sections still hidden until scrolled', s.belowCount > 5 && s.belowVisible === 0 && s.belowOn === 0, JSON.stringify(s));
+        await p.close(); }
+      // site.js fails to load: CSS safety nets hide the loader and reveal all content.
+      { const p = await browser.newPage({ width: 1440, height: 900 }); await p.S('Network.setBlockedURLs', { urls: ['*/assets/js/site.js*'] });
+        await p.goto(A + '/'); await sleep(2600); const s1 = await p.eval(state);
+        check('loader (site.js blocked): CSS safety net hides it within ~2.5 s (invisible, not clickable)', !s1.js && s1.loader !== 'removed' && s1.loader.opacity === 0 && s1.loader.visibility === 'hidden' && s1.loader.pe === 'none' && s1.h1 > 0.99, JSON.stringify(s1));
+        await sleep(7500); const s2 = await p.eval(state);
+        check('reveal (site.js blocked): every [rv] section becomes visible (8 s safety net), none stays hidden', s2.allRv > 10 && s2.allRvVisible === s2.allRv, JSON.stringify(s2));
+        await p.close(); }
+      // Reduced motion: loader gone and content visible straight away.
+      { const p = await browser.newPage({ width: 1440, height: 900 }); await p.S('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+        await p.goto(A + '/'); await sleep(1500); const s = await p.eval(state);
+        check('loader (reduced motion): gone within 1.5 s; all reveal sections shown immediately', (s.loader === 'removed' || s.loader.opacity === 0) && s.h1 > 0.99 && s.allRvVisible === s.allRv, JSON.stringify(s));
+        await p.close(); }
+      // Tap targets: card "Discuss …" / WhatsApp links, "See the product" and package WhatsApp links.
+      const tsel = '.svc-actions a, .port-desc .svc-link, .price-wa';
+      const sizes = async (w, h, mobile) => { const p = await browser.newPage({ width: w, height: h, mobile }); await p.goto(A + '/'); await sleep(1200);
+        const r = await p.eval(`(() => { const els = [...document.querySelectorAll(${JSON.stringify(tsel)})].filter(e => e.offsetWidth > 0); return { n: els.length, minH: Math.min(...els.map(e => e.offsetHeight)) /* layout size: ignores the temporary scale(0.93) of not-yet-revealed cards */, sw: document.documentElement.scrollWidth, vw: innerWidth }; })()`);
+        await p.close(); return r; };
+      const d = await sizes(1440, 900, false), m390 = await sizes(390, 844, true), m320 = await sizes(320, 640, true);
+      check('tap targets: card and package links ≥ 32 px on desktop (WCAG 2.2 minimum 24 px)', d.n >= 29 && d.minH >= 32, JSON.stringify(d));
+      check('tap targets: card and package links ≥ 44 px on phones (390 and 320), no horizontal scroll', m390.minH >= 44 && m320.minH >= 44 && m390.sw <= m390.vw && m320.sw <= m320.vw, JSON.stringify({ m390, m320 }));
+      // Sitemap lastmod: valid date, not in the future, and not older than the last commit that changed the page.
+      { const xml = readFileSync(new URL('sitemap.xml', ROOT), 'utf8'); const today = new Date().toISOString().slice(0, 10);
+        const FILES = { '/': 'index.html', '/services': 'services/index.html', '/services/website-development': 'services/website-development.html', '/privacy-policy': 'privacy-policy.html', '/terms': 'terms.html' };
+        const bad = [];
+        for (const m of xml.matchAll(/<loc>([^<]+)<\/loc>\s*<lastmod>([^<]+)<\/lastmod>/g)) {
+          const path = m[1].slice(PROD.length) || '/', lastmod = m[2], file = FILES[path];
+          const changed = file ? execFileSync('git', ['log', '-1', '--format=%cs', '--', file], { cwd: fileURLToPath(ROOT) }).toString().trim() : '';
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(lastmod) || lastmod > today || !file || (changed && lastmod < changed)) bad.push(`${path} lastmod=${lastmod} lastCommit=${changed || '?'}`);
+        }
+        check('sitemap lastmod: valid, not in the future, not older than the last commit to each page', bad.length === 0 && (xml.match(/<lastmod>/g) || []).length === 5, bad.join(', ')); }
+      // Legacy brand source files: not deployed (.vercelignore), not served, not referenced by any page asset.
+      { const LEGACY = ['afra-logo.png', 'afra-social-preview.jpg', 'ai-background.jpg'];
+        const ignore = readFileSync(new URL('.vercelignore', ROOT), 'utf8');
+        const served = await Promise.all(LEGACY.map(f => get('/' + f).then(r => r.status)));
+        const sources = ['index.html', 'services/index.html', 'services/website-development.html', 'privacy-policy.html', 'terms.html', '404.html', 'manifest.json', 'assets/css/service-page.css', 'assets/css/legal.css', 'assets/js/site.js', 'assets/js/service-page.js', 'assets/js/contact-form.js', 'assets/js/analytics.js'];
+        const refs = sources.filter(f => LEGACY.some(l => readFileSync(new URL(f, ROOT), 'utf8').includes(l)));
+        check('legacy brand source images: listed in .vercelignore, 404 locally, referenced by no page or asset', LEGACY.every(f => ignore.includes('/' + f)) && served.every(s => s === 404) && refs.length === 0, JSON.stringify({ served, refs })); }
     }
 
     // ---------------- Contact form ----------------

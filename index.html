@@ -382,6 +382,10 @@ body:has(button:hover) #cursor-ring{
 [rv="r"]{transform:translateX(48px);}
 [rv="sc"]{transform:scale(0.93);}
 [rv].on{opacity:1;transform:none;}
+/* Safety net: if site.js never runs (blocked or failed download), reveal content after 8 s instead of leaving it invisible.
+   site.js adds html.js first thing, so this never applies when the script runs (scroll reveal unchanged). */
+html:not(.js) [rv]:not(.on){animation:rvFallback .3s ease 8s forwards;}
+@keyframes rvFallback{to{opacity:1;transform:none;}}
 [d1]{transition-delay:0.08s;}[d2]{transition-delay:0.16s;}[d3]{transition-delay:0.24s;}
 [d4]{transition-delay:0.32s;}[d5]{transition-delay:0.4s;}[d6]{transition-delay:0.48s;}
 
@@ -3120,8 +3124,9 @@ section[id],.sp-product-block[id],#platform-fit{scroll-margin-top:84px;}
 .cursor-on #cursor,.cursor-on #cursor-ring{opacity:1;}
 html:not(.fine-pointer) #cursor,html:not(.fine-pointer) #cursor-ring{display:none;}
 
-/* Loader: short brand intro; CSS safety net hides it even if JS fails */
-#loader{animation:loaderAutoHide .5s ease 2.5s forwards;}
+/* Loader: short brand intro. site.js hides it as soon as it runs; this CSS safety net hides it 1 s after the
+   first frame even if JS fails (was 2.5 s). */
+#loader{animation:loaderAutoHide .5s ease 1s forwards;}
 @keyframes loaderAutoHide{to{opacity:0;visibility:hidden;pointer-events:none;}}
 .loader-bar-fill{animation-duration:.5s;}
 
@@ -3210,6 +3215,11 @@ body.menu-open{overflow:hidden;}
 .svc-wa:hover{color:#86EFAC;}
 .price-wa{display:block;margin-top:12px;text-align:center;font-size:.8rem;color:var(--gray-400);text-decoration:underline;text-underline-offset:3px;}
 .price-wa:hover{color:var(--gold-bright);}
+/* Phase 06: larger touch targets for card and package links (WCAG 2.2 target size; 44px on phones).
+   min-height adds real hit area (no overlap); .price-wa keeps its text position (margin-top became padding). */
+.svc-actions .svc-link,.port-desc .svc-link{min-height:32px;}
+.price-wa{margin-top:0;padding:12px 0;}
+@media (max-width:768px){.svc-actions .svc-link,.svc-wa,.port-desc .svc-link{min-height:44px;}}
 .quick-enquiry{padding:28px 0;}
 .qe-inner{display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;padding:20px 24px;border:1px solid var(--gold-border);border-radius:var(--r-lg);background:var(--glass-2);}
 .qe-text{color:var(--gray-400);font-size:.95rem;margin:0;}

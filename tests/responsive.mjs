@@ -22,7 +22,9 @@ for (const w of WIDTHS) {
   await sleep(2600);
   const r = await p.eval(`(() => {
     const vw = innerWidth, vis = el => { if (!el) return false; const cs = getComputedStyle(el), rc = el.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && rc.width > 0 && rc.height > 0; };
-    const nav = document.getElementById('nav'), inner = nav.querySelector('.nav-inner');
+    // Site pages use the #nav header; legal pages (privacy, terms) use a simpler <header class="site-header">.
+    const siteNav = !!document.getElementById('nav');
+    const nav = document.getElementById('nav') || document.querySelector('header'), inner = nav.querySelector('.nav-inner') || nav.querySelector('.wrap') || nav;
     const groups = [...inner.children].filter(vis).map(el => { const r = el.getBoundingClientRect(); return { cls: el.className || el.tagName, left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom) }; });
     const controls = [...nav.querySelectorAll('a,button')].filter(vis).map(el => { const r = el.getBoundingClientRect(); return { t: (el.textContent || el.getAttribute('aria-label') || '').trim().replace(/\\s+/g,' '), left: Math.round(r.left), right: Math.round(r.right), h: Math.round(r.height) }; });
     const clipped = controls.filter(c => c.right > vw + 0.5 || c.left < -0.5);
@@ -30,17 +32,18 @@ for (const w of WIDTHS) {
     const links = nav.querySelector('.nav-links');
     const linkItems = links && vis(links) ? [...links.querySelectorAll('a')].map(a => Math.round(a.getBoundingClientRect().height)) : [];
     const wrapped = linkItems.some(h => h > 40);
-    return { vw, scrollWidth: document.documentElement.scrollWidth, horizontalScroll: document.documentElement.scrollWidth > vw,
+    return { vw, siteNav, scrollWidth: document.documentElement.scrollWidth, horizontalScroll: document.documentElement.scrollWidth > vw,
       navHeight: Math.round(nav.getBoundingClientRect().height), hamburger: vis(document.getElementById('hamburger')), desktopLinks: vis(links),
       groups, clipped, overlap, wrapped, cta: controls.find(c => /start project/i.test(c.t)) || null };
   })()`);
   r.exceptions = p.log.exceptions;
-  const bad = r.horizontalScroll || r.clipped.length || r.overlap || r.wrapped || r.exceptions.length || !r.cta;
+  // The "Start Project" CTA is required wherever the site navigation (#nav) is used; legal pages have none.
+  const bad = r.horizontalScroll || r.clipped.length || r.overlap || r.wrapped || r.exceptions.length || (r.siteNav && !r.cta);
   r.pass = !bad; if (bad) failures++;
   results[w] = r;
   if (SHOTS) writeFileSync(new URL(`top-${w}.png`, outDir), await p.screenshot());
-  console.log(`${String(w).padStart(4)}px ${r.pass ? 'PASS' : 'FAIL'} nav=${r.navHeight}px ${r.hamburger ? 'hamburger' : 'links'} scrollW=${r.scrollWidth}` +
-    (r.clipped.length ? ' CLIPPED:' + r.clipped.map(c => c.t + '[' + c.left + ',' + c.right + ']').join(',') : '') + (r.overlap ? ' OVERLAP' : '') + (r.wrapped ? ' WRAPPED' : '') + (r.exceptions.length ? ' EXC:' + r.exceptions[0].slice(0, 80) : '') + (!r.cta ? ' NO-CTA' : ''));
+  console.log(`${String(w).padStart(4)}px ${r.pass ? 'PASS' : 'FAIL'} nav=${r.navHeight}px ${r.siteNav ? (r.hamburger ? 'hamburger' : 'links') : 'legal-header'} scrollW=${r.scrollWidth}` +
+    (r.clipped.length ? ' CLIPPED:' + r.clipped.map(c => c.t + '[' + c.left + ',' + c.right + ']').join(',') : '') + (r.overlap ? ' OVERLAP' : '') + (r.wrapped ? ' WRAPPED' : '') + (r.exceptions.length ? ' EXC:' + r.exceptions[0].slice(0, 80) : '') + (r.siteNav && !r.cta ? ' NO-CTA' : ''));
   await p.close();
 }
 await browser.close();

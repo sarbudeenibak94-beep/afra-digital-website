@@ -28,7 +28,8 @@ const TYPES = {
 };
 
 // Paths Vercel would not serve (mirrors .vercelignore intent).
-const BLOCKED = [/^\/dev\//, /^\/tests\//, /^\/\.git/, /^\/\.vercelignore$/, /^\/\.gitignore$/, /^\/api\/_/, /^\/vercel\.json$/];
+const BLOCKED = [/^\/dev\//, /^\/tests\//, /^\/\.git/, /^\/\.vercelignore$/, /^\/\.gitignore$/, /^\/api\/_/, /^\/vercel\.json$/,
+  /^\/(afra-logo\.png|afra-social-preview\.jpg|ai-background\.jpg)$/]; // brand source files, excluded in .vercelignore
 
 function loadConfig() {
   const p = path.join(ROOT, 'vercel.json');

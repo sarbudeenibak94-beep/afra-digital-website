@@ -6,3 +6,7 @@ docs/
 .gitignore
 AFRA_DIGITAL_PHASE_*_REPORT.md
 *.md
+# Original brand source files for dev/build-images.mjs (not used by any page; optimised versions are in assets/img/)
+/afra-logo.png
+/afra-social-preview.jpg
+/ai-background.jpg
