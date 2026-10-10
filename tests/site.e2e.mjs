@@ -183,6 +183,26 @@ try {
       check('normal motion: both product glow orbs still pulse (spGlowPulse)', res['no-preference'].length === 2 && res['no-preference'].every(g => g.name === 'spGlowPulse' && g.running > 0), JSON.stringify(res['no-preference']));
     }
 
+    // Phase 05 Batch 2: "View all services" link under the services grid opens the /services hub. The header and
+    // mobile-menu "Services" items stay in-page anchors (#services), like every other homepage menu item.
+    {
+      const p = await browser.newPage({ width: 1440, height: 900 });
+      await p.goto(A + '/'); await sleep(800);
+      const r = await p.eval(`(() => { const all = [...document.querySelectorAll('a[href="/services"]')]; const a = all[0];
+        return { count: all.length, inServices: !!(a && a.closest('#services')), text: a ? a.textContent.trim() : null, visible: !!(a && a.offsetWidth > 0),
+          nav: [...document.querySelectorAll('#nav .nav-links a, #mob-nav a')].filter(x => x.textContent.trim() === 'Services').map(x => x.getAttribute('href')) }; })()`);
+      check('homepage: one "View all services" link to /services at the end of the services section', r.count === 1 && r.inServices && r.text === 'View all services →' && r.visible, JSON.stringify(r));
+      check('homepage: header and mobile-menu "Services" still scroll to #services (menu behaviour unchanged)', JSON.stringify(r.nav) === JSON.stringify(['#services', '#services']), JSON.stringify(r.nav));
+      await p.eval(`document.querySelector('#services a[href="/services"]').click(); true`); await sleep(1500);
+      check('homepage: "View all services" opens the /services hub', await p.eval(`location.pathname === '/services' && !!document.querySelector('.svh-card')`));
+      await p.close();
+      const m = await browser.newPage({ width: 320, height: 640, mobile: true });
+      await m.goto(A + '/'); await sleep(800);
+      const mh = await m.eval(`(() => { const b = document.querySelector('#services a[href="/services"]').getBoundingClientRect(); return { h: Math.round(b.height), fits: b.left >= 0 && b.right <= innerWidth, sw: document.documentElement.scrollWidth, vw: innerWidth }; })()`);
+      check('homepage 320px: "View all services" is a ≥ 44px target, fits the screen, no horizontal scroll', mh.h >= 44 && mh.fits && mh.sw <= mh.vw, JSON.stringify(mh));
+      await m.close();
+    }
+
     // ---------------- Contact form ----------------
     const fill = (p, extra = '') => p.eval(`(() => { const f = document.getElementById('contact-form');
       f.firstName.value = 'Test'; f.lastName.value = 'Automated'; f.email.value = 'e2e-test@example.org'; f.phone.value = '+974 0000 0000';

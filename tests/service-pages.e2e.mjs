@@ -159,6 +159,9 @@ try {
         if (r.status !== 200 || (frag && !new RegExp(`id="${frag}"`).test(body))) bad.push(`${hr} (${r.status})`);
       }
       check(`${path}: every internal link and anchor resolves (${hrefs.length} unique)`, bad.length === 0, bad.join(', '));
+      // Batch 2: related services point to their card on the /services hub (no page exists for them); "All services" to the hub.
+      const related = await p.eval(`[...document.querySelectorAll('.svp-related a')].map(a => a.textContent.replace(/→/, '').trim() + ' => ' + a.getAttribute('href'))`);
+      check(`${path}: related-service links go to their /services hub cards and "All services" to /services`, JSON.stringify(related) === JSON.stringify(['Web applications => /services#svc-web-applications', 'E-commerce => /services#svc-e-commerce', 'UI/UX design => /services#svc-ui-ux-design', 'Branding => /services#svc-branding', 'All services => /services']), related.join(' | '));
       // claims guard
       const text = await p.eval(`document.body.innerText`);
       const hits = CLAIMS.filter(re => re.test(text)).map(String);
