@@ -96,6 +96,15 @@ try {
       const faqNode = graph.find(n => [].concat(n['@type']).includes('FAQPage'));
       const ldFaq = faqNode ? faqNode.mainEntity.map(e => ({ q: e.name, a: e.acceptedAnswer.text })) : [];
       check('FAQPage schema matches visible FAQ text exactly', JSON.stringify(ldFaq) === JSON.stringify(r.faqVisible), `${ldFaq.length} vs ${r.faqVisible.length}`);
+      // Phase 05 Batch 1 sign-off: homepage commitments match the service page (response, timeline, Arabic/RTL).
+      const respond = 'We aim to respond as soon as possible with a clear, no-pressure next step.';
+      const copy = await p.eval(`({ qe: document.querySelector('.qe-text').textContent.trim(), contact: document.querySelector('#contact .t1').textContent.trim(), all: document.documentElement.textContent })`);
+      check('response copy uses the owner-approved wording (quick-enquiry strip + contact intro)', copy.qe.endsWith('we aim to respond as soon as possible with a clear, no-pressure next step.') && copy.contact === 'Tell us about your project. ' + respond, `${copy.qe} | ${copy.contact}`);
+      const faqA = q => (r.faqVisible.find(x => x.q === q) || {}).a;
+      check('timeline FAQ: scope-dependent, agreed in the proposal, no fixed durations', faqA('How long does a typical project take?') === 'Project timelines depend on scope and on how ready your content is. Larger platforms are delivered in phases. Your timeline is agreed in your proposal before work begins.', faqA('How long does a typical project take?'));
+      check('Arabic/RTL FAQ: discussed in scoping and confirmed in the proposal', faqA('Can you handle Arabic and RTL support?') === 'Arabic and English websites and apps, including Arabic right-to-left (RTL) layouts, can be discussed during scoping. The language setup — which pages or screens are in each language and who provides the Arabic content — is confirmed in your proposal before work begins.', faqA('Can you handle Arabic and RTL support?'));
+      const retired = [/24 hours/i, /2[–-]3 weeks/i, /8[–-]16 weeks/i, /full Arabic/i].filter(re => re.test(copy.all)).map(String);
+      check('retired homepage commitments absent (page text, FAQ answers, JSON-LD)', retired.length === 0, retired.join(' '));
       const lazyOk = (await Promise.all(r.imgs.filter(i => i.lazy).map(async i => (await fetch(A + i.src)).status === 200))).every(Boolean);
       check('all images load (lazy ones reachable), have alt attribute and dimensions', lazyOk && r.imgs.every(i => i.ok && i.alt !== null && i.w && i.h), JSON.stringify(r.imgs.filter(i => !(i.ok && i.alt !== null && i.w && i.h))));
       await sleep(500);
