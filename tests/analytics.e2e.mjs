@@ -24,6 +24,8 @@ async function waitUp(url) { for (let i = 0; i < 60; i++) { try { await fetch(ur
 await Promise.all(['http://localhost:4195/', 'http://localhost:4196/', 'http://localhost:4198/', 'http://localhost:4197/__received'].map(waitUp));
 const C = 'http://localhost:4195', NONE = 'http://localhost:4196', KILL = 'http://localhost:4198', MOCK = 'http://localhost:4197';
 const setMode = m => fetch(`${MOCK}/__mode/${m}`, { method: 'POST' });
+// Mode the mock provider was in when it answered the payload containing `tag` (it records this per request).
+const mockModesFor = async tag => (await (await fetch(`${MOCK}/__received`)).json()).filter(x => JSON.stringify(x.payload || {}).includes(tag)).map(x => x.mode);
 
 const STUBS = [
   { urlPattern: 'googletagmanager\\.com/gtag/js', respond: () => ({ body: 'window.__gtagLoads=(window.__gtagLoads||0)+1;' }) },
@@ -35,6 +37,18 @@ const ANALYTICS_URL = /googletagmanager\.com|google-analytics\.com|analytics\.go
 const COMMANDS = `(window.dataLayer || []).filter(x => Object.prototype.toString.call(x) === '[object Arguments]')
   .map(a => Array.from(a).map(v => v instanceof Date ? 'DATE' : v))`;
 const gtagEvents = p => p.eval(`${COMMANDS}.filter(c => c[0] === 'event')`);
+// Wait until a submission started after event index `from` has settled (generate_lead or form_error), instead of a
+// fixed sleep: a slow round trip must not leak its outcome into the next check, or reach the mock after the next
+// setMode() (Phase 05 Batch 1: intermittent T10 42/44, reproduced with a 3.5 s provider delay).
+async function settle(p, from, timeoutMs = 25000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    const names = (await gtagEvents(p)).slice(from).map(e => e[1]);
+    if (names.includes('generate_lead') || names.includes('form_error')) return Date.now() - t0;
+    await sleep(100);
+  }
+  return null;
+}
 const configCount = p => p.eval(`${COMMANDS}.filter(c => c[0] === 'config').length`);
 const analyticsHits = p => (p.log.intercepted || []).concat(p.log.requests.filter(r => ANALYTICS_URL.test(r.url) && !(p.log.intercepted || []).some(i => i.url === r.url)));
 const blockNavigation = p => p.eval(`document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href]'); if (a && /^(tel:|mailto:|https:\\/\\/wa\\.me)/.test(a.getAttribute('href'))) e.preventDefault(); }, false); true`);
@@ -156,7 +170,7 @@ try {
       f.firstName.value = 'Test'; f.lastName.value = 'Automated'; f.email.value = 'e2e-test@example.org'; f.phone.value = '+974 5555 1234';
       f.company.value = 'AUTOMATED TEST'; f.service.value = 'Website Development'; f.message.value = 'AUTOMATED ANALYTICS TEST please ignore';
       const b = document.getElementById('form-btn'); b.click(); b.click(); f.requestSubmit(); return true; })()`);
-    await sleep(2000);
+    await settle(p, lb); await sleep(500); // extra time so a duplicate generate_lead would be caught
     const lev = (await gtagEvents(p)).slice(lb);
     const leads = lev.filter(e => e[1] === 'generate_lead');
     check('T9 successful submission: exactly one generate_lead (double-click included)', leads.length === 1 && await p.eval(`!document.getElementById('form-success').hidden`), lev.map(e => e[1]).join(','));
@@ -179,16 +193,25 @@ try {
     check('T5 accepted choice persists: no banner, analytics loads once on the next page', !(await p2.eval(`!!document.getElementById('afra-consent')`)) && await p2.eval(`window.__gtagLoads || 0`) === 1 && await configCount(p2) === 1);
 
     // ---------- T10: failed submissions never count ----------
+    // Each submission must clear the server's 2.5 s minimum-fill check, otherwise it is rejected as too_fast and never
+    // reaches the provider. The form's clock starts when the deferred contact-form.js runs (always before
+    // DOMContentLoaded), so wait until 3 s after DOMContentLoaded. The check asserts the mock really answered in `mode`.
     await blockNavigation(p2);
     for (const mode of ['fail', 'testing403']) {
       await setMode(mode);
+      await p2.eval(`new Promise(r => setTimeout(() => r(true), Math.max(0, performance.getEntriesByType('navigation')[0].domContentLoadedEventStart + 3000 - performance.now())))`);
       const fb = (await gtagEvents(p2)).length;
+      const tag = `AUTOMATED FAIL ${mode} ${Date.now()}`;
       await p2.eval(`(() => { const f = document.getElementById('contact-form'); f.hidden = false; document.getElementById('form-success').hidden = true;
-        f.firstName.value = 'Test'; f.lastName.value = 'Automated'; f.email.value = 'e2e-test@example.org'; f.message.value = 'AUTOMATED FAIL ${mode} ' + Date.now();
+        f.firstName.value = 'Test'; f.lastName.value = 'Automated'; f.email.value = 'e2e-test@example.org'; f.message.value = ${JSON.stringify(tag)};
         document.getElementById('form-btn').click(); return true; })()`);
-      await sleep(2800);
-      const fev = (await gtagEvents(p2)).slice(fb).map(e => e[1]);
-      check(`T10 failed submission (${mode}): no generate_lead, form_error recorded`, !fev.includes('generate_lead') && fev.includes('form_error'), fev.join(','));
+      const ms = await settle(p2, fb);
+      const fe = (await gtagEvents(p2)).slice(fb);
+      const fev = fe.map(e => e[1]), codes = fe.filter(e => e[1] === 'form_error').map(e => e[2].error_code);
+      const modes = await mockModesFor(tag);
+      check(`T10 failed submission (${mode}): reaches the provider, no generate_lead, form_error recorded`,
+        !fev.includes('generate_lead') && fev.includes('form_error') && modes.length > 0 && modes.every(m => m === mode),
+        `${fev.join(',')} | error_code ${codes.join(',')} | settled in ${ms ?? 'TIMEOUT'} ms | mock answered as ${modes.join('+') || 'none'}`);
     }
     await setMode('success');
     // client-side validation failure
