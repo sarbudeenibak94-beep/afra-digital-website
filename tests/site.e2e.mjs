@@ -183,6 +183,27 @@ try {
       check('normal motion: both product glow orbs still pulse (spGlowPulse)', res['no-preference'].length === 2 && res['no-preference'].every(g => g.name === 'spGlowPulse' && g.running > 0), JSON.stringify(res['no-preference']));
     }
 
+    // Reduced motion: no homepage animation loops or keeps running (infinite animations end after one 0.01ms cycle via
+    // animation-iteration-count:1); content and the loader still reach their final state. Normal motion keeps all 18 loops.
+    {
+      const LOOPS = ['bgZoom', 'borderMove', 'dustMove', 'goldGlowMove', 'goldWaveMove', 'logoFloat', 'logoFloat', 'mq', 'particlesMove', 'raysMove', 'ringRotate', 'ringRotateReverse',
+        'spGlowPulse', 'spGlowPulse', 'spGoldBorderMove', 'spGoldBorderMove', 'spTypeCursor', 'waFloat'];
+      const probe = `(() => { const all = document.getAnimations().filter(a => a.effect); const inf = all.filter(a => a.effect.getComputedTiming().iterations === Infinity);
+        return { infinite: inf.map(a => a.animationName).sort(), running: all.filter(a => a.playState === 'running').map(a => a.animationName),
+          heroVisible: parseFloat(getComputedStyle(document.querySelector('h1')).opacity) > 0.99, loaderGone: (() => { const l = document.getElementById('loader'); return !l || getComputedStyle(l).display === 'none' || getComputedStyle(l).visibility === 'hidden' || parseFloat(getComputedStyle(l).opacity) === 0; })() }; })()`;
+      const res = {};
+      for (const mode of ['reduce', 'no-preference']) {
+        const p = await browser.newPage({ width: 1440, height: 900 });
+        await p.S('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: mode }] });
+        await p.goto(A + '/'); await sleep(3500); // past the loader's 2.5 s auto-hide
+        res[mode] = await p.eval(probe);
+        await p.close();
+      }
+      const r = res.reduce, n = res['no-preference'];
+      check('prefers-reduced-motion: no homepage animation loops or is still running; heading visible and loader gone', r.infinite.length === 0 && r.running.length === 0 && r.heroVisible && r.loaderGone, JSON.stringify(r));
+      check('normal motion: the 18 decorative homepage loops are unchanged and running', JSON.stringify(n.infinite) === JSON.stringify(LOOPS) && LOOPS.every(x => n.running.includes(x)) && n.heroVisible && n.loaderGone, JSON.stringify({ infinite: n.infinite.length, missing: LOOPS.filter(x => !n.infinite.includes(x)) }));
+    }
+
     // Reduced motion: in-page menu jumps are instant (html{scroll-behavior:smooth} is overridden in the reduced-motion
     // block; site.js passes behavior 'auto', which follows the CSS). Normal motion keeps the smooth scroll.
     {

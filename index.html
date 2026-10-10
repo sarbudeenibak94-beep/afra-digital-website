@@ -1261,6 +1261,7 @@ footer{border-top:1px solid var(--gold-border);padding:clamp(56px,7vw,80px) 0 28
 }
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important;}
+  *,*::before,*::after{animation-iteration-count:1!important;} /* infinite animations run one 0.01ms cycle and end instead of looping */
   #cursor,#cursor-ring{display:none;}
   body{cursor:auto;}
   button,a{cursor:pointer;}
