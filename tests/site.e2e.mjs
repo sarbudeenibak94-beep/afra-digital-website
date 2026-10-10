@@ -167,6 +167,22 @@ try {
       await m.close();
     }
 
+    // Reduced motion: the product glow orbs pulse via a later `.sp-visual-glow{animation:…!important}` rule, which
+    // the global reduced-motion rule could not override (Phase 05 Batch 1 Preview review). Normal motion keeps the pulse.
+    {
+      const glow = `[...document.querySelectorAll('.sp-visual-glow')].map(e => ({ name: getComputedStyle(e).animationName, running: e.getAnimations().length }))`;
+      const res = {};
+      for (const mode of ['reduce', 'no-preference']) {
+        const p = await browser.newPage({ width: 1440, height: 900 });
+        await p.S('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: mode }] });
+        await p.goto(A + '/'); await sleep(800);
+        res[mode] = await p.eval(glow);
+        await p.close();
+      }
+      check('prefers-reduced-motion: both product glow orbs stop pulsing (no animation, nothing running)', res.reduce.length === 2 && res.reduce.every(g => g.name === 'none' && g.running === 0), JSON.stringify(res.reduce));
+      check('normal motion: both product glow orbs still pulse (spGlowPulse)', res['no-preference'].length === 2 && res['no-preference'].every(g => g.name === 'spGlowPulse' && g.running > 0), JSON.stringify(res['no-preference']));
+    }
+
     // ---------------- Contact form ----------------
     const fill = (p, extra = '') => p.eval(`(() => { const f = document.getElementById('contact-form');
       f.firstName.value = 'Test'; f.lastName.value = 'Automated'; f.email.value = 'e2e-test@example.org'; f.phone.value = '+974 0000 0000';
