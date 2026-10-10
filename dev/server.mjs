@@ -1,7 +1,8 @@
 // Local preview server — development/testing only, never deployed (see .vercelignore).
 // Zero dependencies. Approximates Vercel's static hosting for this project:
 //   - serves files from the project root
-//   - emulates `cleanUrls` (/terms -> terms.html, /terms.html -> 308 /terms)
+//   - emulates `cleanUrls` (/terms -> terms.html, /terms.html -> 308 /terms; /services -> services/index.html)
+//   - emulates `trailingSlash: false` (/services/ -> 308 /services)
 //   - applies `headers` rules from vercel.json
 //   - routes /api/<name> to api/<name>.js (Node req/res handler)
 //   - serves 404.html for unknown paths
@@ -57,13 +58,19 @@ async function resolveStatic(urlPath, cfg) {
   const rel = decodeURIComponent(urlPath).replace(/^\/+/, '');
   const abs = path.join(ROOT, rel);
   if (!abs.startsWith(ROOT)) return { status: 403 };
+  const noSlash = cfg.trailingSlash === false;
   if (clean && /\.html$/.test(urlPath)) {
-    const target = urlPath.replace(/(index)?\.html$/, '') || '/';
+    let target = urlPath.replace(/(index)?\.html$/, '') || '/';
+    if (noSlash && target.length > 1) target = target.replace(/\/$/, '');
     return { redirect: target === '' ? '/' : target };
   }
+  // `trailingSlash: false`: /services/ -> 308 /services (as on Vercel)
+  if (noSlash && urlPath.length > 1 && urlPath.endsWith('/')) return { redirect: urlPath.replace(/\/+$/, '') };
   if (urlPath.endsWith('/')) { const f = await tryFile(path.join(abs, 'index.html')); if (f) return { file: f }; }
   const direct = await tryFile(abs); if (direct) return { file: direct };
   if (clean) { const f = await tryFile(abs + '.html'); if (f) return { file: f }; }
+  // a directory's index.html at its clean path (/services -> services/index.html), as on Vercel
+  { const f = await tryFile(path.join(abs, 'index.html')); if (f) return { file: f }; }
   return { status: 404 };
 }
 

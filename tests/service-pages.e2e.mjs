@@ -87,7 +87,8 @@ try {
     check('service-page.js only looks up shared header/menu elements (no homepage-only sections)', lookups.length > 0 && lookups.every(x => ALLOWED.includes(x)), lookups.join(', '));
   }
   { const r = await get('/services/does-not-exist'); check('unknown /services/* path -> 404', r.status === 404, String(r.status)); }
-  { const r = await get('/services'); check('/services (no hub page in Batch 1) -> 404 locally', r.status === 404, String(r.status)); }
+  // Batch 2 added the /services hub (tests/services-hub.e2e.mjs covers it); this replaces the Batch 1 "no hub -> 404" expectation.
+  { const r = await get('/services'); check('/services hub (Batch 2) -> 200; /services/ -> 308 /services (trailingSlash: false)', r.status === 200 && (await get('/services/').then(x => x.status === 308 && x.headers.get('location') === '/services')), String(r.status)); }
   { const r = await get('/assets/css/service-page.css?v=p5b1'); check('service-page.css served with the /assets cache policy and correct type', r.status === 200 && /text\/css/.test(r.headers.get('content-type') || '') && /max-age=604800/.test(r.headers.get('cache-control') || ''), r.headers.get('cache-control')); }
 
   // ======================= B. Homepage regression (static) =======================
