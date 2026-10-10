@@ -165,6 +165,12 @@ try {
       // Owner-approved wording (Batch 1 review): Launch step must match exactly.
       const launchText = await p.eval(`[...document.querySelectorAll('.svp-steps li')].find(li => li.querySelector('h3').textContent.trim() === 'Launch').querySelector('p').textContent.trim()`);
       check(`${path}: Launch step uses the owner-approved wording`, launchText === 'We test the finished website, publish it after your approval, and verify that it works as agreed.', launchText);
+      // Owner sign-off (Batch 1): A14 wording; A8/A10 qualified; A9 states only the verifiable technical fact.
+      const contactText = await p.eval(`document.querySelector('#contact .section-head .t1').textContent.trim()`);
+      check(`${path}: contact copy uses the owner-approved A14 wording`, contactText === 'Share a few details about your business and the site you need. We aim to respond as soon as possible with a clear, no-pressure next step.', contactText);
+      const allText = await p.eval(`document.documentElement.textContent`); // includes closed FAQ answers and JSON-LD
+      const retired = [/24 hours/i, /2[–-]3 weeks/i, /full Arabic/i, /actually been delivered/i, /built for RTL/i].filter(re => re.test(allText)).map(String);
+      check(`${path}: retired A8/A9/A10/A14 wording absent (page, FAQ answers, JSON-LD)`, retired.length === 0, retired.join(' '));
       // shared blocks parity with the homepage (behaviour-relevant structure)
       const sig = `(() => { const norm = h => { if (!h) return h; if (h === '/' || h === '#hero') return 'HOME'; return h.replace(/^\\/(?=#)/, ''); };
         const links = sel => [...document.querySelectorAll(sel + ' a')].map(a => a.textContent.trim().replace(/\\s+/g, ' ') + ' => ' + norm(a.getAttribute('href')));
