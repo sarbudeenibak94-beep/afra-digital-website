@@ -105,6 +105,12 @@ try {
       check('Arabic/RTL FAQ: discussed in scoping and confirmed in the proposal', faqA('Can you handle Arabic and RTL support?') === 'Arabic and English websites and apps, including Arabic right-to-left (RTL) layouts, can be discussed during scoping. The language setup — which pages or screens are in each language and who provides the Arabic content — is confirmed in your proposal before work begins.', faqA('Can you handle Arabic and RTL support?'));
       const retired = [/24 hours/i, /2[–-]3 weeks/i, /8[–-]16 weeks/i, /full Arabic/i].filter(re => re.test(copy.all)).map(String);
       check('retired homepage commitments absent (page text, FAQ answers, JSON-LD)', retired.length === 0, retired.join(' '));
+      // Owner-approved qualifier for the remaining RTL capability mentions (E-Commerce card, platform card, agencies FAQ).
+      const rtlQ = 'Arabic and right-to-left (RTL) support can be discussed during project scoping and confirmed in the proposal.';
+      const rtl = await p.eval(`(() => ({ ecom: ([...document.querySelectorAll('.svc-card')].find(c => c.querySelector('.svc-name')?.textContent.trim() === 'E-Commerce') || {}).textContent || '', platform: ([...document.querySelectorAll('.sp-why-card')].find(c => c.querySelector('.sp-why-title')?.textContent.trim() === 'Multi-language') || {}).textContent || '' }))()`);
+      const agencies = faqA('What makes AFRA DIGITAL different from other agencies?') || '';
+      check('RTL capability mentions qualified (E-Commerce card, Multi-language card, agencies FAQ)', [rtl.ecom, rtl.platform, agencies].every(x => x.includes(rtlQ)), `${rtl.ecom.includes(rtlQ)} ${rtl.platform.includes(rtlQ)} ${agencies.includes(rtlQ)}`);
+      check('no unqualified "Arabic RTL" claim on the homepage (page text, FAQ answers, JSON-LD)', !/Arabic RTL/i.test(copy.all), (copy.all.match(/.{0,60}Arabic RTL.{0,60}/i) || [''])[0]);
       const lazyOk = (await Promise.all(r.imgs.filter(i => i.lazy).map(async i => (await fetch(A + i.src)).status === 200))).every(Boolean);
       check('all images load (lazy ones reachable), have alt attribute and dimensions', lazyOk && r.imgs.every(i => i.ok && i.alt !== null && i.w && i.h), JSON.stringify(r.imgs.filter(i => !(i.ok && i.alt !== null && i.w && i.h))));
       await sleep(500);
