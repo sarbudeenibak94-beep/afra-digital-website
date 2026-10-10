@@ -49,6 +49,13 @@ async function settle(p, from, timeoutMs = 25000) {
   }
   return null;
 }
+// Wait until a page expression is truthy (15 s cap) before a positive check, instead of a fixed sleep: banner
+// rendering, config lookups and script loads are async and take longer on a busy machine (Phase 05 Batch 1).
+async function waitFor(p, expr, timeoutMs = 15000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) { try { if (await p.eval(expr)) return true; } catch {} await sleep(100); }
+  return false;
+}
 const configCount = p => p.eval(`${COMMANDS}.filter(c => c[0] === 'config').length`);
 const analyticsHits = p => (p.log.intercepted || []).concat(p.log.requests.filter(r => ANALYTICS_URL.test(r.url) && !(p.log.intercepted || []).some(i => i.url === r.url)));
 const blockNavigation = p => p.eval(`document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href]'); if (a && /^(tel:|mailto:|https:\\/\\/wa\\.me)/.test(a.getAttribute('href'))) e.preventDefault(); }, false); true`);
@@ -63,7 +70,8 @@ try {
     await p.goto(NONE + '/'); await sleep(1500);
     const banner = await p.eval(`!!document.getElementById('afra-consent')`);
     check('T1 no tool configured: no banner, no analytics requests, gtag never defined', !banner && analyticsHits(p).length === 0 && await p.eval(`typeof window.gtag`) === 'undefined');
-    await p.eval(`document.querySelector('[data-cookie-settings]').click()`); await sleep(500);
+    await p.eval(`document.querySelector('[data-cookie-settings]').click()`);
+    await waitFor(p, `/uses no analytics tools/.test((document.getElementById('afra-consent') || {}).textContent || '')`);
     const msg = await p.eval(`(document.getElementById('afra-consent') || {}).textContent || ''`);
     check('T1b "Cookie settings" with nothing configured says no analytics is used', /uses no analytics tools/.test(msg), msg.slice(0, 80));
     await p.close();
@@ -78,7 +86,7 @@ try {
   // ---------- T2: first visit -> banner, zero requests before choice ----------
   {
     const p = await newPage();
-    await p.goto(C + '/'); await sleep(2500);
+    await p.goto(C + '/'); await waitFor(p, `!!document.getElementById('afra-consent')`); await sleep(300);
     const r = await p.eval(`(() => { const b = document.getElementById('afra-consent'); if (!b) return null;
       const btns = [...b.querySelectorAll('button[data-consent]')].map(x => { const cs = getComputedStyle(x), rc = x.getBoundingClientRect(); return { t: x.textContent, cls: x.className, bg: cs.backgroundColor, color: cs.color, fw: cs.fontWeight, fs: cs.fontSize, w: Math.round(rc.width), h: Math.round(rc.height) }; });
       return { role: b.getAttribute('role'), labelled: !!document.getElementById(b.getAttribute('aria-labelledby')), text: b.textContent, btns, position: getComputedStyle(b).position, firstInBody: document.body.firstElementChild === b }; })()`);
@@ -116,8 +124,9 @@ try {
     const p = await newPage();
     await p.goto(C + '/'); await p.eval(`localStorage.clear(); true`);
     await p.goto(C + '/?utm_source=newsletter&utm_medium=email&utm_campaign=launch_2026&utm_content=call+97455512345&utm_term=john%40example.org&email=john%40example.org&ref=abc#contact');
-    await sleep(2000);
-    await p.eval(`document.querySelector('#afra-consent [data-consent="accept"]').click()`); await sleep(800);
+    await waitFor(p, `!!document.getElementById('afra-consent')`);
+    await p.eval(`document.querySelector('#afra-consent [data-consent="accept"]').click()`);
+    await waitFor(p, `window.__gtagLoads === 1 && window.__siLoads === 1`); await sleep(300); // extra time so a double load would be caught
     const st = await p.eval(`({ gtagLoads: window.__gtagLoads || 0, siLoads: window.__siLoads || 0, stored: JSON.parse(localStorage.getItem('afra_consent_v1')), cmds: ${COMMANDS} })`);
     const cfg = st.cmds.find(c => c[0] === 'config');
     const consentDefault = st.cmds.find(c => c[0] === 'consent' && c[1] === 'default');
@@ -189,7 +198,7 @@ try {
 
     // ---------- T5: consent persists across reloads (granted) ----------
     const p2 = await newPage();
-    await p2.goto(C + '/'); await sleep(1800);
+    await p2.goto(C + '/'); await waitFor(p2, `window.__gtagLoads === 1`); await sleep(300);
     check('T5 accepted choice persists: no banner, analytics loads once on the next page', !(await p2.eval(`!!document.getElementById('afra-consent')`)) && await p2.eval(`window.__gtagLoads || 0`) === 1 && await configCount(p2) === 1);
 
     // ---------- T10: failed submissions never count ----------
@@ -222,11 +231,12 @@ try {
 
     // ---------- T4b: withdraw consent via Cookie settings ----------
     await p2.eval(`document.cookie = '_ga=GA1.1.123.456; path=/'; document.cookie = '_ga_TEST1234AB=GS1.1.1; path=/'; true`);
-    await p2.eval(`document.querySelector('[data-cookie-settings]').click()`); await sleep(500);
+    await p2.eval(`document.querySelector('[data-cookie-settings]').click()`);
+    await waitFor(p2, `/accepted/.test((document.querySelector('.afra-consent-status') || {}).textContent || '') && !!(document.activeElement && document.activeElement.closest('#afra-consent'))`);
     const settings = await p2.eval(`({ open: !!document.getElementById('afra-consent'), focusInside: !!(document.activeElement && document.activeElement.closest('#afra-consent')), status: (document.querySelector('.afra-consent-status') || {}).textContent })`);
     check('T14 Cookie settings reopens the banner, moves focus into it, shows current choice', settings.open && settings.focusInside && /accepted/.test(settings.status || ''), JSON.stringify(settings));
-    await p2.eval(`document.querySelector('#afra-consent [data-consent="reject"]').click()`);
-    await sleep(2500); // page reloads after withdrawal
+    await p2.eval(`window.__beforeWithdrawal = true; document.querySelector('#afra-consent [data-consent="reject"]').click()`);
+    await waitFor(p2, `!window.__beforeWithdrawal && document.readyState === 'complete'`); await sleep(1000); // page reloads after withdrawal
     const after = await p2.eval(`({ gtagLoads: window.__gtagLoads || 0, si: window.__siLoads || 0, cookies: document.cookie, stored: JSON.parse(localStorage.getItem('afra_consent_v1')), banner: !!document.getElementById('afra-consent') })`);
     check('T4b withdrawal: reloads without GA/Speed Insights, cookies removed, stored as rejected', after.gtagLoads === 0 && after.si === 0 && !/_ga/.test(after.cookies) && after.stored.analytics === false && !after.banner, JSON.stringify(after));
     await p2.close();
@@ -236,7 +246,7 @@ try {
     const p = await newPage();
     await p.goto(C + '/'); await setConsent(p, true, Date.now() - 366 * 24 * 3600 * 1000);
     const p2 = await newPage();
-    await p2.goto(C + '/'); await sleep(1800);
+    await p2.goto(C + '/'); await waitFor(p2, `!!document.getElementById('afra-consent')`);
     check('Consent older than 12 months is ignored: banner shown again, nothing loaded', await p2.eval(`!!document.getElementById('afra-consent')`) && analyticsHits(p2).length === 0);
     await p2.eval(`localStorage.clear(); true`);
     await p.close(); await p2.close();
@@ -244,20 +254,21 @@ try {
   // ---------- legal pages ----------
   {
     const p = await newPage({ width: 390, height: 844, mobile: true });
-    await p.goto(C + '/privacy-policy'); await sleep(1800);
+    await p.goto(C + '/privacy-policy'); await waitFor(p, `!!document.getElementById('afra-consent')`); await sleep(300);
     const r = await p.eval(`({ banner: !!document.getElementById('afra-consent'), sw: document.documentElement.scrollWidth, vw: innerWidth, h1: document.querySelectorAll('h1').length,
       inView: (() => { const b = document.querySelector('.afra-consent-inner'); if (!b) return false; const rc = b.getBoundingClientRect(); return rc.left >= 0 && rc.right <= innerWidth && rc.bottom <= innerHeight; })() })`);
     check('T14 Privacy page (mobile): banner shown and fits the viewport, no horizontal scroll, page intact', r.banner && r.inView && r.sw <= r.vw && r.h1 === 1, JSON.stringify(r));
     check('T14 Privacy page: no analytics requests before consent', analyticsHits(p).length === 0);
-    await p.eval(`document.querySelector('#afra-consent [data-consent="accept"]').click()`); await sleep(600);
+    await p.eval(`document.querySelector('#afra-consent [data-consent="accept"]').click()`); await waitFor(p, `window.__gtagLoads === 1`);
     await blockNavigation(p);
     await p.eval(`document.querySelector('main a[href^="tel:"]').click(); document.querySelector('main a[href^="mailto:"]').click(); true`); await sleep(200);
     const names = (await gtagEvents(p)).map(e => e[1] + ':' + e[2].link_location);
     check('T14 Privacy page after consent: GA loads once, phone/email clicks tracked', await p.eval(`window.__gtagLoads || 0`) === 1 && names.includes('phone_click:privacy_policy') && names.includes('email_click:privacy_policy'), names.join(','));
-    await p.goto(C + '/terms'); await sleep(1500);
+    await p.goto(C + '/terms'); await waitFor(p, `window.__gtagLoads === 1`); await sleep(300);
     check('T14 Terms page: consent remembered, GA loads once, page intact', await p.eval(`window.__gtagLoads || 0`) === 1 && await p.eval(`document.querySelectorAll('h1').length`) === 1 && !p.log.cspViolations.length);
     // Escape closes settings and returns focus to the trigger
-    await p.eval(`document.querySelector('[data-cookie-settings]').focus(); document.querySelector('[data-cookie-settings]').click(); true`); await sleep(400);
+    await p.eval(`document.querySelector('[data-cookie-settings]').focus(); document.querySelector('[data-cookie-settings]').click(); true`);
+    await waitFor(p, `!!(document.activeElement && document.activeElement.closest('#afra-consent'))`);
     await p.key('Escape', 'Escape', 27); await sleep(200);
     const esc = await p.eval(`({ open: !!document.getElementById('afra-consent'), focus: document.activeElement && document.activeElement.hasAttribute('data-cookie-settings') })`);
     check('T16 Escape closes Cookie settings and returns focus to the footer button', !esc.open && esc.focus, JSON.stringify(esc));

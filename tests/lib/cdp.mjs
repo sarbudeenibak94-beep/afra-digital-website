@@ -21,8 +21,9 @@ export async function launch({ port = 9340 } = {}) {
   const proc = spawn(exe, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
     '--no-first-run', '--no-default-browser-check', '--hide-scrollbars', '--disable-extensions', 'about:blank'], { stdio: 'ignore' });
   let ver;
-  for (let i = 0; i < 80 && !ver; i++) { try { ver = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json(); } catch { await sleep(150); } }
-  if (!ver) throw new Error('Chrome did not start');
+  // Up to 30 s: on a busy machine Chrome can take longer than 12 s to open its DevTools port.
+  for (let i = 0; i < 200 && !ver; i++) { try { ver = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json(); } catch { await sleep(150); } }
+  if (!ver) { proc.kill(); throw new Error('Chrome did not start'); }
   const ws = new WebSocket(ver.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
   let id = 0; const pending = new Map(); const listeners = new Set();
@@ -31,8 +32,13 @@ export async function launch({ port = 9340 } = {}) {
     if (m.id && pending.has(m.id)) { const p = pending.get(m.id); pending.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); }
     else listeners.forEach(l => l(m));
   };
+  // Every command fails after 120 s instead of waiting forever if Chrome never answers (seen once under heavy load).
   const send = (method, params = {}, sessionId) => new Promise((res, rej) => {
-    const i = ++id; pending.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method, params, sessionId }));
+    const i = ++id;
+    const t = setTimeout(() => { if (pending.delete(i)) rej(new Error(`CDP ${method} timed out after 120 s`)); }, 120000);
+    t.unref?.(); // never keeps the process alive on its own
+    pending.set(i, { res: v => { clearTimeout(t); res(v); }, rej: e => { clearTimeout(t); rej(e); } });
+    ws.send(JSON.stringify({ id: i, method, params, sessionId }));
   });
 
   // intercept: [{ urlPattern, respond: (url) => ({ status, contentType, body }) }] — requests to analytics
