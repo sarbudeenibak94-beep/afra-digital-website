@@ -109,7 +109,9 @@ try {
       const rtlQ = 'Arabic and right-to-left (RTL) support can be discussed during project scoping and confirmed in the proposal.';
       const rtl = await p.eval(`(() => ({ ecom: ([...document.querySelectorAll('.svc-card')].find(c => c.querySelector('.svc-name')?.textContent.trim() === 'E-Commerce') || {}).textContent || '', platform: ([...document.querySelectorAll('.sp-why-card')].find(c => c.querySelector('.sp-why-title')?.textContent.trim() === 'Multi-language') || {}).textContent || '' }))()`);
       const agencies = faqA('What makes AFRA DIGITAL different from other agencies?') || '';
-      check('RTL capability mentions qualified (E-Commerce card, Multi-language card, agencies FAQ)', [rtl.ecom, rtl.platform, agencies].every(x => x.includes(rtlQ)), `${rtl.ecom.includes(rtlQ)} ${rtl.platform.includes(rtlQ)} ${agencies.includes(rtlQ)}`);
+      // The Multi-language card describes the own products (Cook With Fire, SAANIX), so it uses product wording.
+      const rtlP = 'Arabic and right-to-left (RTL) support can be discussed during product requirements review and confirmed for the relevant product.';
+      check('RTL capability mentions qualified (E-Commerce card + agencies FAQ: scoping; Multi-language card: product wording)', [rtl.ecom, agencies].every(x => x.includes(rtlQ)) && rtl.platform.includes(rtlP) && !rtl.platform.includes(rtlQ), `${rtl.ecom.includes(rtlQ)} ${agencies.includes(rtlQ)} ${rtl.platform.includes(rtlP)}`);
       check('no unqualified "Arabic RTL" claim on the homepage (page text, FAQ answers, JSON-LD)', !/Arabic RTL/i.test(copy.all), (copy.all.match(/.{0,60}Arabic RTL.{0,60}/i) || [''])[0]);
       const lazyOk = (await Promise.all(r.imgs.filter(i => i.lazy).map(async i => (await fetch(A + i.src)).status === 200))).every(Boolean);
       check('all images load (lazy ones reachable), have alt attribute and dimensions', lazyOk && r.imgs.every(i => i.ok && i.alt !== null && i.w && i.h), JSON.stringify(r.imgs.filter(i => !(i.ok && i.alt !== null && i.w && i.h))));
