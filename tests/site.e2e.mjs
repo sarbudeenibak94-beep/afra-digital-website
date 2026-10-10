@@ -183,6 +183,24 @@ try {
       check('normal motion: both product glow orbs still pulse (spGlowPulse)', res['no-preference'].length === 2 && res['no-preference'].every(g => g.name === 'spGlowPulse' && g.running > 0), JSON.stringify(res['no-preference']));
     }
 
+    // Reduced motion: in-page menu jumps are instant (html{scroll-behavior:smooth} is overridden in the reduced-motion
+    // block; site.js passes behavior 'auto', which follows the CSS). Normal motion keeps the smooth scroll.
+    {
+      const jump = {};
+      for (const mode of ['reduce', 'no-preference']) {
+        const p = await browser.newPage({ width: 1440, height: 900 });
+        await p.S('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: mode }] });
+        await p.goto(A + '/'); await sleep(800);
+        await p.eval(`window.__y = []; document.querySelector('#nav .nav-links a[href="#services"]').click(); window.__y.push(Math.round(scrollY)); (function t() { window.__y.push(Math.round(scrollY)); if (window.__y.length < 40) requestAnimationFrame(t); })(); true`);
+        await sleep(1500);
+        jump[mode] = await p.eval(`({ css: getComputedStyle(document.documentElement).scrollBehavior, first: window.__y[0], final: window.__y.at(-1), positions: new Set(window.__y).size, top: Math.round(document.getElementById('services').getBoundingClientRect().top), margin: parseFloat(getComputedStyle(document.getElementById('services')).scrollMarginTop) || 0 })`);
+        await p.close();
+      }
+      const r = jump.reduce, n = jump['no-preference'];
+      check('prefers-reduced-motion: menu "Services" jumps immediately (scroll-behavior auto, final position on the click frame)', r.css === 'auto' && r.first > 0 && r.first === r.final && r.positions === 1 && Math.abs(r.top - r.margin) <= 2, JSON.stringify(r));
+      check('normal motion: menu "Services" still scrolls smoothly to the section', n.css === 'smooth' && n.positions > 5 && Math.abs(n.top - n.margin) <= 2, JSON.stringify(n));
+    }
+
     // Phase 05 Batch 2: "View all services" link under the services grid opens the /services hub. The header and
     // mobile-menu "Services" items stay in-page anchors (#services), like every other homepage menu item.
     {

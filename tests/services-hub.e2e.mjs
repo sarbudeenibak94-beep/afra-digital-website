@@ -119,6 +119,14 @@ try {
     const homeSvc = await (async () => { const hp = await browser.newPage({ width: 1280, height: 900 }); await hp.goto(S + '/'); await sleep(600); const x = await hp.eval(`[...document.querySelectorAll('.svc-card a.svc-link')].map(a => a.getAttribute('data-service'))`); await hp.close(); return x; })();
     check(`${PATH}: the hub covers exactly the homepage's 12 services (no new or dropped service)`, JSON.stringify([...homeSvc].sort()) === JSON.stringify(CARDS.map(c => c[1]).sort()), homeSvc.join('|'));
     check(`${PATH}: E-Commerce card keeps the approved RTL qualification`, cards[1].text.includes('Arabic and right-to-left (RTL) support can be discussed during project scoping and confirmed in the proposal.'), cards[1].text);
+    // Batch 2 finalization: owner-reviewed wording for the three cards most prone to overclaiming.
+    const REVIEWED = {
+      'AI Solutions': 'AI features built for a specific business task, such as answering common customer questions or finding information in your documents and data. What AI can realistically do for your business is assessed during scoping and set out in your proposal.',
+      'SaaS Development': 'Subscription-based software products with user accounts and roles, designed from the start so that many customer businesses can use the same product, each with its own data kept separate.',
+      'Digital Marketing': 'SEO, paid advertising and social media campaigns for audiences in the GCC. Goals and reporting are agreed in your proposal; we do not promise specific results.',
+    };
+    const reviewedBad = Object.entries(REVIEWED).filter(([n, t]) => (cards.find(c => c.name === n) || {}).text !== t).map(([n]) => n);
+    check(`${PATH}: AI Solutions, SaaS Development and Digital Marketing use the reviewed wording exactly`, reviewedBad.length === 0, reviewedBad.join(', '));
     // form defaults
     const f = await p.eval(`(() => { const f = document.getElementById('contact-form'); const ctrls = [...f.querySelectorAll('input:not([type=hidden]), select, textarea')].filter(el => el.name !== 'hp');
       return { service: f.service.value, source: f.source.value, plan: f.plan.value, action: f.getAttribute('action'), method: f.getAttribute('method'), hp: !!f.querySelector('input[name=hp]'), elapsed: !!f.querySelector('input[name=elapsed]'),
