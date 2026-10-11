@@ -416,10 +416,11 @@ html:not(.js) [rv]:not(.on){animation:rvFallback .3s ease 8s forwards;}
 .hero-h1 .l3 span{animation-delay:0.41s;}
 @keyframes linePop{from{transform:translateY(100%);opacity:0;}to{transform:none;opacity:1;}}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+@keyframes slideUp{from{transform:translateY(14px);}to{transform:none;}}
 .hero-sub{font-size:clamp(0.95rem,1.5vw,1.1rem);color:var(--gray-400);line-height:1.85;max-width:500px;margin-bottom:40px;animation:fadeSlide 1s var(--ease) 0.55s both;}
 .hero-btns{display:flex;align-items:center;gap:14px;flex-wrap:wrap;animation:fadeSlide 1s var(--ease) 0.75s both;}
 /* Hero Right — Dashboard */
-.hero-right{display:flex;justify-content:center;align-items:center;position:relative;animation:fadeSlide 1.2s var(--ease) 0.4s both;}
+.hero-right{display:flex;justify-content:center;align-items:center;position:relative;animation:slideUp 1.2s var(--ease) 0.4s both;}
 .hero-dash{
     width:460px;
     height:460px;
