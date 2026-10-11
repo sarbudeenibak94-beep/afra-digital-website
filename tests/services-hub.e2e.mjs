@@ -95,8 +95,8 @@ try {
   { const wd = read('services/website-development.html');
     check('website-development: breadcrumb "Services" and "All services" link to /services; its BreadcrumbList item 2 = /services',
       /<li><a href="\/services">Services<\/a><\/li>/.test(wd) && /<a href="\/services">All services/.test(wd) && wd.includes(`{ "@type": "ListItem", "position": 2, "name": "Services", "item": "${CANONICAL}" }`)); }
-  { const r = await get('/assets/css/service-page.css?v=p5b3'); const css = await r.text();
-    check('hub stylesheet version p5b3 served (adds the .svh-* rules) with the /assets cache policy', r.status === 200 && /max-age=604800/.test(r.headers.get('cache-control') || '') && /\.svh-card\{/.test(css) && /service-page\.css\?v=p5b3/.test(html)); }
+  { const r = await get('/assets/css/service-page.css?v=p6d1'); const css = await r.text();
+    check('hub stylesheet version p6d1 served (.svh-* rules; bumped for Design D1) with the /assets cache policy', r.status === 200 && /max-age=604800/.test(r.headers.get('cache-control') || '') && /\.svh-card\{/.test(css) && /service-page\.css\?v=p6d1/.test(html)); }
 
   // ======================= B. Desktop browser checks =======================
   {

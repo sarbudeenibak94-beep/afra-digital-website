@@ -185,9 +185,9 @@ try {
     }
 
     // Reduced motion: no homepage animation loops or keeps running (infinite animations end after one 0.01ms cycle via
-    // animation-iteration-count:1); content and the loader still reach their final state. Normal motion keeps all 18 loops.
+    // animation-iteration-count:1); content and the loader still reach their final state. Normal motion keeps all 17 loops (Design D6 replaced the hero logo, and with it one of the two 'logoFloat' loops).
     {
-      const LOOPS = ['bgZoom', 'borderMove', 'dustMove', 'goldGlowMove', 'goldWaveMove', 'logoFloat', 'logoFloat', 'mq', 'particlesMove', 'raysMove', 'ringRotate', 'ringRotateReverse',
+      const LOOPS = ['bgZoom', 'borderMove', 'dustMove', 'goldGlowMove', 'goldWaveMove', 'logoFloat', 'mq', 'particlesMove', 'raysMove', 'ringRotate', 'ringRotateReverse',
         'spGlowPulse', 'spGlowPulse', 'spGoldBorderMove', 'spGoldBorderMove', 'spTypeCursor', 'waFloat'];
       const probe = `(() => { const all = document.getAnimations().filter(a => a.effect); const inf = all.filter(a => a.effect.getComputedTiming().iterations === Infinity);
         return { infinite: inf.map(a => a.animationName).sort(), running: all.filter(a => a.playState === 'running').map(a => a.animationName),
@@ -202,7 +202,7 @@ try {
       }
       const r = res.reduce, n = res['no-preference'];
       check('prefers-reduced-motion: no homepage animation loops or is still running; heading visible and loader gone', r.infinite.length === 0 && r.running.length === 0 && r.heroVisible && r.loaderGone, JSON.stringify(r));
-      check('normal motion: the 18 decorative homepage loops are unchanged and running', JSON.stringify(n.infinite) === JSON.stringify(LOOPS) && LOOPS.every(x => n.running.includes(x)) && n.heroVisible && n.loaderGone, JSON.stringify({ infinite: n.infinite.length, missing: LOOPS.filter(x => !n.infinite.includes(x)) }));
+      check('normal motion: the 17 decorative homepage loops are unchanged and running', JSON.stringify(n.infinite) === JSON.stringify(LOOPS) && LOOPS.every(x => n.running.includes(x)) && n.heroVisible && n.loaderGone, JSON.stringify({ infinite: n.infinite.length, missing: LOOPS.filter(x => !n.infinite.includes(x)) }));
     }
 
     // Reduced motion: in-page menu jumps are instant (html{scroll-behavior:smooth} is overridden in the reduced-motion

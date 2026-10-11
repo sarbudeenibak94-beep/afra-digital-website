@@ -27,7 +27,6 @@ new PerformanceObserver(l => { for (const e of l.getEntries()) if (!e.hadRecentI
 
 const median = a => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
 
-const browser = await launch({ port: 9341 });
 const out = {};
 for (const [name, w, h, mobile, throttle, settle] of [
   ['mobile-390-throttled', 390, 844, true, MOBILE_THROTTLE, 30000],
@@ -35,6 +34,9 @@ for (const [name, w, h, mobile, throttle, settle] of [
 ]) {
   const runs = [];
   for (let i = 0; i < RUNS; i++) {
+    // A fresh browser per run: background work left by the previous page (e.g. the D6 hero robot compiling WebGL
+    // shaders in the shared GPU process) must not slow the next measurement.
+    const browser = await launch({ port: 9341 });
     const p = await browser.newPage({ width: w, height: h, mobile, throttle, initScript: INIT });
     const t0 = Date.now();
     await p.goto(BASE, { waitFor: 'load', timeout: 120000 });
@@ -52,11 +54,11 @@ for (const [name, w, h, mobile, throttle, settle] of [
     r.loadWallMs = loadWall;
     runs.push(r);
     await p.close();
+    await browser.close();
   }
   const keys = ['fcpMs', 'lcpMs', 'contentVisibleMs', 'loadEventMs', 'domContentLoadedMs', 'cls', 'transferKB', 'imageKB', 'requests'];
   out[name] = { median: Object.fromEntries(keys.map(k => [k, median(runs.map(r => r[k]))])), lcpElement: runs[0].lcpElement, runs };
 }
-await browser.close();
 mkdirSync(new URL('./results/', import.meta.url), { recursive: true });
 writeFileSync(new URL(`./results/perf-${LABEL}.json`, import.meta.url), JSON.stringify(out, null, 2));
 for (const [k, v] of Object.entries(out)) console.log(k, JSON.stringify(v.median), 'LCP el:', v.lcpElement);

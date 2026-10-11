@@ -96,7 +96,7 @@ try {
     const site = read('assets/js/site.js').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''); // code only, comments removed
     const tags = [...idx.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map(m => m[1]);
     check('homepage loads analytics.js, site.js and contact-form.js (deferred, in that order; changed files versioned)',
-      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js', '/assets/js/site.js?v=p5b1', '/assets/js/contact-form.js?v=p5b1']), tags.join(' | '));
+      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js', '/assets/js/site.js?v=p6d61', '/assets/js/contact-form.js?v=p5b1']), tags.join(' | '));
     check('form logic lives only in contact-form.js (site.js has none; no double binding)', !/contact-form|cf-source|form-btn|generate_lead/.test(site) && /getElementById\('contact-form'\)/.test(cf) && /generate_lead/.test(cf));
     check('homepage no longer says "Alongside client projects"', !/Alongside client projects/i.test(idx));
     check('homepage Website Development card links to the service page', /data-cta="service_website_development"[\s\S]{0,700}<p class="svc-more"><a href="\/services\/website-development">Learn more about website development/.test(idx));
@@ -374,16 +374,16 @@ try {
     check('homepage: "Learn more about website development" link visible on the card', learn && learn.href === '/services/website-development' && learn.visible, JSON.stringify(learn));
     check('homepage: no exceptions, console errors or CSP violations', !p.log.exceptions.length && !fresh.log.exceptions.length && !p.log.cspViolations.length && !fresh.log.cspViolations.length && !fresh.log.console.filter(c => /^error/.test(c)).length, JSON.stringify([p.log.exceptions, fresh.log.exceptions, fresh.log.console]).slice(0, 300));
     await fresh.close(); await p.close();
-    // Homepage header "Start Project": 44px touch target on phones; header height and tablet/desktop unchanged.
+    // Homepage header "Start Project": 44px touch target on phones; phone/tablet header height unchanged; desktop header (≥1024) compacted by Design D2.
     const hdr = [];
-    for (const [w, expectH, expectNav] of [[320, 44, 75], [360, 44, 75], [390, 44, 75], [414, 44, 75], [768, 44, 75], [769, null, 85], [1024, null, 85], [1280, null, 105]]) {
+    for (const [w, expectH, expectNav] of [[320, 44, 75], [360, 44, 75], [390, 44, 75], [414, 44, 75], [768, 44, 75], [769, null, 85], [1024, null, 77], [1280, null, 77], [1440, null, 85]]) {
       const q = await browser.newPage({ width: w, height: 800, mobile: w <= 1024 }); await q.goto(S + '/'); await sleep(600);
       const r = await q.eval(`({ btnH: +document.querySelector('#nav .nav-right .btn-prime').getBoundingClientRect().height.toFixed(1), navH: Math.round(document.getElementById('nav').getBoundingClientRect().height), sw: document.documentElement.scrollWidth, vw: innerWidth })`);
       await q.close();
       const ok = (expectH === null ? r.btnH < 44 && r.btnH > 30 : r.btnH >= expectH) && r.navH === expectNav && r.sw <= r.vw;
       if (!ok) hdr.push(`${w}:${JSON.stringify(r)}`);
     }
-    check('homepage: header "Start Project" is ≥ 44px on phones (≤768), header height unchanged (75/85/105), tablet/desktop button unchanged', hdr.length === 0, hdr.join(' '));
+    check('homepage: header "Start Project" is ≥ 44px on phones (≤768), header height 75/85 phone/tablet, 77/85 desktop (D2), tablet/desktop button unchanged', hdr.length === 0, hdr.join(' '));
   }
 } catch (err) {
   check('harness error', false, err.stack);

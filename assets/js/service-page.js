@@ -56,7 +56,8 @@
         else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
       }
     });
-    window.addEventListener('resize', function () { if (menuOpen && window.innerWidth > 1024) setMenu(false, false); });
+    // Close when the hamburger is hidden (desktop links shown from 1024px), so the CSS breakpoint is the single source of truth.
+    window.addEventListener('resize', function () { if (menuOpen && getComputedStyle(hb).display === 'none') setMenu(false, false); });
   }
 
   /* ---------- SMOOTH IN-PAGE SCROLL (same-page anchors only; moves focus) ---------- */

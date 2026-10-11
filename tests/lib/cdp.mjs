@@ -1,9 +1,30 @@
 // Tiny Chrome DevTools Protocol helper (zero dependencies; uses the locally installed Chrome
 // and Node's built-in WebSocket/fetch). Test tooling only — never deployed.
-import { spawn } from 'node:child_process';
-import { mkdtempSync, existsSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdtempSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+
+// Each launch gets a throwaway Chrome profile in the OS temp folder (~25 MB). It is removed when the browser
+// closes, when start-up fails, or when the process exits without close(). CDP_KEEP_PROFILE=1 keeps it for debugging.
+const KEEP = process.env.CDP_KEEP_PROFILE === '1';
+const live = new Map(); // profile dir -> Chrome process, for the exit hook
+const sleepSync = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+// Windows releases a killed Chrome's file handles a moment after it exits (rmSync's own retries do not cover this
+// EPERM), so retry for up to ~5 s. Synchronous, so it also works in the exit hook.
+const removeProfile = dir => { if (KEEP) return; for (let i = 0; i < 25; i++) { try { rmSync(dir, { recursive: true, force: true }); return; } catch { sleepSync(200); } } };
+// Exit hook (synchronous): end Chrome's whole process tree first, otherwise its helpers keep the profile files locked.
+const killTreeSync = proc => { try { if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { stdio: 'ignore' }); else proc.kill('SIGKILL'); } catch {} };
+process.on('exit', () => { for (const [dir, proc] of live) { killTreeSync(proc); removeProfile(dir); } });
+async function shutdown(proc, dir) {
+  live.delete(dir);
+  if (proc.exitCode === null && proc.signalCode === null) {
+    const exited = new Promise(r => proc.once('exit', r));
+    proc.kill();
+    await Promise.race([exited, sleep(5000)]); // Windows keeps the profile files locked until Chrome has exited
+  }
+  removeProfile(dir);
+}
 
 const CANDIDATES = [
   process.env.CHROME_PATH,
@@ -20,12 +41,15 @@ export async function launch({ port = 9340 } = {}) {
   const profile = mkdtempSync(path.join(tmpdir(), 'afra-cdp-'));
   const proc = spawn(exe, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
     '--no-first-run', '--no-default-browser-check', '--hide-scrollbars', '--disable-extensions', 'about:blank'], { stdio: 'ignore' });
-  let ver;
-  // Up to 30 s: on a busy machine Chrome can take longer than 12 s to open its DevTools port.
-  for (let i = 0; i < 200 && !ver; i++) { try { ver = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json(); } catch { await sleep(150); } }
-  if (!ver) { proc.kill(); throw new Error('Chrome did not start'); }
-  const ws = new WebSocket(ver.webSocketDebuggerUrl);
-  await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
+  live.set(profile, proc);
+  let ver, ws;
+  try {
+    // Up to 30 s: on a busy machine Chrome can take longer than 12 s to open its DevTools port.
+    for (let i = 0; i < 200 && !ver; i++) { try { ver = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json(); } catch { await sleep(150); } }
+    if (!ver) throw new Error('Chrome did not start');
+    ws = new WebSocket(ver.webSocketDebuggerUrl);
+    await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
+  } catch (e) { await shutdown(proc, profile); throw e; }
   let id = 0; const pending = new Map(); const listeners = new Set();
   ws.onmessage = ev => {
     const m = JSON.parse(ev.data);
@@ -121,7 +145,8 @@ export async function launch({ port = 9340 } = {}) {
 
   return {
     newPage,
-    async close() { try { ws.close(); } catch {} proc.kill(); },
+    profile,
+    async close() { try { ws.close(); } catch {} await shutdown(proc, profile); },
   };
 }
 

@@ -33,12 +33,12 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.json">
-<link rel="preload" as="image" href="/assets/img/afra-logo-640.webp" imagesrcset="/assets/img/afra-logo-384.webp 384w, /assets/img/afra-logo-640.webp 640w" imagesizes="(max-width: 480px) 160px, (max-width: 768px) 260px, 320px" fetchpriority="high">
+<link rel="preload" as="image" href="/assets/img/hero-robot-640.webp" imagesrcset="/assets/img/hero-robot-384.webp 384w, /assets/img/hero-robot-640.webp 640w, /assets/img/hero-robot-960.webp 960w" imagesizes="(max-width: 480px) 220px, (max-width: 768px) 250px, (max-width: 900px) 460px, (max-width: 1023px) 340px, (max-width: 1180px) 400px, 460px" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap" rel="stylesheet">
 <script src="/assets/js/analytics.js" defer></script>
-<script src="/assets/js/site.js?v=p5b1" defer></script>
+<script src="/assets/js/site.js?v=p6d61" defer></script>
 <script src="/assets/js/contact-form.js?v=p5b1" defer></script>
 <noscript><style>[rv]{opacity:1!important;transform:none!important}#loader{display:none!important}.faq-a{max-height:none!important}</style></noscript>
 <script type="application/ld+json">
@@ -431,13 +431,6 @@ html:not(.js) [rv]:not(.on){animation:rvFallback .3s ease 8s forwards;}
     background:transparent;
     border:none;
     box-shadow:none;
-}
-.hero-logo{
-    width:320px;
-    height:auto;
-    object-fit:contain;
-
-    animation:logoFloat 6s ease-in-out infinite;
 }
 .hero-dash{
     position:relative;
@@ -1304,11 +1297,6 @@ justify-content:center;
 flex-wrap:wrap;
 }
 
-.hero-logo{
-width:260px;
-max-width:80%;
-}
-
 .hero-dash{
 width:320px;
 height:320px;
@@ -1560,10 +1548,6 @@ display:none;
   .hero-dash::after{
     width:246px!important;
     height:246px!important;
-  }
-  .hero-logo{
-    width:175px!important;
-    max-width:65%!important;
   }
 
   /* Floating badges — hidden, too cluttered */
@@ -2034,7 +2018,6 @@ display:none;
   .hero-dash{width:220px!important;height:220px!important;}
   .hero-dash::before{width:178px!important;height:178px!important;}
   .hero-dash::after{width:216px!important;height:216px!important;}
-  .hero-logo{width:155px!important;}
 
   /* About panel */
   .about-left-panel{min-height:240px;}
@@ -3269,6 +3252,107 @@ body.menu-open{overflow:hidden;}
 .svc-more a:hover{color:var(--gold-bright);}
 .svc-all{margin-top:28px;text-align:center;}
 .svc-all .btn{min-height:44px;}
+/* =====================================================================
+   DESIGN D1: type scale, 12px minimum text, no heading glow, section rhythm.
+   Wins over the earlier duplicate rules by source order (same specificity).
+   The header (.nav-*) is deliberately untouched. Mirrored in assets/css/service-page.css.
+   ===================================================================== */
+:root{
+  --fs-h1:clamp(2.25rem,1.5rem + 2.6vw,4rem);      /* hero/page title: 36 → 64px */
+  --fs-h2:clamp(1.7rem,1.1rem + 2.4vw,3rem);       /* section titles: 27 → 48px */
+  --ls-display:-0.022em;                           /* display tracking (was -0.03 / -0.035em) */
+  --fs-min:0.75rem;                                /* 12px minimum for real text */
+  --space-section:clamp(52px,34px + 4.5vw,112px);  /* section rhythm: 52px phones (as before), 68px at 768 */
+}
+.hero-h1{font-size:min(var(--fs-h1),4.6vw);line-height:1.02;} /* old 4.6vw slope + original tracking keep the two-column hero on 3 lines */
+.d2{font-size:var(--fs-h2);line-height:1.05;letter-spacing:var(--ls-display);text-shadow:none;}
+section.s{padding:var(--space-section) 0;}
+.eyebrow,.hero-label.eyebrow,.port-cat,.sp-lang-tag,.sp-compare-sub,.val-txt,.proc-n,.proc-desc,.price-plan,.price-pop,.cm-l,.fl,.opt,.svc-tag,.why-n,
+.sp-label-badge-txt,.sp-label-badge span,.ftd,.foot-col-h,.foot-copy,.foot-loc,.foot-legal a,.foot-legal .cookie-settings{font-size:var(--fs-min);}
+.eyebrow,.port-cat,.cm-l,.foot-col-h,.price-plan,.fl{line-height:1.4;} /* single-line labels: no extra height from the larger size */
+@media (max-width:600px){.sp-feat{font-size:var(--fs-min)!important;}.port-cat{letter-spacing:.06em;}} /* .sp-feat sizes are !important; .port-cat stays on one line */
+
+/* =====================================================================
+   DESIGN D2: header and hero layout. Desktop header from 1024px only; phone/tablet header unchanged.
+   Header rules are mirrored in assets/css/service-page.css (header parity).
+   ===================================================================== */
+@media (min-width:1024px){
+  #nav{padding:14px 0;}
+  #nav.scrolled{padding:10px 0;}
+  .nav-mark{width:56px!important;height:56px!important;} /* was 82px, which made the header 123px tall */
+  .nav-logo{font-size:1.25rem;gap:12px;}
+}
+@media (min-width:1024px) and (max-width:1280px){
+  .nav-links{display:flex!important;} /* desktop links from 1024px (was the hamburger) */
+  #hamburger{display:none!important;}
+  .nav-mark{width:48px!important;height:48px!important;}
+  .nav-logo{font-size:1.05rem;gap:10px;}
+  .nav-links a{padding:8px 10px;}
+}
+@media (min-width:1024px) and (max-width:1180px){ /* hero buttons fit on one line */
+  .hero-dash{width:400px;height:400px;}
+  .hero-btns{gap:12px;}
+  .hero-btns .btn-lg{padding:18px 28px;}
+}
+@media (min-width:901px) and (max-width:1023px){ /* narrow two-column hero: smaller emblem panel keeps the H1 on 3 lines and the buttons on one */
+  .hero-dash{width:340px;height:340px;}
+  .hero-btns{gap:12px;}
+  .hero-btns .btn-lg{padding:18px 24px;}
+}
+
+/* =====================================================================
+   DESIGN D3: tablet grids, line length, compact phone footer (phones below 600px keep the Phase 05 layout).
+   Footer and line-length rules are mirrored in assets/css/service-page.css.
+   ===================================================================== */
+@media (min-width:600px) and (max-width:768px){
+  .svc-grid,.why-grid{grid-template-columns:repeat(2,1fr)!important;} /* was one full-width column */
+  .svc-icon,.svc-tags{display:flex;} /* hidden by the phone compaction */
+}
+.t1,.qe-text,.form-note{max-width:58ch;} /* about 70 characters per line */
+@media (max-width:1100px){.sp-product-desc{max-width:58ch!important;}} /* the existing rule here is max-width:100%!important */
+@media (max-width:768px){
+  .foot-brand-d{max-width:58ch;}
+  .foot-links{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;} /* two links per row */
+  .foot-links li:has(a[href^="mailto:"]){grid-column:1/-1;}
+}
+
+/* =====================================================================
+   DESIGN D4: gold line icons from assets/img/icons.svg replace the decorative emoji.
+   One stroke weight and colour everywhere; each container sets only the icon size. Mirrored in service-page.css.
+   ===================================================================== */
+.ic{display:block;width:22px;height:22px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;color:var(--gold);}
+.svc-icon .ic,.why-ic .ic,.val-ic .ic,.proc-icon .ic{width:24px;height:24px;}
+.sp-why-icon .ic{width:28px;height:28px;}
+.cm-ic .ic{width:20px;height:20px;}
+.sp-feat-icon{display:inline-flex;align-items:center;}
+.sp-feat-icon .ic{width:16px;height:16px;}
+.foot-soc .ic{width:16px;height:16px;}
+.foot-loc .ic{width:14px;height:14px;}
+.map-pin .ic{width:40px;height:40px;}
+.val-ic .ic,.proc-icon .ic,.sp-why-icon .ic,.map-pin .ic{display:inline-block;vertical-align:middle;} /* follow text-align like the emoji did */
+.svc-card:hover .svc-icon .ic{color:var(--bg);} /* the tile turns solid gold on hover */
+
+/* =====================================================================
+   DESIGN D5: floating WhatsApp clears safe areas, the footer legal row and focused controls; one price format.
+   Mirrored in assets/css/service-page.css.
+   ===================================================================== */
+#wa-float{bottom:calc(32px + env(safe-area-inset-bottom,0px));right:calc(32px + env(safe-area-inset-right,0px));}
+@media (max-width:768px){#wa-float{bottom:calc(20px + env(safe-area-inset-bottom,0px));right:calc(20px + env(safe-area-inset-right,0px));}}
+html{scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));} /* keyboard focus never scrolls a control under the button */
+@media (max-width:1024px){footer{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px));}} /* legal row ends above the button */
+.price-cur,.price-from{font-size:1.1rem;font-weight:500;letter-spacing:0;color:var(--gray-400);} /* "QAR 5,900": small label, full-size amount */
+@media (min-width:901px) and (max-width:1100px){#pricing .price-val{font-size:clamp(1.75rem,3.4vw,2.8rem);}#pricing .price-cur,#pricing .price-from{font-size:.9rem;}} /* narrow 3-column cards: every price stays on one line */
+
+/* =====================================================================
+   DESIGN D6: AI robot hero visual. The WebP poster is the hero image for everyone; on capable desktops
+   assets/js/site.js loads assets/js/hero-robot.js, whose canvas fades in over the poster once it has drawn.
+   ===================================================================== */
+.hero-robot{position:relative;z-index:1;width:100%;height:100%;-webkit-mask-image:linear-gradient(to bottom,#000 72%,transparent 99%);mask-image:linear-gradient(to bottom,#000 72%,transparent 99%);}
+.hero-robot-poster,.hero-robot-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:contain;transition:opacity .7s var(--ease);}
+.hero-robot-canvas{opacity:0;}
+.hero-robot[data-robot="live"] .hero-robot-canvas{opacity:1;}
+.hero-robot[data-robot="live"] .hero-robot-poster{opacity:0;}
+@media (prefers-reduced-motion:reduce){.hero-robot-poster,.hero-robot-canvas{transition:none;}}
 </style>
 </head>
 <body>
@@ -3354,7 +3438,9 @@ body.menu-open{overflow:hidden;}
       <div class="hero-right">
         <div style="position:relative;width:100%;max-width:470px;">
           <div class="hero-dash">
-            <img src="/assets/img/afra-logo-640.webp" srcset="/assets/img/afra-logo-384.webp 384w, /assets/img/afra-logo-640.webp 640w" sizes="(max-width: 480px) 160px, (max-width: 768px) 260px, 320px" alt="AFRA DIGITAL — Design, Develop, Market" class="hero-logo" width="320" height="320" fetchpriority="high" decoding="async">
+            <div class="hero-robot" data-robot="poster">
+              <img class="hero-robot-poster" src="/assets/img/hero-robot-640.webp" srcset="/assets/img/hero-robot-384.webp 384w, /assets/img/hero-robot-640.webp 640w, /assets/img/hero-robot-960.webp 960w" sizes="(max-width: 480px) 220px, (max-width: 768px) 250px, (max-width: 900px) 460px, (max-width: 1023px) 340px, (max-width: 1180px) 400px, 460px" alt="Black-and-gold AI robot illustration" width="640" height="640" fetchpriority="high" decoding="async">
+            </div>
           </div>
         </div>
       </div>
@@ -3380,18 +3466,18 @@ body.menu-open{overflow:hidden;}
       <p class="t1" rv="u" d2 style="margin-top:14px;max-width:560px;">From strategy and design to development and marketing — one team that plans, builds and launches the digital solutions your business needs.</p>
     </div>
     <div class="svc-grid" rv="sc" d2>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🤖</div><h3 class="svc-name">AI Solutions</h3><p class="svc-desc">Custom AI assistants, GPT-powered agents and document and data intelligence — built around real business problems.</p><div class="svc-tags"><span class="svc-tag">GPT Agents</span><span class="svc-tag">RAG</span><span class="svc-tag">Analytics</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="AI Solutions" data-cta="service_ai_solutions">Discuss AI solutions <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20AI%20Solutions.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="AI Solutions" aria-label="Ask about AI Solutions on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">⚙️</div><h3 class="svc-name">Business Automation</h3><p class="svc-desc">Workflow automation and API integrations that remove repetitive manual work across sales, operations and finance.</p><div class="svc-tags"><span class="svc-tag">Workflows</span><span class="svc-tag">APIs</span><span class="svc-tag">Integrations</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Business Automation" data-cta="service_business_automation">Discuss automation <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Business%20Automation.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Business Automation" aria-label="Ask about Business Automation on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🌐</div><h3 class="svc-name">Website Development</h3><p class="svc-desc">Fast, SEO-ready, mobile-first business websites that explain what you do and turn visitors into enquiries.</p><div class="svc-tags"><span class="svc-tag">Next.js</span><span class="svc-tag">React</span><span class="svc-tag">SEO</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Website Development" data-cta="service_website_development">Discuss a website <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Website%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Website Development" aria-label="Ask about Website Development on WhatsApp">WhatsApp</a></div><p class="svc-more"><a href="/services/website-development">Learn more about website development <span aria-hidden="true">→</span></a></p></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🧩</div><h3 class="svc-name">Web Applications</h3><p class="svc-desc">Customer portals, booking systems, dashboards and internal tools that run in the browser on any device.</p><div class="svc-tags"><span class="svc-tag">Portals</span><span class="svc-tag">Dashboards</span><span class="svc-tag">TypeScript</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Web Applications" data-cta="service_web_applications">Discuss a web app <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Web%20Applications.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Web Applications" aria-label="Ask about Web Applications on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🛠️</div><h3 class="svc-name">Custom Software</h3><p class="svc-desc">Software built around your exact processes when off-the-shelf tools don’t fit — from first prototype to production.</p><div class="svc-tags"><span class="svc-tag">Discovery</span><span class="svc-tag">Architecture</span><span class="svc-tag">Support</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Custom Software" data-cta="service_custom_software">Discuss custom software <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Custom%20Software.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Custom Software" aria-label="Ask about Custom Software on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">☁️</div><h3 class="svc-name">SaaS Development</h3><p class="svc-desc">Multi-tenant SaaS products with subscriptions, user roles and secure data separation — the approach behind our own platforms.</p><div class="svc-tags"><span class="svc-tag">Multi-Tenant</span><span class="svc-tag">Billing</span><span class="svc-tag">Security</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="SaaS Development" data-cta="service_saas_development">Discuss a SaaS product <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20SaaS%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="SaaS Development" aria-label="Ask about SaaS Development on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">📱</div><h3 class="svc-name">Mobile Apps</h3><p class="svc-desc">Cross-platform iOS and Android apps built with React Native or Flutter and connected to your backend and services.</p><div class="svc-tags"><span class="svc-tag">iOS</span><span class="svc-tag">Android</span><span class="svc-tag">Flutter</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Mobile App Development" data-cta="service_mobile_app_development">Discuss a mobile app <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Mobile%20App%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Mobile App Development" aria-label="Ask about Mobile App Development on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">✏️</div><h3 class="svc-name">UI/UX Design</h3><p class="svc-desc">Research-led interface design, wireframes, interactive Figma prototypes and design systems that are easy to use.</p><div class="svc-tags"><span class="svc-tag">Research</span><span class="svc-tag">Prototypes</span><span class="svc-tag">Design Systems</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="UI/UX Design" data-cta="service_ui_ux_design">Discuss UI/UX design <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20UI%2FUX%20Design.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="UI/UX Design" aria-label="Ask about UI/UX Design on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">💎</div><h3 class="svc-name">Branding</h3><p class="svc-desc">Logo, visual identity, brand guidelines and assets that position your business as a premium choice in its market.</p><div class="svc-tags"><span class="svc-tag">Logo</span><span class="svc-tag">Identity</span><span class="svc-tag">Guidelines</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Branding" data-cta="service_branding">Discuss branding <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Branding.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Branding" aria-label="Ask about Branding on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🛒</div><h3 class="svc-name">E-Commerce</h3><p class="svc-desc">Online stores with payment gateways, inventory and multi-currency, designed to convert. Arabic and right-to-left (RTL) support can be discussed during project scoping and confirmed in the proposal.</p><div class="svc-tags"><span class="svc-tag">Storefronts</span><span class="svc-tag">Payments</span><span class="svc-tag">RTL</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="E-Commerce Development" data-cta="service_e_commerce_development">Discuss an online store <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20E-Commerce%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="E-Commerce Development" aria-label="Ask about E-Commerce Development on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">📈</div><h3 class="svc-name">Digital Marketing</h3><p class="svc-desc">SEO, paid advertising and social media campaigns for GCC audiences in English and Arabic, tracked against clear goals.</p><div class="svc-tags"><span class="svc-tag">SEO</span><span class="svc-tag">Paid Ads</span><span class="svc-tag">Social</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Digital Marketing" data-cta="service_digital_marketing">Discuss marketing <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Digital%20Marketing.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Digital Marketing" aria-label="Ask about Digital Marketing on WhatsApp">WhatsApp</a></div></article>
-      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true">🚀</div><h3 class="svc-name">Digital Transformation</h3><p class="svc-desc">Turning paper, spreadsheets and disconnected tools into connected digital systems — planned in clear, manageable phases.</p><div class="svc-tags"><span class="svc-tag">Strategy</span><span class="svc-tag">Systems</span><span class="svc-tag">Training</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Digital Transformation" data-cta="service_digital_transformation">Discuss transformation <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Digital%20Transformation.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Digital Transformation" aria-label="Ask about Digital Transformation on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#bot"/></svg></div><h3 class="svc-name">AI Solutions</h3><p class="svc-desc">Custom AI assistants, GPT-powered agents and document and data intelligence — built around real business problems.</p><div class="svc-tags"><span class="svc-tag">GPT Agents</span><span class="svc-tag">RAG</span><span class="svc-tag">Analytics</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="AI Solutions" data-cta="service_ai_solutions">Discuss AI solutions <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20AI%20Solutions.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="AI Solutions" aria-label="Ask about AI Solutions on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#gear"/></svg></div><h3 class="svc-name">Business Automation</h3><p class="svc-desc">Workflow automation and API integrations that remove repetitive manual work across sales, operations and finance.</p><div class="svc-tags"><span class="svc-tag">Workflows</span><span class="svc-tag">APIs</span><span class="svc-tag">Integrations</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Business Automation" data-cta="service_business_automation">Discuss automation <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Business%20Automation.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Business Automation" aria-label="Ask about Business Automation on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#globe"/></svg></div><h3 class="svc-name">Website Development</h3><p class="svc-desc">Fast, SEO-ready, mobile-first business websites that explain what you do and turn visitors into enquiries.</p><div class="svc-tags"><span class="svc-tag">Next.js</span><span class="svc-tag">React</span><span class="svc-tag">SEO</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Website Development" data-cta="service_website_development">Discuss a website <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Website%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Website Development" aria-label="Ask about Website Development on WhatsApp">WhatsApp</a></div><p class="svc-more"><a href="/services/website-development">Learn more about website development <span aria-hidden="true">→</span></a></p></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#puzzle"/></svg></div><h3 class="svc-name">Web Applications</h3><p class="svc-desc">Customer portals, booking systems, dashboards and internal tools that run in the browser on any device.</p><div class="svc-tags"><span class="svc-tag">Portals</span><span class="svc-tag">Dashboards</span><span class="svc-tag">TypeScript</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Web Applications" data-cta="service_web_applications">Discuss a web app <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Web%20Applications.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Web Applications" aria-label="Ask about Web Applications on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#wrench"/></svg></div><h3 class="svc-name">Custom Software</h3><p class="svc-desc">Software built around your exact processes when off-the-shelf tools don’t fit — from first prototype to production.</p><div class="svc-tags"><span class="svc-tag">Discovery</span><span class="svc-tag">Architecture</span><span class="svc-tag">Support</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Custom Software" data-cta="service_custom_software">Discuss custom software <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Custom%20Software.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Custom Software" aria-label="Ask about Custom Software on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#cloud"/></svg></div><h3 class="svc-name">SaaS Development</h3><p class="svc-desc">Multi-tenant SaaS products with subscriptions, user roles and secure data separation — the approach behind our own platforms.</p><div class="svc-tags"><span class="svc-tag">Multi-Tenant</span><span class="svc-tag">Billing</span><span class="svc-tag">Security</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="SaaS Development" data-cta="service_saas_development">Discuss a SaaS product <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20SaaS%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="SaaS Development" aria-label="Ask about SaaS Development on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#phone-device"/></svg></div><h3 class="svc-name">Mobile Apps</h3><p class="svc-desc">Cross-platform iOS and Android apps built with React Native or Flutter and connected to your backend and services.</p><div class="svc-tags"><span class="svc-tag">iOS</span><span class="svc-tag">Android</span><span class="svc-tag">Flutter</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Mobile App Development" data-cta="service_mobile_app_development">Discuss a mobile app <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Mobile%20App%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Mobile App Development" aria-label="Ask about Mobile App Development on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#pen"/></svg></div><h3 class="svc-name">UI/UX Design</h3><p class="svc-desc">Research-led interface design, wireframes, interactive Figma prototypes and design systems that are easy to use.</p><div class="svc-tags"><span class="svc-tag">Research</span><span class="svc-tag">Prototypes</span><span class="svc-tag">Design Systems</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="UI/UX Design" data-cta="service_ui_ux_design">Discuss UI/UX design <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20UI%2FUX%20Design.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="UI/UX Design" aria-label="Ask about UI/UX Design on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#gem"/></svg></div><h3 class="svc-name">Branding</h3><p class="svc-desc">Logo, visual identity, brand guidelines and assets that position your business as a premium choice in its market.</p><div class="svc-tags"><span class="svc-tag">Logo</span><span class="svc-tag">Identity</span><span class="svc-tag">Guidelines</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Branding" data-cta="service_branding">Discuss branding <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Branding.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Branding" aria-label="Ask about Branding on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#cart"/></svg></div><h3 class="svc-name">E-Commerce</h3><p class="svc-desc">Online stores with payment gateways, inventory and multi-currency, designed to convert. Arabic and right-to-left (RTL) support can be discussed during project scoping and confirmed in the proposal.</p><div class="svc-tags"><span class="svc-tag">Storefronts</span><span class="svc-tag">Payments</span><span class="svc-tag">RTL</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="E-Commerce Development" data-cta="service_e_commerce_development">Discuss an online store <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20E-Commerce%20Development.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="E-Commerce Development" aria-label="Ask about E-Commerce Development on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#trend"/></svg></div><h3 class="svc-name">Digital Marketing</h3><p class="svc-desc">SEO, paid advertising and social media campaigns for GCC audiences in English and Arabic, tracked against clear goals.</p><div class="svc-tags"><span class="svc-tag">SEO</span><span class="svc-tag">Paid Ads</span><span class="svc-tag">Social</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Digital Marketing" data-cta="service_digital_marketing">Discuss marketing <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Digital%20Marketing.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Digital Marketing" aria-label="Ask about Digital Marketing on WhatsApp">WhatsApp</a></div></article>
+      <article class="svc-card"><div class="svc-glow"></div><div class="svc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#rocket"/></svg></div><h3 class="svc-name">Digital Transformation</h3><p class="svc-desc">Turning paper, spreadsheets and disconnected tools into connected digital systems — planned in clear, manageable phases.</p><div class="svc-tags"><span class="svc-tag">Strategy</span><span class="svc-tag">Systems</span><span class="svc-tag">Training</span></div><div class="svc-actions"><a class="svc-link" href="#contact" data-service="Digital Transformation" data-cta="service_digital_transformation">Discuss transformation <span aria-hidden="true">→</span></a><a class="svc-wa" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I'm%20interested%20in%20Digital%20Transformation.%20Could%20we%20discuss%20my%20project%3F" target="_blank" rel="noopener" data-wa-service="Digital Transformation" aria-label="Ask about Digital Transformation on WhatsApp">WhatsApp</a></div></article>
     </div>
     <p class="svc-all"><a href="/services" class="btn btn-ghost btn-sm">View all services <span aria-hidden="true">→</span></a></p>
   </div>
@@ -3443,12 +3529,12 @@ body.menu-open{overflow:hidden;}
       <p class="t1" rv="u" d2 style="margin:14px auto 0;max-width:500px;">We engineer competitive advantages that compound — not just products that look nice.</p>
     </div>
     <div class="why-grid">
-      <div class="why-card" rv="u"><div class="why-n">01</div><div class="why-ic" aria-hidden="true">⚡</div><h3 class="why-title">Fast Delivery</h3><div class="why-txt">Phased delivery with working software at every stage, so you see progress early. Speed without sacrificing craft.</div></div>
-      <div class="why-card" rv="u" d1><div class="why-n">02</div><div class="why-ic" aria-hidden="true">🔧</div><h3 class="why-title">Modern Technology</h3><div class="why-txt">Next.js 15, React 19, TypeScript, Tailwind, Supabase. We build on technology stacks that will still be best-in-class in five years.</div></div>
-      <div class="why-card" rv="u" d2><div class="why-n">03</div><div class="why-ic" aria-hidden="true">🤖</div><h3 class="why-title">AI Expertise</h3><div class="why-txt">We use AI where it adds real value — copilots, automation and prediction designed into the architecture, not bolted on as plugins.</div></div>
-      <div class="why-card" rv="u" d1><div class="why-n">04</div><div class="why-ic" aria-hidden="true">🎨</div><h3 class="why-title">Premium Design</h3><div class="why-txt">Every pixel is intentional. We build digital experiences that position you as the premium choice in your market, not just another product.</div></div>
-      <div class="why-card" rv="u" d2><div class="why-n">05</div><div class="why-ic" aria-hidden="true">🏗</div><h3 class="why-title">Scalable Architecture</h3><div class="why-txt">Cloud-native, multi-tenant architecture designed to grow with your business, so you are not forced into a rebuild as you scale.</div></div>
-      <div class="why-card" rv="u" d3><div class="why-n">06</div><div class="why-ic" aria-hidden="true">🌟</div><h3 class="why-title">Dedicated Support</h3><div class="why-txt">Direct access to the team that built your product, with support plans matched to your needs.</div></div>
+      <div class="why-card" rv="u"><div class="why-n">01</div><div class="why-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#zap"/></svg></div><h3 class="why-title">Fast Delivery</h3><div class="why-txt">Phased delivery with working software at every stage, so you see progress early. Speed without sacrificing craft.</div></div>
+      <div class="why-card" rv="u" d1><div class="why-n">02</div><div class="why-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#wrench"/></svg></div><h3 class="why-title">Modern Technology</h3><div class="why-txt">Next.js 15, React 19, TypeScript, Tailwind, Supabase. We build on technology stacks that will still be best-in-class in five years.</div></div>
+      <div class="why-card" rv="u" d2><div class="why-n">03</div><div class="why-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#bot"/></svg></div><h3 class="why-title">AI Expertise</h3><div class="why-txt">We use AI where it adds real value — copilots, automation and prediction designed into the architecture, not bolted on as plugins.</div></div>
+      <div class="why-card" rv="u" d1><div class="why-n">04</div><div class="why-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#palette"/></svg></div><h3 class="why-title">Premium Design</h3><div class="why-txt">Every pixel is intentional. We build digital experiences that position you as the premium choice in your market, not just another product.</div></div>
+      <div class="why-card" rv="u" d2><div class="why-n">05</div><div class="why-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#layers"/></svg></div><h3 class="why-title">Scalable Architecture</h3><div class="why-txt">Cloud-native, multi-tenant architecture designed to grow with your business, so you are not forced into a rebuild as you scale.</div></div>
+      <div class="why-card" rv="u" d3><div class="why-n">06</div><div class="why-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#headset"/></svg></div><h3 class="why-title">Dedicated Support</h3><div class="why-txt">Direct access to the team that built your product, with support plans matched to your needs.</div></div>
     </div>
     <p class="section-cta"><a href="#contact" class="svc-link" data-cta="why_start_project">Start Your Project <span aria-hidden="true">→</span></a></p>
   </div>
@@ -3520,7 +3606,7 @@ body.menu-open{overflow:hidden;}
       <!-- Product label strip -->
       <div class="sp-label-strip">
         <div class="sp-label-badge sp-badge-fire">
-          <span>🔥</span>
+          <span aria-hidden="true">🔥</span>
           <span class="sp-label-badge-txt">Restaurant SaaS</span>
         </div>
         <div class="sp-label-number">01</div>
@@ -3541,28 +3627,28 @@ body.menu-open{overflow:hidden;}
 
           <!-- Features grid -->
           <div class="sp-feats-grid">
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">📱</span>QR Menu</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🧾</span>POS Billing</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">👨‍🍳</span>Kitchen Display</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🪑</span>Table Ordering</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">📦</span>Inventory</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🏆</span>Loyalty Program</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">👥</span>Customer CRM</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">💬</span>WhatsApp Ordering</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🛍</span>Online Ordering</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">📊</span>Reports & Analytics</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🤖</span>AI Assistant</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🌐</span>Multi-language</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🏢</span>Multi Branch</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🧾</span>VAT Support</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">☁️</span>Cloud Sync</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#qr"/></svg></span>QR Menu</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#receipt"/></svg></span>POS Billing</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#chef"/></svg></span>Kitchen Display</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#table"/></svg></span>Table Ordering</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#package"/></svg></span>Inventory</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#trophy"/></svg></span>Loyalty Program</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#users"/></svg></span>Customer CRM</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#chat"/></svg></span>WhatsApp Ordering</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#bag"/></svg></span>Online Ordering</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#chart"/></svg></span>Reports & Analytics</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#bot"/></svg></span>AI Assistant</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#globe"/></svg></span>Multi-language</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#building"/></svg></span>Multi Branch</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#receipt"/></svg></span>VAT Support</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#cloud"/></svg></span>Cloud Sync</div>
           </div>
 
           <!-- Buttons -->
           <div class="sp-product-btns">
             <a href="#contact" class="btn btn-prime sp-btn-shine" data-service="Cook With Fire (Restaurant Platform)" data-cta="cwf_request_demo">
               Request a Demo
-              <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <span class="sp-shine-sweep" aria-hidden="true"></span>
             </a>
             <a href="#platform-fit" class="btn btn-ghost">Compare Platforms</a>
@@ -3646,7 +3732,7 @@ body.menu-open{overflow:hidden;}
 
       <div class="sp-label-strip">
         <div class="sp-label-badge sp-badge-saanix">
-          <span>⚡</span>
+          <span aria-hidden="true">⚡</span>
           <span class="sp-label-badge-txt">Enterprise SaaS</span>
         </div>
         <div class="sp-label-number">02</div>
@@ -3732,27 +3818,27 @@ body.menu-open{overflow:hidden;}
           </p>
 
           <div class="sp-feats-grid">
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🏪</span>Multi Store</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🧾</span>POS Billing</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">📦</span>Inventory</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">👥</span>CRM</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🏆</span>Loyalty</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🎟</span>Coupons</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">📣</span>Marketing Auto</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">👷</span>Staff Management</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">💰</span>Finance</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">📊</span>Analytics</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🤖</span>AI Copilot</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🔁</span>Subscription</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">💳</span>Online Payments</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🟣</span>Stripe</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">💬</span>WhatsApp Auto</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🌐</span>Custom Domains</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🏷</span>White Label</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">💱</span>Multi Currency</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🇸🇦</span>Arabic + English</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">🛡</span>Enterprise Security</div>
-            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true">📊</span>Reports</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#store"/></svg></span>Multi Store</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#receipt"/></svg></span>POS Billing</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#package"/></svg></span>Inventory</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#users"/></svg></span>CRM</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#trophy"/></svg></span>Loyalty</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#ticket"/></svg></span>Coupons</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#megaphone"/></svg></span>Marketing Auto</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#user"/></svg></span>Staff Management</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#banknote"/></svg></span>Finance</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#chart"/></svg></span>Analytics</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#bot"/></svg></span>AI Copilot</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#repeat"/></svg></span>Subscription</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#card"/></svg></span>Online Payments</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#plug"/></svg></span>Stripe</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#chat"/></svg></span>WhatsApp Auto</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#globe"/></svg></span>Custom Domains</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#tag"/></svg></span>White Label</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#exchange"/></svg></span>Multi Currency</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#languages"/></svg></span>Arabic + English</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#shield"/></svg></span>Enterprise Security</div>
+            <div class="sp-feat"><span class="sp-feat-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#chart"/></svg></span>Reports</div>
           </div>
 
           <!-- Language tags -->
@@ -3765,7 +3851,7 @@ body.menu-open{overflow:hidden;}
           <div class="sp-product-btns">
             <a href="#contact" class="btn btn-prime sp-btn-shine" data-service="SAANIX (Business Platform)" data-cta="saanix_request_demo">
               Request a Demo
-              <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <span class="sp-shine-sweep" aria-hidden="true"></span>
             </a>
             <a href="#platform-fit" class="btn btn-ghost">Compare Platforms</a>
@@ -3790,7 +3876,7 @@ body.menu-open{overflow:hidden;}
         <!-- Cook With Fire card -->
         <div class="sp-compare-card sp-compare-fire glass-card">
           <div class="sp-compare-header">
-            <div class="sp-compare-icon">🔥</div>
+            <div class="sp-compare-icon" aria-hidden="true">🔥</div>
             <div>
               <div class="sp-compare-name">Cook With Fire</div>
               <div class="sp-compare-sub">Restaurant & Hospitality</div>
@@ -3817,7 +3903,7 @@ body.menu-open{overflow:hidden;}
         <!-- SAANIX card -->
         <div class="sp-compare-card sp-compare-saanix glass-card">
           <div class="sp-compare-header">
-            <div class="sp-compare-icon sp-compare-icon-snx">⚡</div>
+            <div class="sp-compare-icon sp-compare-icon-snx" aria-hidden="true">⚡</div>
             <div>
               <div class="sp-compare-name">SAANIX</div>
               <div class="sp-compare-sub">Multi-Business Platform</div>
@@ -3848,42 +3934,42 @@ body.menu-open{overflow:hidden;}
       </div>
       <div class="sp-why-grid">
         <div class="sp-why-card glass-card" rv="u">
-          <div class="sp-why-icon" aria-hidden="true">🏗</div>
+          <div class="sp-why-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#layers"/></svg></div>
           <div class="sp-why-title">Enterprise Architecture</div>
           <div class="sp-why-desc">Multi-tenant architecture with row-level security and scalable cloud infrastructure.</div>
         </div>
         <div class="sp-why-card glass-card" rv="u" d1>
-          <div class="sp-why-icon" aria-hidden="true">🤖</div>
+          <div class="sp-why-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#bot"/></svg></div>
           <div class="sp-why-title">AI Powered</div>
           <div class="sp-why-desc">Intelligent copilots, predictive analytics, and smart automation baked in — not bolted on.</div>
         </div>
         <div class="sp-why-card glass-card" rv="u" d2>
-          <div class="sp-why-icon" aria-hidden="true">☁️</div>
+          <div class="sp-why-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#cloud"/></svg></div>
           <div class="sp-why-title">Cloud Platform</div>
           <div class="sp-why-desc">Cloud-hosted with automatic scaling — nothing to install or maintain on your premises.</div>
         </div>
         <div class="sp-why-card glass-card" rv="u" d3>
-          <div class="sp-why-icon" aria-hidden="true">🔄</div>
+          <div class="sp-why-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#refresh"/></svg></div>
           <div class="sp-why-title">Automatic Updates</div>
           <div class="sp-why-desc">New features delivered silently. No version upgrades, no migration headaches.</div>
         </div>
         <div class="sp-why-card glass-card" rv="u" d1>
-          <div class="sp-why-icon" aria-hidden="true">🌐</div>
+          <div class="sp-why-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#globe"/></svg></div>
           <div class="sp-why-title">Multi-language</div>
           <div class="sp-why-desc">English and multi-currency support built for the GCC market. Arabic and right-to-left (RTL) support can be discussed during product requirements review and confirmed for the relevant product.</div>
         </div>
         <div class="sp-why-card glass-card" rv="u" d2>
-          <div class="sp-why-icon" aria-hidden="true">⚡</div>
+          <div class="sp-why-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#zap"/></svg></div>
           <div class="sp-why-title">Fast Performance</div>
           <div class="sp-why-desc">Designed for real-time operations across multiple branches.</div>
         </div>
         <div class="sp-why-card glass-card" rv="u" d3>
-          <div class="sp-why-icon" aria-hidden="true">📡</div>
+          <div class="sp-why-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#server"/></svg></div>
           <div class="sp-why-title">Scalable Infrastructure</div>
           <div class="sp-why-desc">From a single outlet to multiple branches — the architecture grows with your business.</div>
         </div>
         <div class="sp-why-card glass-card" rv="u" d4>
-          <div class="sp-why-icon" aria-hidden="true">🛡</div>
+          <div class="sp-why-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#headset"/></svg></div>
           <div class="sp-why-title">Dedicated Support</div>
           <div class="sp-why-desc">Direct access to the engineers who build the platform.</div>
         </div>
@@ -3906,7 +3992,7 @@ body.menu-open{overflow:hidden;}
         <div class="sp-cta-btns">
           <a href="#contact" class="btn btn-prime btn-lg" data-cta="products_request_demo">
             Request a Demo
-            <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
           <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="btn btn-ghost btn-lg">Ask on WhatsApp</a>
         </div>
@@ -3958,10 +4044,10 @@ body.menu-open{overflow:hidden;}
         <p class="t1" rv="u" d2 style="margin-bottom:18px;max-width:500px;">AFRA DIGITAL is a digital agency based in Doha, Qatar. We help founders, SMEs and growing companies across the GCC design, build and market digital products that move their business forward.</p>
         <p class="t2" rv="u" d3 style="max-width:480px;">Our mission is to deliver the quality of a global agency — faster, with more care, and with every decision rooted in the Gulf market. We treat every project as if it carries our own name.</p>
         <div class="vals-grid" rv="u" d4>
-          <div class="val-card"><div class="val-ic" aria-hidden="true">🎯</div><div class="val-name">Craft First</div><div class="val-txt">We never ship work we wouldn't put our name on.</div></div>
-          <div class="val-card"><div class="val-ic" aria-hidden="true">🤝</div><div class="val-name">True Partnership</div><div class="val-txt">We embed as co-founders, not contractors.</div></div>
-          <div class="val-card"><div class="val-ic" aria-hidden="true">🔒</div><div class="val-name">Privacy by Default</div><div class="val-txt">Data sovereignty built in, never bolted on.</div></div>
-          <div class="val-card"><div class="val-ic" aria-hidden="true">🚀</div><div class="val-name">Velocity</div><div class="val-txt">Fast iteration without cutting corners.</div></div>
+          <div class="val-card"><div class="val-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#target"/></svg></div><div class="val-name">Craft First</div><div class="val-txt">We never ship work we wouldn't put our name on.</div></div>
+          <div class="val-card"><div class="val-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#handshake"/></svg></div><div class="val-name">True Partnership</div><div class="val-txt">We embed as co-founders, not contractors.</div></div>
+          <div class="val-card"><div class="val-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#lock"/></svg></div><div class="val-name">Privacy by Default</div><div class="val-txt">Data sovereignty built in, never bolted on.</div></div>
+          <div class="val-card"><div class="val-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#rocket"/></svg></div><div class="val-name">Velocity</div><div class="val-txt">Fast iteration without cutting corners.</div></div>
         </div>
       </div>
     </div>
@@ -3980,12 +4066,12 @@ body.menu-open{overflow:hidden;}
       <p class="t1" rv="u" d2 style="margin:14px auto 0;max-width:480px;">A clear six-phase process — transparent, collaborative and focused on quality.</p>
     </div>
     <div class="proc-row" rv="sc" d2>
-      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">01</div></div><div class="proc-icon" aria-hidden="true">🔍</div><h3 class="proc-title">Discovery</h3><div class="proc-desc">Map goals, users, and competitive landscape. No assumptions before a single line of code.</div></div>
-      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">02</div></div><div class="proc-icon" aria-hidden="true">🗺</div><h3 class="proc-title">Strategy</h3><div class="proc-desc">Define architecture, tech stack, and phased roadmap. Align on business outcomes before design.</div></div>
-      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">03</div></div><div class="proc-icon" aria-hidden="true">🎨</div><h3 class="proc-title">Design</h3><div class="proc-desc">UX architecture, luxury UI, and interactive prototypes. You approve before we build.</div></div>
-      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">04</div></div><div class="proc-icon" aria-hidden="true">⚙️</div><h3 class="proc-title">Development</h3><div class="proc-desc">Phased delivery, automated tests, security hardening. Production quality at every sprint.</div></div>
-      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">05</div></div><div class="proc-icon" aria-hidden="true">🚀</div><h3 class="proc-title">Launch</h3><div class="proc-desc">Cloud deployment, full QA and go-to-market support for a smooth launch.</div></div>
-      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">06</div></div><div class="proc-icon" aria-hidden="true">📈</div><h3 class="proc-title">Growth</h3><div class="proc-desc">Analytics, A/B testing, and growth loops. We compound your advantage long after launch.</div></div>
+      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">01</div></div><div class="proc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#search"/></svg></div><h3 class="proc-title">Discovery</h3><div class="proc-desc">Map goals, users, and competitive landscape. No assumptions before a single line of code.</div></div>
+      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">02</div></div><div class="proc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#map"/></svg></div><h3 class="proc-title">Strategy</h3><div class="proc-desc">Define architecture, tech stack, and phased roadmap. Align on business outcomes before design.</div></div>
+      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">03</div></div><div class="proc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#palette"/></svg></div><h3 class="proc-title">Design</h3><div class="proc-desc">UX architecture, luxury UI, and interactive prototypes. You approve before we build.</div></div>
+      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">04</div></div><div class="proc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#gear"/></svg></div><h3 class="proc-title">Development</h3><div class="proc-desc">Phased delivery, automated tests, security hardening. Production quality at every sprint.</div></div>
+      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">05</div></div><div class="proc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#rocket"/></svg></div><h3 class="proc-title">Launch</h3><div class="proc-desc">Cloud deployment, full QA and go-to-market support for a smooth launch.</div></div>
+      <div class="proc-step"><div class="proc-num-w"><div class="proc-n">06</div></div><div class="proc-icon" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#trend"/></svg></div><h3 class="proc-title">Growth</h3><div class="proc-desc">Analytics, A/B testing, and growth loops. We compound your advantage long after launch.</div></div>
     </div>
     <p class="section-cta"><a href="#contact" class="svc-link" data-cta="process_start_project">Start Your Project <span aria-hidden="true">→</span></a></p>
   </div>
@@ -4004,7 +4090,7 @@ body.menu-open{overflow:hidden;}
     <div class="pricing-grid" rv="u" d2>
       <div class="price-card">
         <div class="price-plan">Starter</div>
-        <div class="price-val"><sup>QAR</sup>5,900</div>
+        <div class="price-val"><span class="price-cur">QAR</span> 5,900</div>
         <div class="price-per">Ideal for startups & small businesses</div>
         <div class="price-div"></div>
         <ul class="price-feats">
@@ -4023,7 +4109,7 @@ body.menu-open{overflow:hidden;}
       <div class="price-card featured">
         <div class="price-pop">Most Popular</div>
         <div class="price-plan">Business</div>
-        <div class="price-val"><sup>QAR</sup>18,500</div>
+        <div class="price-val"><span class="price-cur">QAR</span> 18,500</div>
         <div class="price-per">Custom web app & AI solution</div>
         <div class="price-div"></div>
         <ul class="price-feats">
@@ -4041,7 +4127,7 @@ body.menu-open{overflow:hidden;}
       </div>
       <div class="price-card">
         <div class="price-plan">Enterprise</div>
-        <div class="price-val" style="font-size:2rem;">From QAR 45,000</div>
+        <div class="price-val"><span class="price-from">From</span> <span class="price-cur">QAR</span> 45,000</div>
         <div class="price-per">tailored engagement</div>
         <div class="price-div"></div>
         <ul class="price-feats">
@@ -4115,13 +4201,13 @@ body.menu-open{overflow:hidden;}
         <h3 class="ci-h">Start the <br><span class="gold">Conversation</span></h3>
         <div class="ci-s" style="margin-top:14px;">Whether you have a detailed brief or just an idea, we’ll help you shape it into a solution built for your business.</div>
         <div class="contact-methods">
-          <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="c-method"><div class="cm-ic" aria-hidden="true">💬</div><div><div class="cm-l">WhatsApp</div><div class="cm-v">+974 3002 9799</div></div></a>
-          <a href="tel:+97430029799" class="c-method"><div class="cm-ic" aria-hidden="true">📞</div><div><div class="cm-l">Phone</div><div class="cm-v">+974 3002 9799</div></div></a>
-          <a href="mailto:afradigital.hello@gmail.com" class="c-method"><div class="cm-ic" aria-hidden="true">✉</div><div><div class="cm-l">Email</div><div class="cm-v">afradigital.hello@gmail.com</div></div></a>
-          <a href="https://www.instagram.com/afradigital_" target="_blank" rel="noopener" class="c-method"><div class="cm-ic" aria-hidden="true">📸</div><div><div class="cm-l">Instagram</div><div class="cm-v">@afradigital_</div></div></a>
-          <div class="c-method"><div class="cm-ic" aria-hidden="true">📍</div><div><div class="cm-l">Location</div><div class="cm-v">Doha, Qatar — serving the GCC</div></div></div>
+          <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#chat"/></svg></div><div><div class="cm-l">WhatsApp</div><div class="cm-v">+974 3002 9799</div></div></a>
+          <a href="tel:+97430029799" class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#phone"/></svg></div><div><div class="cm-l">Phone</div><div class="cm-v">+974 3002 9799</div></div></a>
+          <a href="mailto:afradigital.hello@gmail.com" class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#mail"/></svg></div><div><div class="cm-l">Email</div><div class="cm-v">afradigital.hello@gmail.com</div></div></a>
+          <a href="https://www.instagram.com/afradigital_" target="_blank" rel="noopener" class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#instagram"/></svg></div><div><div class="cm-l">Instagram</div><div class="cm-v">@afradigital_</div></div></a>
+          <div class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#pin"/></svg></div><div><div class="cm-l">Location</div><div class="cm-v">Doha, Qatar — serving the GCC</div></div></div>
         </div>
-        <div class="map-wrap" aria-hidden="true"><div class="map-grid"></div><div class="map-pin">📍</div><div class="map-chip">Doha, Qatar</div></div>
+        <div class="map-wrap" aria-hidden="true"><div class="map-grid"></div><div class="map-pin"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#pin"/></svg></div><div class="map-chip">Doha, Qatar</div></div>
       </div>
       <div rv="u" d2>
         <div class="contact-form-box">
@@ -4229,11 +4315,11 @@ body.menu-open{overflow:hidden;}
         <p class="foot-brand-d">Digital agency based in Doha, Qatar. We design, develop and market websites, apps, AI solutions and software for businesses across the GCC.</p>
         <div class="foot-tagline"><span class="ftd">Design</span><span aria-hidden="true">·</span><span class="ftd">Develop</span><span aria-hidden="true">·</span><span class="ftd">Market</span></div>
         <div class="foot-socials">
-          <a href="https://www.instagram.com/afradigital_" target="_blank" rel="noopener" class="foot-soc" aria-label="AFRA DIGITAL on Instagram"><span aria-hidden="true">📸</span></a>
-          <a href="https://www.linkedin.com/in/sarbudeen-ibak" target="_blank" rel="noopener" class="foot-soc" aria-label="LinkedIn"><span aria-hidden="true">in</span></a>
-          <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="foot-soc" aria-label="WhatsApp"><span aria-hidden="true">💬</span></a>
-          <a href="tel:+97430029799" class="foot-soc" aria-label="Call +974 3002 9799"><span aria-hidden="true">📞</span></a>
-          <a href="mailto:afradigital.hello@gmail.com" class="foot-soc" aria-label="Email afradigital.hello@gmail.com"><span aria-hidden="true">✉</span></a>
+          <a href="https://www.instagram.com/afradigital_" target="_blank" rel="noopener" class="foot-soc" aria-label="AFRA DIGITAL on Instagram"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#instagram"/></svg></a>
+          <a href="https://www.linkedin.com/in/sarbudeen-ibak" target="_blank" rel="noopener" class="foot-soc" aria-label="LinkedIn"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#linkedin"/></svg></a>
+          <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="foot-soc" aria-label="WhatsApp"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#chat"/></svg></a>
+          <a href="tel:+97430029799" class="foot-soc" aria-label="Call +974 3002 9799"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#phone"/></svg></a>
+          <a href="mailto:afradigital.hello@gmail.com" class="foot-soc" aria-label="Email afradigital.hello@gmail.com"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#mail"/></svg></a>
         </div>
       </div>
       <div>
@@ -4266,7 +4352,7 @@ body.menu-open{overflow:hidden;}
     </div>
     <div class="foot-bottom">
       <div class="foot-copy">© 2026 AFRA DIGITAL. All rights reserved.</div>
-      <div class="foot-loc"><span aria-hidden="true">📍</span> Doha, Qatar — serving the GCC</div>
+      <div class="foot-loc"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#pin"/></svg> Doha, Qatar — serving the GCC</div>
       <div class="foot-legal"><a href="/privacy-policy">Privacy Policy</a><a href="/terms">Terms</a><a href="/privacy-policy#cookies">Cookies</a><button type="button" class="cookie-settings" data-cookie-settings>Cookie settings</button></div>
     </div>
   </div>

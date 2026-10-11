@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.argv[2] || process.env.PORT || 4173);
+const brCache = new Map(); // "file|mtime|size" -> Brotli body
 const require = createRequire(import.meta.url);
 
 const TYPES = {
@@ -100,9 +101,14 @@ const server = http.createServer(async (req, res) => {
       const type = TYPES[path.extname(r.file).toLowerCase()] || 'application/octet-stream';
       res.setHeader('Content-Type', type);
       let body = await readFile(r.file);
-      // Vercel serves text assets with Brotli; mirror that so throttled timings are realistic.
+      // Vercel serves text assets with Brotli; mirror that so throttled timings are realistic. Compressed bodies are
+      // cached per file version: compressing the 585 KB hero-robot.js blocks this server for ~1.5 s, which delayed
+      // whichever page was measured next and skewed perf runs.
       if (/text|javascript|json|xml|svg|manifest/.test(type) && /\bbr\b/.test(req.headers['accept-encoding'] || '')) {
-        body = brotliCompressSync(body); res.setHeader('Content-Encoding', 'br');
+        const st = await stat(r.file), key = `${r.file}|${st.mtimeMs}|${st.size}`;
+        let br = brCache.get(key);
+        if (!br) { br = brotliCompressSync(body); brCache.set(key, br); }
+        body = br; res.setHeader('Content-Encoding', 'br');
       }
       return res.end(body);
     }

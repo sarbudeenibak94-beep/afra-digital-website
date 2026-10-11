@@ -401,3 +401,67 @@ footer{border-top:1px solid var(--gold-border);padding:clamp(56px,7vw,80px) 0 28
   #wa-float{animation:none;}
   .svp-visual,.svp-window,.svp-phone,.svp-orbit-2{animation:none!important;}
 }
+
+/* =====================================================================
+   DESIGN D1 (mirrors the homepage block in index.html): type scale, 12px minimum text,
+   no heading glow, section rhythm. Header (.nav-*) untouched.
+   ===================================================================== */
+:root{
+  --fs-h1:clamp(2.25rem,1.5rem + 2.6vw,4rem);      /* hero/page title: 36 → 64px */
+  --fs-h2:clamp(1.7rem,1.1rem + 2.4vw,3rem);       /* section titles: 27 → 48px */
+  --ls-display:-0.022em;                           /* display tracking (was -0.03 / -0.035em) */
+  --fs-min:0.75rem;                                /* 12px minimum for real text */
+  --space-section:clamp(52px,34px + 4.5vw,112px);  /* section rhythm: 52px phones (as before), 68px at 768 */
+}
+.d2{font-size:var(--fs-h2);line-height:1.05;letter-spacing:var(--ls-display);text-shadow:none;}
+.svp-h1{font-size:var(--fs-h1);line-height:1.04;letter-spacing:var(--ls-display);text-shadow:none;}
+section.s{padding:var(--space-section) 0;}
+.eyebrow,.price-plan,.cm-l,.fl,.opt,.svh-status,.ftd,.foot-col-h,.foot-copy,.foot-loc,.foot-legal a,.foot-legal .cookie-settings{font-size:var(--fs-min);}
+.eyebrow,.price-plan,.cm-l,.fl,.foot-col-h{line-height:1.4;} /* single-line labels: no extra height from the larger size */
+
+/* DESIGN D2 (header rules mirror the homepage block in index.html): desktop header from 1024px only. */
+@media (min-width:1024px){
+  #nav{padding:14px 0;}
+  #nav.scrolled{padding:10px 0;}
+  .nav-mark{width:56px!important;height:56px!important;}
+  .nav-logo{font-size:1.25rem;gap:12px;}
+}
+@media (min-width:1024px) and (max-width:1280px){
+  .nav-links{display:flex!important;}
+  #hamburger{display:none!important;}
+  .nav-mark{width:48px!important;height:48px!important;}
+  .nav-logo{font-size:1.05rem;gap:10px;}
+  .nav-links a{padding:8px 10px;}
+}
+@media (min-width:1024px) and (max-width:1180px){ /* hero buttons fit on one line */
+  .svp-hero-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);}
+  .svp-btns{gap:12px;}
+  .svp-btns .btn-lg{padding:18px 28px;}
+}
+@media (min-width:901px) and (max-width:1023px){ /* narrow two-column hero: buttons stay on one line */
+  .svp-hero-grid{grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);}
+  .svp-hero-grid .svp-btns{gap:12px;}
+  .svp-hero-grid .svp-btns .btn-lg{padding:18px 24px;}
+}
+
+/* DESIGN D3 (mirrors the homepage block in index.html): line length and compact phone footer. */
+.t1,.form-note,.svp-note,.svp-text p,.svp-faq .svp-faq-a,.svp-checks li,.svp-head .t1,.svp-head-c .t1{max-width:58ch;} /* about 70 characters per line */
+@media (max-width:768px){
+  .foot-brand-d{max-width:58ch;}
+  .foot-links{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;} /* two links per row */
+  .foot-links li:has(a[href^="mailto:"]){grid-column:1/-1;}
+}
+
+/* DESIGN D4 (mirrors the homepage block in index.html): gold line icons from assets/img/icons.svg. */
+.ic{display:block;width:22px;height:22px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;color:var(--gold);}
+.svp-ic .ic{width:22px;height:22px;}
+.cm-ic .ic{width:20px;height:20px;}
+.foot-soc .ic{width:16px;height:16px;}
+.foot-loc .ic{width:14px;height:14px;}
+
+/* DESIGN D5 (mirrors the homepage block in index.html): floating WhatsApp clears safe areas, the footer legal row and focused controls; one price format. */
+#wa-float{bottom:calc(32px + env(safe-area-inset-bottom,0px));right:calc(32px + env(safe-area-inset-right,0px));}
+@media (max-width:768px){#wa-float{bottom:calc(20px + env(safe-area-inset-bottom,0px));right:calc(20px + env(safe-area-inset-right,0px));}}
+html{scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));} /* keyboard focus never scrolls a control under the button */
+@media (max-width:1024px){footer{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px));}} /* legal row ends above the button */
+.price-cur,.price-from{font-size:1.1rem;font-weight:500;letter-spacing:0;color:var(--gray-400);} /* "QAR 5,900": small label, full-size amount */

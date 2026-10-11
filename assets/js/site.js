@@ -112,6 +112,29 @@
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { resize(); init(); if (reduceMotion) frame(false); }, 150); });
   })();
 
+  /* ---------- HERO ROBOT (Design D6) ----------
+     Everyone sees the static poster. The live 3D robot (assets/js/hero-robot.js, ~125 KB compressed) is loaded
+     only on desktops with a mouse, ≥1024 px, no reduced motion, no Save-Data and no 2G connection — after the
+     page has loaded (+1.5 s) and the browser is idle. A module <script> (not import()) keeps old browsers on the poster. */
+  (function () {
+    var host = doc.querySelector('.hero-robot');
+    if (!host) return;
+    var conn = navigator.connection || {};
+    var wide = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
+    if (!wide || !finePointer || reduceMotion || conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '')) return;
+    function load() {
+      host.setAttribute('data-robot', 'loading');
+      var s = doc.createElement('script');
+      s.type = 'module';
+      s.src = '/assets/js/hero-robot.js?v=d61';
+      s.onerror = function () { host.setAttribute('data-robot', 'failed'); };
+      doc.head.appendChild(s);
+    }
+    // 1.5 s after load, then on idle: keeps set-up away from the visitor's first clicks (the poster shows meanwhile)
+    function whenIdle() { setTimeout(function () { if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 3000 }); else load(); }, 1500); }
+    if (doc.readyState === 'complete') whenIdle(); else window.addEventListener('load', whenIdle, { once: true });
+  })();
+
   /* ---------- NAV SCROLL ---------- */
   var nav = doc.getElementById('nav');
   var ngc = doc.getElementById('nav-ghost-cta');
@@ -154,7 +177,8 @@
         else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
       }
     });
-    window.addEventListener('resize', function () { if (menuOpen && window.innerWidth > 1024) setMenu(false, false); });
+    // Close when the hamburger is hidden (desktop links shown from 1024px), so the CSS breakpoint is the single source of truth.
+    window.addEventListener('resize', function () { if (menuOpen && getComputedStyle(hb).display === 'none') setMenu(false, false); });
   }
 
   /* ---------- REVEAL ---------- */
