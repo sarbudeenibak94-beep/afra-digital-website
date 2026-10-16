@@ -85,10 +85,11 @@ try {
       check('canonical = https://www.afra-digital.com/', r.canonical === PROD + '/', r.canonical);
       check('og:url / og:image / twitter:image on www origin', r.ogUrl === PROD + '/' && r.ogImage === PROD + '/assets/img/og-afra-digital-1200x630.jpg' && r.twImage === r.ogImage);
       check('title <= 60 chars, description <= 160 chars', r.title.length <= 60 && r.desc.length <= 160, `${r.title.length}/${r.desc.length}`);
-      check('exactly one H1, descriptive', r.h1 === 1 && /Websites, Apps & AI Solutions for GCC Businesses/.test(r.h1Text), r.h1Text);
+      check('exactly one H1, descriptive (global positioning)', r.h1 === 1 && /Websites, Apps & AI Solutions for Businesses Worldwide/.test(r.h1Text), r.h1Text);
       check('no skipped heading levels', r.skips === 0, String(r.skips));
       check('<main> landmark + skip link', r.main === 1 && r.skip);
-      check('services appear before own products', r.sectionOrder.indexOf('services') > -1 && r.sectionOrder.indexOf('services') < r.sectionOrder.indexOf('software-products'), r.sectionOrder.join(' > '));
+      // The duplicate homepage services grid was removed; services live on the /services page (checked below).
+      check('duplicate services grid removed (no #services section); own products still on the homepage', !r.sectionOrder.includes('services') && r.sectionOrder.includes('software-products'), r.sectionOrder.join(' > '));
       check('testimonials removed', !r.sectionOrder.includes('testimonials'));
       check('JSON-LD parses', r.ld.length === 1 && !r.ld[0].error);
       const graph = r.ld[0]['@graph'] || [];
@@ -108,7 +109,9 @@ try {
       check('retired homepage commitments absent (page text, FAQ answers, JSON-LD)', retired.length === 0, retired.join(' '));
       // Owner-approved qualifier for the remaining RTL capability mentions (E-Commerce card, platform card, agencies FAQ).
       const rtlQ = 'Arabic and right-to-left (RTL) support can be discussed during project scoping and confirmed in the proposal.';
-      const rtl = await p.eval(`(() => ({ ecom: ([...document.querySelectorAll('.svc-card')].find(c => c.querySelector('.svc-name')?.textContent.trim() === 'E-Commerce') || {}).textContent || '', platform: ([...document.querySelectorAll('.sp-why-card')].find(c => c.querySelector('.sp-why-title')?.textContent.trim() === 'Multi-language') || {}).textContent || '' }))()`);
+      const rtl = await p.eval(`(() => ({ platform: ([...document.querySelectorAll('.sp-why-card')].find(c => c.querySelector('.sp-why-title')?.textContent.trim() === 'Multi-language') || {}).textContent || '' }))()`);
+      // The E-Commerce card now lives only on the /services page (the homepage grid was a duplicate and was removed).
+      rtl.ecom = ((await (await fetch(A + '/services')).text()).match(/<li class="svh-card[^"]*" id="svc-e-commerce">[\s\S]*?<\/li>/) || [''])[0];
       const agencies = faqA('What makes AFRA DIGITAL different from other agencies?') || '';
       // The Multi-language card describes the own products (Cook With Fire, SAANIX), so it uses product wording.
       const rtlP = 'Arabic and right-to-left (RTL) support can be discussed during product requirements review and confirmed for the relevant product.';
@@ -129,8 +132,15 @@ try {
       check('logo / in-page links throw no exceptions', !p.log.exceptions.length, p.log.exceptions.join(' | '));
       const legal = await p.eval(`[...document.querySelectorAll('.foot-legal a')].map(a => a.getAttribute('href'))`);
       check('footer legal links are real pages', JSON.stringify(legal) === JSON.stringify(['/privacy-policy', '/terms', '/privacy-policy#cookies']), legal.join(', '));
-      const contacts = await p.eval(`({ wa: [...document.querySelectorAll('a[href^="https://wa.me/"]')].every(a => a.href.startsWith('https://wa.me/97430029799')), tel: [...document.querySelectorAll('a[href^="tel:"]')].every(a => a.getAttribute('href') === 'tel:+97430029799'), telCount: document.querySelectorAll('a[href^="tel:"]').length, li: !!document.querySelector('a[href="https://www.linkedin.com/in/sarbudeen-ibak"]') })`);
-      check('WhatsApp + phone links use the confirmed number; LinkedIn linked', contacts.wa && contacts.tel && contacts.telCount >= 2 && contacts.li, JSON.stringify(contacts));
+      // The footer also offers the owner-supplied India number ("India enquiries"): exactly one WhatsApp and one phone link,
+      // both inside the footer. Every other WhatsApp / phone link uses the confirmed Qatar number.
+      const contacts = await p.eval(`(() => { const india = a => /^(https:\\/\\/wa\\.me\\/918270001230|tel:\\+918270001230$)/.test(a.getAttribute('href'));
+        const waAll = [...document.querySelectorAll('a[href^="https://wa.me/"]')], telAll = [...document.querySelectorAll('a[href^="tel:"]')];
+        return { wa: waAll.filter(a => !india(a)).every(a => a.href.startsWith('https://wa.me/97430029799')), tel: telAll.filter(a => !india(a)).every(a => a.getAttribute('href') === 'tel:+97430029799'),
+          telCount: telAll.filter(a => !india(a)).length, india: waAll.concat(telAll).filter(india).map(a => (a.closest('footer') ? 'footer:' : 'MAIN:') + a.getAttribute('href').split('?')[0]),
+          li: !!document.querySelector('a[href="https://www.linkedin.com/in/sarbudeen-ibak"]') }; })()`);
+      check('WhatsApp + phone links use the confirmed number (India enquiries only in the footer); LinkedIn linked', contacts.wa && contacts.tel && contacts.telCount >= 2 && contacts.li &&
+        JSON.stringify(contacts.india.sort()) === JSON.stringify(['footer:https://wa.me/918270001230', 'footer:tel:+918270001230']), JSON.stringify(contacts));
       // claims that must be gone
       const text = await p.eval('document.body.innerText');
       const banned = ['50+', '24/7', '99.9%', 'millions of records', 'Award-level', 'Apple-quality', 'Al-Rashidi', 'Sara Khalid', 'Zenith', '195 Source Files', '98', 'Equity partnership'];
@@ -185,9 +195,10 @@ try {
     }
 
     // Reduced motion: no homepage animation loops or keeps running (infinite animations end after one 0.01ms cycle via
-    // animation-iteration-count:1); content and the loader still reach their final state. Normal motion keeps all 17 loops (Design D6 replaced the hero logo, and with it one of the two 'logoFloat' loops).
+    // animation-iteration-count:1); content and the loader still reach their final state. Normal motion keeps all 20 loops (Design D6 replaced the hero logo, and with it one of the two 'logoFloat' loops; the robot redesign removed the hero rings and their two 'ringRotate*' loops;
+    // the contact "Location" visual added five slow transform/opacity loops: two 'mapDrift' skyline layers, 'mapGlow', 'mapPinFloat', 'mapPulse' — none with reduced motion).
     {
-      const LOOPS = ['bgZoom', 'borderMove', 'dustMove', 'goldGlowMove', 'goldWaveMove', 'logoFloat', 'mq', 'particlesMove', 'raysMove', 'ringRotate', 'ringRotateReverse',
+      const LOOPS = ['bgZoom', 'borderMove', 'dustMove', 'goldGlowMove', 'goldWaveMove', 'logoFloat', 'mapDrift', 'mapDrift', 'mapGlow', 'mapPinFloat', 'mapPulse', 'mq', 'particlesMove', 'raysMove',
         'spGlowPulse', 'spGlowPulse', 'spGoldBorderMove', 'spGoldBorderMove', 'spTypeCursor', 'waFloat'];
       const probe = `(() => { const all = document.getAnimations().filter(a => a.effect); const inf = all.filter(a => a.effect.getComputedTiming().iterations === Infinity);
         return { infinite: inf.map(a => a.animationName).sort(), running: all.filter(a => a.playState === 'running').map(a => a.animationName),
@@ -202,7 +213,7 @@ try {
       }
       const r = res.reduce, n = res['no-preference'];
       check('prefers-reduced-motion: no homepage animation loops or is still running; heading visible and loader gone', r.infinite.length === 0 && r.running.length === 0 && r.heroVisible && r.loaderGone, JSON.stringify(r));
-      check('normal motion: the 17 decorative homepage loops are unchanged and running', JSON.stringify(n.infinite) === JSON.stringify(LOOPS) && LOOPS.every(x => n.running.includes(x)) && n.heroVisible && n.loaderGone, JSON.stringify({ infinite: n.infinite.length, missing: LOOPS.filter(x => !n.infinite.includes(x)) }));
+      check('normal motion: the 20 decorative homepage loops are present and running', JSON.stringify(n.infinite) === JSON.stringify(LOOPS) && LOOPS.every(x => n.running.includes(x)) && n.heroVisible && n.loaderGone, JSON.stringify({ infinite: n.infinite.length, missing: LOOPS.filter(x => !n.infinite.includes(x)) }));
     }
 
     // Reduced motion: in-page menu jumps are instant (html{scroll-behavior:smooth} is overridden in the reduced-motion
@@ -213,33 +224,40 @@ try {
         const p = await browser.newPage({ width: 1440, height: 900 });
         await p.S('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: mode }] });
         await p.goto(A + '/'); await sleep(800);
-        await p.eval(`window.__y = []; document.querySelector('#nav .nav-links a[href="#services"]').click(); window.__y.push(Math.round(scrollY)); (function t() { window.__y.push(Math.round(scrollY)); if (window.__y.length < 40) requestAnimationFrame(t); })(); true`);
+        // "Services" now opens the /services page, so the in-page jump is checked on the next menu item (Industries).
+        await p.eval(`window.__y = []; document.querySelector('#nav .nav-links a[href="#industries"]').click(); window.__y.push(Math.round(scrollY)); (function t() { window.__y.push(Math.round(scrollY)); if (window.__y.length < 40) requestAnimationFrame(t); })(); true`);
         await sleep(1500);
-        jump[mode] = await p.eval(`({ css: getComputedStyle(document.documentElement).scrollBehavior, first: window.__y[0], final: window.__y.at(-1), positions: new Set(window.__y).size, top: Math.round(document.getElementById('services').getBoundingClientRect().top), margin: parseFloat(getComputedStyle(document.getElementById('services')).scrollMarginTop) || 0 })`);
+        jump[mode] = await p.eval(`({ css: getComputedStyle(document.documentElement).scrollBehavior, first: window.__y[0], final: window.__y.at(-1), positions: new Set(window.__y).size, top: Math.round(document.getElementById('industries').getBoundingClientRect().top), margin: parseFloat(getComputedStyle(document.getElementById('industries')).scrollMarginTop) || 0 })`);
         await p.close();
       }
       const r = jump.reduce, n = jump['no-preference'];
-      check('prefers-reduced-motion: menu "Services" jumps immediately (scroll-behavior auto, final position on the click frame)', r.css === 'auto' && r.first > 0 && r.first === r.final && r.positions === 1 && Math.abs(r.top - r.margin) <= 2, JSON.stringify(r));
-      check('normal motion: menu "Services" still scrolls smoothly to the section', n.css === 'smooth' && n.positions > 5 && Math.abs(n.top - n.margin) <= 2, JSON.stringify(n));
+      check('prefers-reduced-motion: in-page menu item ("Industries") jumps immediately (scroll-behavior auto, final position on the click frame)', r.css === 'auto' && r.first > 0 && r.first === r.final && r.positions === 1 && Math.abs(r.top - r.margin) <= 2, JSON.stringify(r));
+      check('normal motion: in-page menu item ("Industries") still scrolls smoothly to the section', n.css === 'smooth' && n.positions > 5 && Math.abs(n.top - n.margin) <= 2, JSON.stringify(n));
     }
 
-    // Phase 05 Batch 2: "View all services" link under the services grid opens the /services hub. The header and
-    // mobile-menu "Services" items stay in-page anchors (#services), like every other homepage menu item.
+    // The duplicate homepage services grid (and its "View all services" link) was removed. The header, mobile-menu and
+    // footer service links now open the /services page; nothing on the homepage points at a #services anchor any more.
     {
       const p = await browser.newPage({ width: 1440, height: 900 });
       await p.goto(A + '/'); await sleep(800);
-      const r = await p.eval(`(() => { const all = [...document.querySelectorAll('a[href="/services"]')]; const a = all[0];
-        return { count: all.length, inServices: !!(a && a.closest('#services')), text: a ? a.textContent.trim() : null, visible: !!(a && a.offsetWidth > 0),
-          nav: [...document.querySelectorAll('#nav .nav-links a, #mob-nav a')].filter(x => x.textContent.trim() === 'Services').map(x => x.getAttribute('href')) }; })()`);
-      check('homepage: one "View all services" link to /services at the end of the services section', r.count === 1 && r.inServices && r.text === 'View all services →' && r.visible, JSON.stringify(r));
-      check('homepage: header and mobile-menu "Services" still scroll to #services (menu behaviour unchanged)', JSON.stringify(r.nav) === JSON.stringify(['#services', '#services']), JSON.stringify(r.nav));
-      await p.eval(`document.querySelector('#services a[href="/services"]').click(); true`); await sleep(1500);
-      check('homepage: "View all services" opens the /services hub', await p.eval(`location.pathname === '/services' && !!document.querySelector('.svh-card')`));
+      const r = await p.eval(`(() => ({ section: !!document.getElementById('services'), hashLinks: document.querySelectorAll('a[href="#services"], a[href="/#services"]').length,
+          nav: [...document.querySelectorAll('#nav .nav-links a, #mob-nav a')].filter(x => x.textContent.trim() === 'Services').map(x => x.getAttribute('href')),
+          foot: [...document.querySelectorAll('footer a[href^="/services#"]')].map(a => a.getAttribute('href')) }))()`);
+      check('homepage: no #services section and no link to a #services anchor', !r.section && r.hashLinks === 0, JSON.stringify(r));
+      check('homepage: header and mobile-menu "Services" open the /services page', JSON.stringify(r.nav) === JSON.stringify(['/services', '/services']), JSON.stringify(r.nav));
+      const hub = await (await fetch(A + '/services')).text();
+      const bad = r.foot.filter(h => { const id = h.split('#')[1]; return !id || !hub.includes(`id="${id}"`); });
+      check('homepage footer: the 7 service links open /services at an existing card or group', r.foot.length === 7 && bad.length === 0, JSON.stringify({ foot: r.foot, bad }));
+      await p.eval(`document.querySelector('#nav .nav-links a[href="/services"]').click(); true`); await sleep(1500);
+      check('homepage: header "Services" opens the /services page with all 12 services in 4 groups', await p.eval(`location.pathname === '/services' && document.querySelectorAll('.svh-card').length === 12 && document.querySelectorAll('.svh-group').length === 4`));
       await p.close();
       const m = await browser.newPage({ width: 320, height: 640, mobile: true });
       await m.goto(A + '/'); await sleep(800);
-      const mh = await m.eval(`(() => { const b = document.querySelector('#services a[href="/services"]').getBoundingClientRect(); return { h: Math.round(b.height), fits: b.left >= 0 && b.right <= innerWidth, sw: document.documentElement.scrollWidth, vw: innerWidth }; })()`);
-      check('homepage 320px: "View all services" is a ≥ 44px target, fits the screen, no horizontal scroll', mh.h >= 44 && mh.fits && mh.sw <= mh.vw, JSON.stringify(mh));
+      await m.eval(`document.getElementById('hamburger').click(); true`); await sleep(500);
+      const mh = await m.eval(`(() => { const a = [...document.querySelectorAll('#mob-nav a')].find(x => x.textContent.trim() === 'Services'); const b = a.getBoundingClientRect(); return { h: Math.round(b.height), fits: b.left >= 0 && b.right <= innerWidth, sw: document.documentElement.scrollWidth, vw: innerWidth }; })()`);
+      check('homepage 320px: mobile-menu "Services" is a ≥ 44px target, fits the screen, no horizontal scroll', mh.h >= 44 && mh.fits && mh.sw <= mh.vw, JSON.stringify(mh));
+      await m.eval(`[...document.querySelectorAll('#mob-nav a')].find(x => x.textContent.trim() === 'Services').click(); true`); await sleep(1500);
+      check('homepage 320px: mobile-menu "Services" opens the /services page', await m.eval(`location.pathname === '/services' && !!document.querySelector('.svh-card')`));
       await m.close();
     }
 
@@ -273,13 +291,14 @@ try {
         await p.goto(A + '/'); await sleep(1500); const s = await p.eval(state);
         check('loader (reduced motion): gone within 1.5 s; all reveal sections shown immediately', (s.loader === 'removed' || s.loader.opacity === 0) && s.h1 > 0.99 && s.allRvVisible === s.allRv, JSON.stringify(s));
         await p.close(); }
-      // Tap targets: card "Discuss …" / WhatsApp links, "See the product" and package WhatsApp links.
-      const tsel = '.svc-actions a, .port-desc .svc-link, .price-wa';
+      // Tap targets: "See the product" and package WhatsApp links. (The service-card "Discuss …" / WhatsApp links went
+      // with the removed homepage services grid; the /services page checks its own card links at 44 px.)
+      const tsel = '.port-desc .svc-link, .price-wa';
       const sizes = async (w, h, mobile) => { const p = await browser.newPage({ width: w, height: h, mobile }); await p.goto(A + '/'); await sleep(1200);
         const r = await p.eval(`(() => { const els = [...document.querySelectorAll(${JSON.stringify(tsel)})].filter(e => e.offsetWidth > 0); return { n: els.length, minH: Math.min(...els.map(e => e.offsetHeight)) /* layout size: ignores the temporary scale(0.93) of not-yet-revealed cards */, sw: document.documentElement.scrollWidth, vw: innerWidth }; })()`);
         await p.close(); return r; };
       const d = await sizes(1440, 900, false), m390 = await sizes(390, 844, true), m320 = await sizes(320, 640, true);
-      check('tap targets: card and package links ≥ 32 px on desktop (WCAG 2.2 minimum 24 px)', d.n >= 29 && d.minH >= 32, JSON.stringify(d));
+      check('tap targets: card and package links ≥ 32 px on desktop (WCAG 2.2 minimum 24 px)', d.n === 5 && d.minH >= 32, JSON.stringify(d));
       check('tap targets: card and package links ≥ 44 px on phones (390 and 320), no horizontal scroll', m390.minH >= 44 && m320.minH >= 44 && m390.sw <= m390.vw && m320.sw <= m320.vw, JSON.stringify({ m390, m320 }));
       // Sitemap lastmod: valid date, not in the future, and not older than the last commit that changed the page.
       { const xml = readFileSync(new URL('sitemap.xml', ROOT), 'utf8'); const today = new Date().toISOString().slice(0, 10);

@@ -74,7 +74,7 @@ try {
   const otherTitles = OTHER_PAGES.map(f => decode(meta(read(f), /<title>([^<]*)<\/title>/) || ''));
   const otherDescs = OTHER_PAGES.map(f => decode(meta(read(f), /<meta name="description" content="([^"]*)"/) || ''));
   const title = decode(meta(html, /<title>([^<]*)<\/title>/) || ''), desc = decode(meta(html, /<meta name="description" content="([^"]*)"/) || '');
-  check(`${PATH}: exactly one <title>, unique, ≤ 65 chars`, (html.match(/<title>/g) || []).length === 1 && title === 'Digital Services in Qatar & the GCC | AFRA DIGITAL' && title.length <= 65 && !otherTitles.includes(title), `${title.length}: ${title}`);
+  check(`${PATH}: exactly one <title>, unique, ≤ 65 chars`, (html.match(/<title>/g) || []).length === 1 && title === 'Website, Web App, AI & Automation Services | AFRA DIGITAL' && title.length <= 65 && !otherTitles.includes(title), `${title.length}: ${title}`);
   check(`${PATH}: meta description unique, 70–160 chars`, desc.length >= 70 && desc.length <= 160 && !otherDescs.includes(desc), `${desc.length}`);
   check(`${PATH}: canonical = og:url = ${CANONICAL} (no trailing slash, matches the served URL); indexable; lang en`, meta(html, /<link rel="canonical" href="([^"]*)"/) === CANONICAL && meta(html, /<meta property="og:url" content="([^"]*)"/) === CANONICAL &&
     /<meta name="robots" content="index, follow/.test(html) && /<html lang="en"/.test(html));
@@ -105,7 +105,7 @@ try {
     const h = await p.eval(`(() => { const hs = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map(x => ({ l: +x.tagName[1], t: x.textContent.trim() }));
       let skip = false; for (let i = 1; i < hs.length; i++) if (hs[i].l > hs[i - 1].l + 1) skip = true;
       return { h1: hs.filter(x => x.l === 1).map(x => x.t), skip, empty: hs.filter(x => !x.t).length }; })()`);
-    check(`${PATH}: exactly one H1 ("Digital Services … Qatar …"); no skipped heading levels; no empty headings`, h.h1.length === 1 && /^Digital Services for Businesses in Qatar and the GCC$/.test(h.h1[0]) && !h.skip && h.empty === 0, JSON.stringify(h));
+    check(`${PATH}: exactly one H1 ("Digital Services … Worldwide"); no skipped heading levels; no empty headings`, h.h1.length === 1 && /^Digital Services for Businesses Worldwide$/.test(h.h1[0]) && !h.skip && h.empty === 0, JSON.stringify(h));
     // cards
     const cards = await p.eval(`[...document.querySelectorAll('.svh-card')].map(c => { const a = c.querySelector('a.svh-link'); return { name: c.querySelector('h4').textContent.trim(), status: c.querySelector('.svh-status').textContent.trim(),
       href: a.getAttribute('href'), service: a.getAttribute('data-service'), cta: a.getAttribute('data-cta'), label: a.textContent.trim(), group: c.closest('.svh-group').querySelector('.svh-group-h').textContent.trim(), text: c.querySelector('p').textContent.trim() }; })`);
@@ -116,14 +116,17 @@ try {
     check(`${PATH}: the other 11 cards are labelled "Enquire" and open the form here (no link to a page that does not exist)`, others.every((c, i) => c.status === 'Enquire' && c.href === '#contact' && c.service === CARDS[i + 1][1] && /^Discuss /.test(c.label)) && cards.filter(c => c.status === 'Service page').length === 1, JSON.stringify(others.filter((c, i) => !(c.status === 'Enquire' && c.href === '#contact' && c.service === CARDS[i + 1][1]))));
     const options = await p.eval(`[...document.getElementById('cf-service').options].map(o => o.value)`);
     check(`${PATH}: every card's service exists in the form's service list`, cards.every(c => !c.service || options.includes(c.service)) && options.includes('Website Development'), options.join('|'));
-    const homeSvc = await (async () => { const hp = await browser.newPage({ width: 1280, height: 900 }); await hp.goto(S + '/'); await sleep(600); const x = await hp.eval(`[...document.querySelectorAll('.svc-card a.svc-link')].map(a => a.getAttribute('data-service'))`); await hp.close(); return x; })();
-    check(`${PATH}: the hub covers exactly the homepage's 12 services (no new or dropped service)`, JSON.stringify([...homeSvc].sort()) === JSON.stringify(CARDS.map(c => c[1]).sort()), homeSvc.join('|'));
+    // The homepage's duplicate services grid was removed; the list of services the business offers is now the
+    // homepage enquiry form's service list (minus the two own products and "Other / Not Sure").
+    const homeSvc = await (async () => { const hp = await browser.newPage({ width: 1280, height: 900 }); await hp.goto(S + '/'); await sleep(600);
+      const x = await hp.eval(`({ grid: document.querySelectorAll('#services, .svc-card').length, opts: [...document.getElementById('cf-service').options].map(o => o.value).filter(v => v && !/^(Cook With Fire|SAANIX|Other)/.test(v)) })`); await hp.close(); return x; })();
+    check(`${PATH}: the hub covers exactly the 12 services offered on the homepage form (no new or dropped service); the duplicate homepage grid is gone`, homeSvc.grid === 0 && JSON.stringify([...homeSvc.opts].sort()) === JSON.stringify(CARDS.map(c => c[1]).sort()), homeSvc.opts.join('|'));
     check(`${PATH}: E-Commerce card keeps the approved RTL qualification`, cards[1].text.includes('Arabic and right-to-left (RTL) support can be discussed during project scoping and confirmed in the proposal.'), cards[1].text);
     // Batch 2 finalization: owner-reviewed wording for the three cards most prone to overclaiming.
     const REVIEWED = {
       'AI Solutions': 'AI features built for a specific business task, such as answering common customer questions or finding information in your documents and data. What AI can realistically do for your business is assessed during scoping and set out in your proposal.',
       'SaaS Development': 'Subscription-based software products with user accounts and roles, designed from the start so that many customer businesses can use the same product, each with its own data kept separate.',
-      'Digital Marketing': 'SEO, paid advertising and social media campaigns for audiences in the GCC. Goals and reporting are agreed in your proposal; we do not promise specific results.',
+      'Digital Marketing': 'SEO, paid advertising and social media campaigns for audiences in the GCC and worldwide. Goals and reporting are agreed in your proposal; we do not promise specific results.',
     };
     const reviewedBad = Object.entries(REVIEWED).filter(([n, t]) => (cards.find(c => c.name === n) || {}).text !== t).map(([n]) => n);
     check(`${PATH}: AI Solutions, SaaS Development and Digital Marketing use the reviewed wording exactly`, reviewedBad.length === 0, reviewedBad.join(', '));
@@ -146,10 +149,13 @@ try {
     check(`${PATH}: each CTA records its own source id; card CTAs preselect their service`, bad.length === 0, bad.join(' '));
     check(`${PATH}: no request to /api/contact was made (form never submitted)`, p.log.requests.filter(r => /\/api\/contact/.test(r.url)).length === 0);
     // WhatsApp, tel, mailto
-    const wa = await p.eval(`[...document.querySelectorAll('a[href^="https://wa.me/"]')].map(a => ({ num: a.getAttribute('href').split('?')[0], text: decodeURIComponent(a.getAttribute('href').split('text=')[1] || ''), rel: a.getAttribute('rel') || '', target: a.getAttribute('target') }))`);
-    check(`${PATH}: WhatsApp links use the business number, open safely, carry no digits or personal data`, wa.length >= 5 && wa.every(x => x.num === 'https://wa.me/97430029799' && /noopener/.test(x.rel) && x.target === '_blank' && x.text && !/\d|@/.test(x.text)), String(wa.length));
+    const wa = await p.eval(`[...document.querySelectorAll('a[href^="https://wa.me/"]')].map(a => ({ num: a.getAttribute('href').split('?')[0], text: decodeURIComponent(a.getAttribute('href').split('text=')[1] || ''), rel: a.getAttribute('rel') || '', target: a.getAttribute('target'), foot: !!a.closest('footer') }))`);
+    // The shared footer also offers the owner-supplied India number ("India enquiries"); every other WhatsApp link uses the Qatar number.
+    check(`${PATH}: WhatsApp links use the business numbers (Qatar everywhere; India only once, in the shared footer), open safely, carry no digits or personal data`,
+      wa.length >= 5 && wa.every(x => (x.num === 'https://wa.me/97430029799' || (x.num === 'https://wa.me/918270001230' && x.foot)) && /noopener/.test(x.rel) && x.target === '_blank' && x.text && !/\d|@/.test(x.text)) &&
+      wa.filter(x => x.num === 'https://wa.me/918270001230').length === 1 && wa.filter(x => x.num === 'https://wa.me/97430029799').length >= 5, String(wa.length));
     const contacts = await p.eval(`[...new Set([...document.querySelectorAll('a[href^="tel:"],a[href^="mailto:"]')].map(a => a.getAttribute('href')))].sort()`);
-    check(`${PATH}: tel/mailto links match the homepage values`, JSON.stringify(contacts) === JSON.stringify(['mailto:afradigital.hello@gmail.com', 'tel:+97430029799']), contacts.join(', '));
+    check(`${PATH}: tel/mailto links match the homepage values (incl. the India enquiries number in the shared footer)`, JSON.stringify(contacts) === JSON.stringify(['mailto:afradigital.hello@gmail.com', 'tel:+918270001230', 'tel:+97430029799']), contacts.join(', '));
     // internal links resolve
     const hrefs = await p.eval(`[...new Set([...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href')).filter(h => h.startsWith('/') || h.startsWith('#')))]`);
     const broken = [];

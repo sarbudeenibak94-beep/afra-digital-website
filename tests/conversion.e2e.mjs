@@ -33,27 +33,29 @@ try {
     const p = await browser.newPage({ width: 1440, height: 900 });
     await p.goto(S + '/'); await sleep(1200);
     const links = await p.eval(`[...document.querySelectorAll('a[href^="https://wa.me/"]')].map(a => ({ href: a.getAttribute('href'), text: decodeURIComponent((a.getAttribute('href').split('text=')[1] || '')), svc: a.getAttribute('data-wa-service'), plan: a.getAttribute('data-wa-plan'), name: (a.getAttribute('aria-label') || a.textContent).trim(), target: a.getAttribute('target'), rel: a.getAttribute('rel') || '' }))`);
-    check('C1 every WhatsApp link uses the confirmed number', links.length > 0 && links.every(l => l.href.startsWith(WA_NUMBER + '?text=')), `${links.length} links`);
+    // The shared footer also offers the owner-supplied India number ("India enquiries"), exactly once.
+    const indiaFoot = await p.eval(`[...document.querySelectorAll('a[href^="https://wa.me/918270001230"]')].map(a => !!a.closest('footer'))`);
+    check('C1 every WhatsApp link uses the confirmed number (India enquiries number only once, in the footer)', links.length > 0 && links.every(l => l.href.startsWith(WA_NUMBER + '?text=') || l.href.startsWith('https://wa.me/918270001230?text=')) && indiaFoot.length === 1 && indiaFoot[0] === true, `${links.length} links, India in footer: ${JSON.stringify(indiaFoot)}`);
     const svc = links.filter(l => l.svc && !/demo/.test(l.text));
-    const cards = await p.eval(`[...document.querySelectorAll('.svc-card')].map(c => ({ name: c.querySelector('.svc-name').textContent, svc: c.querySelector('.svc-link').getAttribute('data-service'), wa: c.querySelector('.svc-wa') && c.querySelector('.svc-wa').getAttribute('data-wa-service') }))`);
-    check('C1 all 12 service cards offer a WhatsApp option for the same service', cards.length === 12 && cards.every(c => c.wa === c.svc), JSON.stringify(cards.filter(c => c.wa !== c.svc)));
-    check('C1 service WhatsApp prefills name the service', svc.length === 12 && svc.every(l => l.text.includes(`interested in ${l.svc}.`)), svc.map(l => l.text).slice(0, 2).join(' | '));
+    // The duplicate homepage services grid, with its 12 per-service "Discuss" / WhatsApp links, was removed:
+    // services are presented on the /services page, where every card has its own enquiry link (services-hub suite).
+    const grid = await p.eval(`document.querySelectorAll('#services, .svc-card, .svc-wa').length`);
+    check('C1 duplicate services grid removed: no service-card WhatsApp links left on the homepage', grid === 0 && svc.length === 0, JSON.stringify({ grid, svc: svc.map(l => l.svc) }));
     const prod = links.filter(l => /demo of/.test(l.text));
     check('C1 product WhatsApp prefills name the product (Cook With Fire, SAANIX)', prod.length === 2 && /Cook With Fire/.test(prod[0].text) && /SAANIX/.test(prod[1].text), prod.map(l => l.text).join(' | '));
     const plans = links.filter(l => l.plan);
     check('C1 pricing WhatsApp prefills name the package', plans.length === 3 && plans.every(l => l.text.includes(`the ${l.plan} package`)), plans.map(l => l.plan).join(','));
-    check('C1 prefills contain no personal data or prices; external links open safely', links.every(l => !/@|\d{7,}|QAR/.test(l.text) && l.target === '_blank' && /noopener/.test(l.rel)) || links.filter(l => l.target !== '_blank').every(l => !/@|\d{7,}/.test(l.text)));
-    check('C1 service WhatsApp links have descriptive accessible names', svc.every(l => l.name === `Ask about ${l.svc} on WhatsApp`));
+    check('C1 prefills contain no personal data or prices; external links open safely', links.every(l => !/@|\d{7,}|QAR|\$\d/.test(l.text) && l.target === '_blank' && /noopener/.test(l.rel)) || links.filter(l => l.target !== '_blank').every(l => !/@|\d{7,}/.test(l.text)));
 
     // ---------- C7: event context ----------
     await blockNav(p);
-    await p.eval(`window.afraEvents.length = 0; document.querySelector('.svc-wa[data-wa-service="AI Solutions"]').click(); document.querySelector('.price-wa[data-wa-plan="Enterprise"]').click(); document.querySelector('a[data-plan="Starter"]').click(); true`);
+    await p.eval(`window.afraEvents.length = 0; document.querySelector('.sp-wa-btn[data-wa-service="Cook With Fire (Restaurant Platform)"]').click(); document.querySelector('.price-wa[data-wa-plan="Enterprise"]').click(); document.querySelector('a[data-plan="Starter"]').click(); true`);
     await sleep(300);
     const ev = await p.eval(`window.afraEvents.map(e => ({ e: e.event, p: e.params }))`);
-    const waSvc = ev.find(x => x.e === 'whatsapp_click' && x.p.service === 'AI Solutions');
+    const waSvc = ev.find(x => x.e === 'whatsapp_click' && x.p.service === 'Cook With Fire (Restaurant Platform)');
     const waPlan = ev.find(x => x.e === 'whatsapp_click' && x.p.plan === 'Enterprise');
     const ctaPlan = ev.find(x => x.e === 'cta_click' && x.p.plan === 'Starter');
-    check('C7 whatsapp_click carries service / plan context', waSvc && waSvc.p.link_location === 'services' && waPlan && waPlan.p.link_location === 'pricing', JSON.stringify(ev.slice(0, 2)));
+    check('C7 whatsapp_click carries service / plan context', waSvc && waSvc.p.link_location === 'software_products' && waPlan && waPlan.p.link_location === 'pricing', JSON.stringify(ev.slice(0, 2)));
     check('C7 pricing cta_click carries the plan', ctaPlan && ctaPlan.p.cta_id === 'pricing_starter', JSON.stringify(ctaPlan));
 
     // ---------- C4: plan carried into the form ----------
@@ -65,8 +67,9 @@ try {
     await p.eval(`document.getElementById('cf-plan-clear').click(); true`); await sleep(100);
     const cleared = await p.eval(`({ chip: !document.getElementById('cf-plan-chip').hidden, plan: document.getElementById('cf-plan').value, focus: document.activeElement.id })`);
     check('C4 removing the chip clears the plan and moves focus to the service field', !cleared.chip && cleared.plan === '' && cleared.focus === 'cf-service', JSON.stringify(cleared));
-    await p.eval(`document.querySelector('.svc-link[data-service="E-Commerce Development"]').click(); true`); await sleep(100);
-    check('Service CTA still pre-selects the service and records its source', await p.eval(`document.getElementById('cf-service').value === 'E-Commerce Development' && document.getElementById('cf-source').value === 'service_e_commerce_development'`));
+    // Homepage service CTAs that remain are the product ones (the removed grid's are covered on /services by the hub suite).
+    await p.eval(`document.querySelector('a[data-cta="cwf_request_demo"]').click(); true`); await sleep(100);
+    check('Service CTA still pre-selects the service and records its source', await p.eval(`document.getElementById('cf-service').value === 'Cook With Fire (Restaurant Platform)' && document.getElementById('cf-source').value === 'cwf_request_demo'`));
 
     // ---------- C6 (desktop): wording ----------
     const pricingText = await p.eval(`[...document.querySelectorAll('#pricing a[data-plan]')].map(a => a.textContent.trim())`);
@@ -75,11 +78,11 @@ try {
     // ---------- C2 (desktop unchanged) ----------
     const desk = await p.eval(`({ dash: [...document.querySelectorAll('#software-products .sp-product-visual')].every(e => getComputedStyle(e).display !== 'none'),
       why: getComputedStyle(document.querySelector('.sp-why-block')).display !== 'none', toggles: [...document.querySelectorAll('.sp-feats-toggle')].map(b => getComputedStyle(b).display),
-      chipsHidden: [...document.querySelectorAll('.sp-feat')].filter(c => getComputedStyle(c).display === 'none').length, tags: getComputedStyle(document.querySelector('.svc-tags')).display !== 'none', portVis: getComputedStyle(document.querySelector('.port-vis')).display !== 'none' })`);
-    check('C2 desktop unchanged: dashboards, product "why", tags, portfolio visuals and all feature chips visible; toggles hidden',
-      desk.dash && desk.why && desk.tags && desk.portVis && desk.chipsHidden === 0 && desk.toggles.every(d => d === 'none'), JSON.stringify(desk));
+      chipsHidden: [...document.querySelectorAll('.sp-feat')].filter(c => getComputedStyle(c).display === 'none').length, portVis: getComputedStyle(document.querySelector('.port-vis')).display !== 'none' })`);
+    check('C2 desktop unchanged: dashboards, product "why", portfolio visuals and all feature chips visible; toggles hidden (service tags went with the removed services grid)',
+      desk.dash && desk.why && desk.portVis && desk.chipsHidden === 0 && desk.toggles.every(d => d === 'none'), JSON.stringify(desk));
     const quick = await p.eval(`[...document.querySelectorAll('.quick-enquiry')].map(q => ({ id: q.id, prev: q.previousElementSibling && (q.previousElementSibling.id || q.previousElementSibling.className), actions: [...q.querySelectorAll('a')].map(a => a.getAttribute('href').split('?')[0]) }))`);
-    check('C2 two quick-enquiry blocks (after Services and after Work) with message / WhatsApp / call', quick.length === 2 && quick[0].id === 'quick-after-services' && quick[1].id === 'quick-after-work' &&
+    check('C2 two quick-enquiry blocks (start of the page, where the services grid was, and after Work) with message / WhatsApp / call', quick.length === 2 && quick[0].id === 'quick-after-services' && quick[1].id === 'quick-after-work' &&
       quick.every(q => JSON.stringify(q.actions) === JSON.stringify(['#contact', WA_NUMBER, 'tel:+97430029799'])), JSON.stringify(quick));
     check('No console errors / CSP violations / exceptions (desktop)', !p.log.exceptions.length && !p.log.cspViolations.length && !p.log.console.filter(c => /^error/.test(c)).length, JSON.stringify([...p.log.exceptions, ...p.log.cspViolations]).slice(0, 200));
     await p.close();
@@ -94,7 +97,7 @@ try {
     const labels = await p.eval(`['cf-budget','cf-timeline','cf-contact-pref'].map(id => { const el = document.getElementById(id); return { id, label: el.labels && el.labels[0] && el.labels[0].textContent.replace(/\\s+/g,' ').trim(), required: el.required, options: [...el.options].map(o => o.value) }; })`);
     check('C3 budget / timeline / preferred-contact selects are labelled, optional and use the confirmed options',
       labels[0].label === 'Budget (optional)' && labels[1].label === 'Timeline (optional)' && labels[2].label === 'Preferred contact (optional)' && labels.every(l => !l.required) &&
-      JSON.stringify(labels[0].options) === JSON.stringify(['', 'Under QAR 10,000', 'QAR 10,000–25,000', 'QAR 25,000–50,000', 'Over QAR 50,000', 'Not sure yet']) &&
+      JSON.stringify(labels[0].options) === JSON.stringify(['', 'Under $2,000', '$2,000–$5,000', '$5,000–$10,000', 'Over $10,000', 'Not sure yet']) &&
       JSON.stringify(labels[1].options) === JSON.stringify(['', 'As soon as possible', 'Within 1–3 months', 'Within 3–6 months', 'Just exploring']) &&
       JSON.stringify(labels[2].options) === JSON.stringify(['', 'Email', 'WhatsApp', 'Phone']), JSON.stringify(labels));
 
@@ -113,7 +116,7 @@ try {
     // Full submission with plan + qualification fields
     await blockNav(p);
     await p.eval(`document.querySelector('a[data-plan="Business"]').click(); true`); await sleep(200);
-    await p.eval(`(() => { const f = document.getElementById('contact-form'); f.budget.value = 'QAR 25,000–50,000'; f.timeline.value = 'Within 1–3 months'; f.contactPref.value = 'WhatsApp';
+    await p.eval(`(() => { const f = document.getElementById('contact-form'); f.budget.value = '$5,000–$10,000'; f.timeline.value = 'Within 1–3 months'; f.contactPref.value = 'WhatsApp';
       f.phone.value = '+974 5555 0000'; f.service.value = 'Website Development'; f.message.value = 'P4 AUTOMATED TEST please ignore ' + Date.now();
       window.afraEvents.length = 0; const b = document.getElementById('form-btn'); b.click(); b.click(); return true; })()`);
     await sleep(2000);
@@ -124,11 +127,11 @@ try {
     check('C5 success shows a well-formed reference only after the provider accepted', done.success && /^AFRA-[2-9A-HJ-NP-Z]{6}$/.test(done.ref || '') && got.length === 1, JSON.stringify({ ref: done.ref, sends: got.length }));
     check('C5 the reference shown to the visitor matches the email subject', pl && pl.subject.startsWith(`Website enquiry [${done.ref}]: Website Development`), pl && pl.subject);
     check('C3/C4 email contains package, budget, timeline, preferred contact and source',
-      pl && ['Package:  Business', 'Budget:   QAR 25,000–50,000', 'Timeline: Within 1–3 months', 'Preferred contact: WhatsApp', 'Source:    website button "pricing_business"', `Reference: ${done.ref}`].every(x => pl.text.includes(x)), pl && pl.text.split('\n').slice(2, 14).join(' | '));
+      pl && ['Package:  Business', 'Budget:   $5,000–$10,000', 'Timeline: Within 1–3 months', 'Preferred contact: WhatsApp', 'Source:    website button "pricing_business"', `Reference: ${done.ref}`].every(x => pl.text.includes(x)), pl && pl.text.split('\n').slice(2, 14).join(' | '));
     const lead = done.events.filter(x => x.e === 'generate_lead');
     check('C7 exactly one generate_lead with service + plan, and no budget/timeline/contact/reference in any event',
       lead.length === 1 && JSON.stringify(lead[0].p) === JSON.stringify({ form_id: 'contact', method: 'contact_form', service: 'Website Development', plan: 'Business' }) &&
-      !/QAR|Within|WhatsApp"|AFRA-|5555|p4-test|Conversion/.test(JSON.stringify(done.events)), JSON.stringify(lead));
+      !/QAR|\$\d|Within|WhatsApp"|AFRA-|5555|p4-test|Conversion/.test(JSON.stringify(done.events)), JSON.stringify(lead));
     await p.close();
   }
 

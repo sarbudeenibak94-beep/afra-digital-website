@@ -140,7 +140,8 @@ try {
 
     // ---------- T7: hash / in-page navigation adds no page views ----------
     const hrefBefore = await p.eval('location.href');
-    for (const id of ['services', 'industries', 'portfolio', 'pricing', 'faq', 'contact', 'about', 'process', 'software-products', 'services']) {
+    // "Services" now opens the /services page (a real navigation), so the ten in-page clicks use the remaining anchors.
+    for (const id of ['industries', 'portfolio', 'pricing', 'faq', 'contact', 'about', 'process', 'software-products', 'industries', 'pricing']) {
       await p.eval(`document.querySelector('a[href="#${id}"]').click()`); await sleep(120);
     }
     const hrefAfter = await p.eval('location.href');
@@ -156,7 +157,7 @@ try {
       document.querySelector('#contact a[href^="https://wa.me/"]').click();
       document.querySelector('#contact a[href^="tel:"]').click();
       document.querySelector('#contact a[href^="mailto:"]').click();
-      document.querySelector('#services a[data-service="Website Development"]').click();
+      document.querySelector('#software-products a[data-service="Cook With Fire (Restaurant Platform)"]').click(); // homepage services grid removed
       document.querySelector('.hero-btns a[data-cta]').click();
       document.getElementById('wa-float').click();
       return true; })()`);
@@ -168,7 +169,7 @@ try {
     check('T11 whatsapp_click / phone_click / email_click / service_cta_click use the required names, once per click',
       count('whatsapp_click') === 2 && count('phone_click') === 1 && count('email_click') === 1 && count('service_cta_click') === 1 && count('cta_click') === 1, names.join(','));
     const svc = ev.find(e => e[1] === 'service_cta_click');
-    check('T11 service_cta_click carries only allow-listed params', svc && JSON.stringify(Object.keys(svc[2]).sort()) === '["link_location","service"]' && svc[2].service === 'Website Development' && svc[2].link_location === 'services', JSON.stringify(svc && svc[2]));
+    check('T11 service_cta_click carries only allow-listed params', svc && JSON.stringify(Object.keys(svc[2]).sort()) === '["link_location","service"]' && svc[2].service === 'Cook With Fire (Restaurant Platform)' && svc[2].link_location === 'software_products', JSON.stringify(svc && svc[2]));
     const wa = ev.filter(e => e[1] === 'whatsapp_click').map(e => e[2].link_location);
     check('T11 link_location identifies the section (contact, floating button)', wa.includes('contact') && wa.includes('floating_button'), wa.join(','));
 

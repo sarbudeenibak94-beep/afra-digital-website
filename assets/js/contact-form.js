@@ -23,11 +23,11 @@
   var planName = doc.getElementById('cf-plan-name');
   var sourceInput = doc.getElementById('cf-source');
   var PLAN_NAMES = { Starter: 1, Business: 1, Enterprise: 1 };
-  function setPlan(plan) {
+  function setPlan(plan, label) { // label: optional display name (data-plan-label); the submitted value stays the plan id
     if (!planInput) return;
     plan = PLAN_NAMES[plan] ? plan : '';
     planInput.value = plan;
-    if (planName) planName.textContent = plan;
+    if (planName) planName.textContent = plan && label || plan;
     if (planChip) planChip.hidden = !plan;
   }
   var planClear = doc.getElementById('cf-plan-clear');
@@ -41,7 +41,7 @@
       var sel = doc.getElementById('cf-service');
       if (sel) for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === svc) { sel.value = svc; break; }
     }
-    if (a.hasAttribute('data-plan')) setPlan(a.getAttribute('data-plan'));
+    if (a.hasAttribute('data-plan')) setPlan(a.getAttribute('data-plan'), a.getAttribute('data-plan-label'));
     // Which button brought the visitor here (a fixed id such as "pricing_business"), for the enquiry email.
     var cta = a.getAttribute('data-cta');
     if (sourceInput && cta && /^[a-z0-9_]{1,40}$/.test(cta)) sourceInput.value = cta;

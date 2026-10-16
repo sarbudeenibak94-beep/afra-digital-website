@@ -30,7 +30,9 @@ const SERVICES = Object.freeze([
 ]);
 
 // Phase 04 optional qualification fields — values must match the <option> values exactly.
-const BUDGETS = Object.freeze(['Under QAR 10,000', 'QAR 10,000–25,000', 'QAR 25,000–50,000', 'Over QAR 50,000', 'Not sure yet']);
+const BUDGETS = Object.freeze(['Under $2,000', '$2,000–$5,000', '$5,000–$10,000', 'Over $10,000', 'Not sure yet']);
+// Retired QAR options — still accepted (never offered) so a page loaded before the USD switch can submit.
+const LEGACY_BUDGETS = Object.freeze(['Under QAR 10,000', 'QAR 10,000–25,000', 'QAR 25,000–50,000', 'Over QAR 50,000']);
 const TIMELINES = Object.freeze(['As soon as possible', 'Within 1–3 months', 'Within 3–6 months', 'Just exploring']);
 const CONTACT_PREFS = Object.freeze(['Email', 'WhatsApp', 'Phone']);
 const PLANS = Object.freeze(['Starter', 'Business', 'Enterprise']);
@@ -101,7 +103,7 @@ function validateSubmission(raw) {
   if (!fields.company && data.company.length > LIMITS.company) fields.company = 'too_long';
   if (!fields.service && data.service && !SERVICES.includes(data.service)) fields.service = 'invalid';
   if (!fields.message && data.message.length > LIMITS.message) fields.message = 'too_long';
-  if (!fields.budget && data.budget && !BUDGETS.includes(data.budget)) fields.budget = 'invalid';
+  if (!fields.budget && data.budget && !BUDGETS.includes(data.budget) && !LEGACY_BUDGETS.includes(data.budget)) fields.budget = 'invalid';
   if (!fields.timeline && data.timeline && !TIMELINES.includes(data.timeline)) fields.timeline = 'invalid';
   if (!fields.contactPref && data.contactPref && !CONTACT_PREFS.includes(data.contactPref)) fields.contactPref = 'invalid';
   if (!fields.plan && data.plan && !PLANS.includes(data.plan)) fields.plan = 'invalid';
@@ -339,7 +341,7 @@ function isOriginAllowed(origin, host, allowedOrigins) {
 }
 
 module.exports = {
-  SERVICES, BUDGETS, TIMELINES, CONTACT_PREFS, PLANS, LIMITS, MAX_BODY_BYTES, MIN_FILL_MS, makeReference, REFERENCE_RE,
+  SERVICES, BUDGETS, LEGACY_BUDGETS, TIMELINES, CONTACT_PREFS, PLANS, LIMITS, MAX_BODY_BYTES, MIN_FILL_MS, makeReference, REFERENCE_RE,
   cleanText, validateSubmission, checkBotSignals, createRateLimiter, createDuplicateGuard,
   composeEmail, deliver, DeliveryError, getConfig, isOriginAllowed,
   classifyProviderError, sanitizeForLog, addressOf, idempotencyKey, DEFAULT_FROM, DEFAULT_TO,

@@ -17,7 +17,7 @@ const PAGES = [{
   slug: 'website-development', file: 'services/website-development.html', service: 'Website Development', h1Term: /Website Design & Development/,
   defaultSource: 'lp_web_form',
   ctas: { lp_web_nav: null, lp_web_mobile_menu: null, lp_web_hero: null, lp_web_pricing_starter: 'Starter', lp_web_final: null },
-  waContext: { hero: /website project/i, start: /website project/i, contact: /website project/i, pricing: /Starter package/ },
+  waContext: { hero: /website project/i, start: /website project/i, contact: /website project/i, pricing: /Business Website package/ },
 }];
 const OTHER_PAGES = ['index.html', 'privacy-policy.html', 'terms.html', '404.html'];
 
@@ -96,10 +96,12 @@ try {
     const site = read('assets/js/site.js').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''); // code only, comments removed
     const tags = [...idx.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map(m => m[1]);
     check('homepage loads analytics.js, site.js and contact-form.js (deferred, in that order; changed files versioned)',
-      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js', '/assets/js/site.js?v=p6d61', '/assets/js/contact-form.js?v=p5b1']), tags.join(' | '));
+      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js', '/assets/js/site.js?v=p7r4', '/assets/js/contact-form.js?v=p5b2']), tags.join(' | '));
     check('form logic lives only in contact-form.js (site.js has none; no double binding)', !/contact-form|cf-source|form-btn|generate_lead/.test(site) && /getElementById\('contact-form'\)/.test(cf) && /generate_lead/.test(cf));
     check('homepage no longer says "Alongside client projects"', !/Alongside client projects/i.test(idx));
-    check('homepage Website Development card links to the service page', /data-cta="service_website_development"[\s\S]{0,700}<p class="svc-more"><a href="\/services\/website-development">Learn more about website development/.test(idx));
+    // The homepage services grid (with its Website Development card) was removed as a duplicate of /services; the header
+    // "Services" link now opens /services, whose featured card links to this page.
+    check('homepage reaches the service page via the header "Services" link (/services) — duplicate homepage grid removed', /<li><a href="\/services">Services<\/a><\/li>/.test(idx) && !/id="services"|svc-more|data-cta="service_website_development"/.test(idx));
     check('homepage footer "Website Development" links to the service page', /<a href="\/services\/website-development">Website Development<\/a>/.test(idx));
     check('privacy policy discloses page-or-button source', /which page or button on the website you used to reach the form/.test(read('privacy-policy.html'))); }
 
@@ -144,11 +146,17 @@ try {
         ev.every(e => Object.keys(e).every(k => ['cta_id', 'link_location', 'plan'].includes(k))), JSON.stringify(ev.slice(0, 3)));
       // WhatsApp, tel, mailto
       const wa = await p.eval(`[...document.querySelectorAll('a[href^="https://wa.me/"]')].map(a => ({ sec: (a.closest('section[id]') || {}).id || (a.id || 'chrome'), num: a.getAttribute('href').split('?')[0], text: decodeURIComponent(a.getAttribute('href').split('text=')[1] || ''), rel: a.getAttribute('rel') || '', target: a.getAttribute('target'), svc: a.getAttribute('data-wa-service'), plan: a.getAttribute('data-wa-plan') }))`);
-      check(`${path}: WhatsApp links use the business number, open safely, carry no digits or personal data in the text`, wa.length >= 6 && wa.every(x => x.num === 'https://wa.me/97430029799' && /noopener/.test(x.rel) && x.target === '_blank' && x.text && !/\d|@/.test(x.text)), String(wa.length));
+      // The website-development page also offers the owner-supplied India number ("India enquiries") in exactly two
+      // places: the hero contact line and the contact card. Every other WhatsApp link uses the Qatar business number.
+      const INDIA_WA = 'https://wa.me/918270001230';
+      const indiaWa = wa.filter(x => x.num === INDIA_WA);
+      check(`${path}: WhatsApp links use the business numbers (Qatar everywhere; India only in the hero, contact card and shared footer), open safely, carry no digits or personal data in the text`,
+        wa.length >= 6 && wa.every(x => (x.num === 'https://wa.me/97430029799' || x.num === INDIA_WA) && /noopener/.test(x.rel) && x.target === '_blank' && x.text && !/\d|@/.test(x.text)) &&
+        wa.filter(x => x.num === 'https://wa.me/97430029799').length >= 6 && JSON.stringify(indiaWa.map(x => x.sec).sort()) === JSON.stringify(['chrome', 'contact', 'hero']) /* 'chrome' = shared footer */ && indiaWa.every(x => ['Hello AFRA DIGITAL, I’m interested in a website for my business.', "Hello AFRA DIGITAL, I'm interested in a website for my business."].includes(x.text)), `${wa.length} links, India in: ${indiaWa.map(x => x.sec).join(',')}`);
       const ctxOk = Object.entries(pg.waContext).every(([sec, re]) => wa.some(x => x.sec === sec && re.test(x.text)));
       check(`${path}: contextual WhatsApp messages in hero, CTA, contact and pricing (service/package attributes set)`, ctxOk && wa.filter(x => x.svc).every(x => x.svc === pg.service) && wa.some(x => x.plan === 'Starter'), JSON.stringify(wa.map(x => x.sec + ':' + x.text.slice(0, 40))));
       const contactsHere = await p.eval(`[...new Set([...document.querySelectorAll('a[href^="tel:"],a[href^="mailto:"]')].map(a => a.getAttribute('href')))].sort()`);
-      check(`${path}: tel/mailto links match the homepage values`, JSON.stringify(contactsHere) === JSON.stringify(['mailto:afradigital.hello@gmail.com', 'tel:+97430029799']), contactsHere.join(', '));
+      check(`${path}: tel/mailto links match the homepage values plus the India enquiries number`, JSON.stringify(contactsHere) === JSON.stringify(['mailto:afradigital.hello@gmail.com', 'tel:+918270001230', 'tel:+97430029799']), contactsHere.join(', '));
       // internal links resolve
       const hrefs = await p.eval(`[...new Set([...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href')).filter(h => h.startsWith('/') || h.startsWith('#')))]`);
       const bad = [];
@@ -269,11 +277,11 @@ try {
       await p.goto(S + path); await sleep(600); await blockNav(p);
       await p.eval(`document.documentElement.style.scrollBehavior = 'auto'; document.querySelector('a[data-cta="lp_web_pricing_starter"]').click(); true`); await sleep(2200);
       await p.eval(`(() => { const f = document.getElementById('contact-form'); f.firstName.value = 'Svc'; f.lastName.value = 'Starter'; f.email.value = 'p5-starter@example.org';
-        f.budget.value = 'Under QAR 10,000'; f.timeline.value = 'Within 1–3 months'; f.message.value = 'P5 AUTOMATED TEST starter ' + Date.now(); window.afraEvents.length = 0; document.getElementById('form-btn').click(); return true; })()`);
+        f.budget.value = 'Under $2,000'; f.timeline.value = 'Within 1–3 months'; f.message.value = 'P5 AUTOMATED TEST starter ' + Date.now(); window.afraEvents.length = 0; document.getElementById('form-btn').click(); return true; })()`);
       await sleep(2000);
       const done = await p.eval(`({ success: !document.getElementById('form-success').hidden, ref: document.getElementById('form-ref-code').textContent, lead: window.afraEvents.filter(e => e.event === 'generate_lead').map(e => e.params) })`);
       const got = (await received()).slice(before); const pl = got[0] && got[0].payload;
-      check(`${path}: pricing CTA submission → email has Package Starter, source lp_web_pricing_starter, budget and timeline`, done.success && got.length === 1 && pl.text.includes('Package:  Starter') && pl.text.includes('Source:    website button "lp_web_pricing_starter"') && pl.text.includes('Budget:   Under QAR 10,000') && pl.text.includes('Timeline: Within 1–3 months'), pl && pl.text.split('\n').slice(2, 14).join(' | '));
+      check(`${path}: pricing CTA submission → email has Package Starter, source lp_web_pricing_starter, budget and timeline`, done.success && got.length === 1 && pl.text.includes('Package:  Starter') && pl.text.includes('Source:    website button "lp_web_pricing_starter"') && pl.text.includes('Budget:   Under $2,000') && pl.text.includes('Timeline: Within 1–3 months'), pl && pl.text.split('\n').slice(2, 14).join(' | '));
       check(`${path}: generate_lead carries plan Starter`, done.lead.length === 1 && done.lead[0].plan === 'Starter' && done.lead[0].service === pg.service, JSON.stringify(done.lead));
       await p.close();
     }
@@ -311,11 +319,20 @@ try {
       const p = await browser.newPage({ width: 390, height: 844, mobile: true });
       await p.goto(S + path); await sleep(1200);
       const m = await p.eval(`(() => { const r = el => el.getBoundingClientRect(); const vis = el => el && el.offsetWidth > 0;
-        const small = [...document.querySelectorAll('.svp-btns .btn, #form-btn, .price-card .btn-full, #hamburger, .nav-right .btn-prime, .svp-related a')].filter(vis).filter(el => r(el).height < 44).map(el => el.textContent.trim().slice(0, 20) || el.id);
+        const small = [...document.querySelectorAll('.svp-btns .btn, #form-btn, .price-card .btn-full, #hamburger, .nav-right .btn-prime, .svp-related a, .wd-hero-india a')].filter(vis).filter(el => r(el).height < 44).map(el => el.textContent.trim().slice(0, 20) || el.id);
+        const v = document.querySelector('.svp-visual'), vr = r(v), cta = r(document.querySelector('[data-cta="lp_web_hero"]'));
         return { sw: document.documentElement.scrollWidth, vw: innerWidth, hamburger: vis(document.getElementById('hamburger')), navLinksHidden: !vis(document.querySelector('.nav-links')), small, waAnim: getComputedStyle(document.getElementById('wa-float')).animationName,
-          heroVisual: getComputedStyle(document.querySelector('.svp-visual')).display, logoFetched: performance.getEntriesByType('resource').filter(e => /afra-logo-384/.test(e.name)).length }; })()`);
+          heroVisual: getComputedStyle(v).display, visSize: Math.round(vr.width), visBelowCta: vr.top >= cta.bottom, ctaOnFirstScreen: cta.bottom <= innerHeight, decorative: v.getAttribute('aria-hidden') === 'true' && v.querySelectorAll('a,button,input,[tabindex]').length === 0,
+          visAnim: [...v.querySelectorAll('*')].concat(v).map(e => getComputedStyle(e).animationName).filter(n => n !== 'none'),
+          logos: [...new Set(performance.getEntriesByType('resource').map(e => e.name).filter(n => /afra-logo-[0-9]+/.test(n)).map(n => n.match(/afra-logo-[0-9]+/)[0]))],
+          logoBg: [...v.querySelectorAll('.svp-logo')].every(e => /afra-logo-384[.]webp/.test(getComputedStyle(e).backgroundImage)) }; })()`);
       check(`${path} 390×844: no horizontal scroll, hamburger shown, desktop links hidden, touch targets ≥ 44px, no floating animation on phones (as homepage)`, m.sw <= m.vw && m.hamburger && m.navLinksHidden && m.small.length === 0 && m.waAnim === 'none', JSON.stringify(m));
-      check(`${path} 390×844: hero visual not rendered on phones and its logo image not downloaded`, m.heroVisual === 'none' && m.logoFetched === 0, JSON.stringify({ heroVisual: m.heroVisual, logoFetched: m.logoFetched }));
+      // Owner request (website-development hero): the device visual is shown on phones at a medium size, below the
+      // primary CTA (which stays on the first screen), decorative, static (no float/spin on phones) and using only the
+      // small 384px logo. Previously it was hidden on phones.
+      check(`${path} 390×844: hero visual shown at a medium size below the primary CTA (CTA on the first screen), decorative, static, small logo only`,
+        m.heroVisual === 'block' && m.visSize >= 200 && m.visSize <= 340 && m.visBelowCta && m.ctaOnFirstScreen && m.decorative && m.visAnim.filter(n => n !== 'svpEnter').length === 0 && m.logoBg && m.logos.includes('afra-logo-384') && m.logos.every(l => +l.split('-').pop() <= 384), // header mark uses the 128px file
+        JSON.stringify({ heroVisual: m.heroVisual, visSize: m.visSize, visBelowCta: m.visBelowCta, ctaOnFirstScreen: m.ctaOnFirstScreen, visAnim: m.visAnim, logoBg: m.logoBg, logos: m.logos }));
       await p.eval(`document.getElementById('hamburger').focus(); true`); await p.key('Enter', 'Enter', 13); await sleep(450);
       const menu = await p.eval(`({ open: document.getElementById('hamburger').getAttribute('aria-expanded'), items: [...document.querySelectorAll('#mob-nav a')].map(a => a.textContent.trim()) })`);
       check(`${path}: mobile menu opens by keyboard with WhatsApp, Call and "Start Your Project →"`, menu.open === 'true' && menu.items.includes('WhatsApp us') && menu.items.includes('Call +974 3002 9799') && menu.items.at(-1) === 'Start Your Project →', menu.items.join(' | '));
@@ -364,14 +381,15 @@ try {
   {
     const p = await browser.newPage({ width: 1280, height: 900 });
     await p.goto(S + '/'); await sleep(1000);
-    const r = await p.eval(`(() => { document.documentElement.style.scrollBehavior = 'auto'; document.querySelector('a[data-cta="service_website_development"]').click();
+    // Service CTAs left on the homepage are the product ones (the removed grid's are covered on /services).
+    const r = await p.eval(`(() => { document.documentElement.style.scrollBehavior = 'auto'; document.querySelector('a[data-cta="cwf_request_demo"]').click();
       const a = { source: document.getElementById('cf-source').value, service: document.getElementById('cf-service').value };
       document.querySelector('a[data-plan="Enterprise"]').click(); a.plan = document.getElementById('cf-plan').value; a.src2 = document.getElementById('cf-source').value; return a; })()`);
-    check('homepage: CTA context capture (service, package, source) still works via contact-form.js', r.source === 'service_website_development' && r.service === 'Website Development' && r.plan === 'Enterprise' && r.src2 === 'pricing_enterprise', JSON.stringify(r));
+    check('homepage: CTA context capture (service, package, source) still works via contact-form.js', r.source === 'cwf_request_demo' && r.service === 'Cook With Fire (Restaurant Platform)' && r.plan === 'Enterprise' && r.src2 === 'pricing_enterprise', JSON.stringify(r));
     const fresh = await browser.newPage({ width: 1280, height: 900 }); await fresh.goto(S + '/'); await sleep(800);
     check('homepage: fresh load has no preselected service and an empty source', await fresh.eval(`document.getElementById('cf-service').value === '' && document.getElementById('cf-source').value === ''`));
-    const learn = await fresh.eval(`(() => { const a = document.querySelector('.svc-more a'); return a ? { href: a.getAttribute('href'), visible: a.offsetWidth > 0 } : null; })()`);
-    check('homepage: "Learn more about website development" link visible on the card', learn && learn.href === '/services/website-development' && learn.visible, JSON.stringify(learn));
+    const learn = await fresh.eval(`(() => { const a = document.querySelector('footer a[href="/services/website-development"]'), s = document.querySelector('#nav .nav-links a[href="/services"]'); return a ? { href: a.getAttribute('href'), visible: a.offsetWidth > 0, servicesNav: !!(s && s.offsetWidth > 0) } : null; })()`);
+    check('homepage: footer "Website Development" link and header "Services" (/services) link both visible', learn && learn.href === '/services/website-development' && learn.visible && learn.servicesNav, JSON.stringify(learn));
     check('homepage: no exceptions, console errors or CSP violations', !p.log.exceptions.length && !fresh.log.exceptions.length && !p.log.cspViolations.length && !fresh.log.cspViolations.length && !fresh.log.console.filter(c => /^error/.test(c)).length, JSON.stringify([p.log.exceptions, fresh.log.exceptions, fresh.log.console]).slice(0, 300));
     await fresh.close(); await p.close();
     // Homepage header "Start Project": 44px touch target on phones; phone/tablet header height unchanged; desktop header (≥1024) compacted by Design D2.

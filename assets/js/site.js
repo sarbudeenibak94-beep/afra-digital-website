@@ -113,20 +113,20 @@
   })();
 
   /* ---------- HERO ROBOT (Design D6) ----------
-     Everyone sees the static poster. The live 3D robot (assets/js/hero-robot.js, ~125 KB compressed) is loaded
-     only on desktops with a mouse, ≥1024 px, no reduced motion, no Save-Data and no 2G connection — after the
-     page has loaded (+1.5 s) and the browser is idle. A module <script> (not import()) keeps old browsers on the poster. */
+     Everyone sees the static poster first. The live 3D robot (assets/js/hero-robot.js, ~120 KB compressed) is loaded
+     on desktops and phones alike — unless the visitor prefers reduced motion, has Save-Data or a 2G connection, or
+     the device reports < 2 GB memory — after the page has loaded (+1.5 s) and the browser is idle. A module
+     <script> (not import()) keeps old browsers on the poster. */
   (function () {
     var host = doc.querySelector('.hero-robot');
     if (!host) return;
     var conn = navigator.connection || {};
-    var wide = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
-    if (!wide || !finePointer || reduceMotion || conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '')) return;
+    if (reduceMotion || conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '') || (navigator.deviceMemory && navigator.deviceMemory < 2)) return;
     function load() {
       host.setAttribute('data-robot', 'loading');
       var s = doc.createElement('script');
       s.type = 'module';
-      s.src = '/assets/js/hero-robot.js?v=d61';
+      s.src = '/assets/js/hero-robot.js?v=d7';
       s.onerror = function () { host.setAttribute('data-robot', 'failed'); };
       doc.head.appendChild(s);
     }

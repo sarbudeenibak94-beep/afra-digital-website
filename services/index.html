@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Digital Services in Qatar &amp; the GCC | AFRA DIGITAL</title>
-<meta name="description" content="Website design, web and mobile apps, AI and automation, branding and digital marketing for businesses in Doha, Qatar and the GCC. Find the right service.">
+<title>Website, Web App, AI &amp; Automation Services | AFRA DIGITAL</title>
+<meta name="description" content="Website design and development, web applications, AI solutions, business automation, SaaS, e-commerce, branding and digital marketing for businesses worldwide.">
 <link rel="canonical" href="https://www.afra-digital.com/services">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="theme-color" content="#020617">
@@ -12,16 +12,16 @@
 <meta property="og:site_name" content="AFRA DIGITAL">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://www.afra-digital.com/services">
-<meta property="og:title" content="Digital Services in Qatar &amp; the GCC | AFRA DIGITAL">
-<meta property="og:description" content="Website design, web and mobile apps, AI and automation, branding and digital marketing for businesses in Doha, Qatar and the GCC. Find the right service.">
+<meta property="og:title" content="Website, Web App, AI &amp; Automation Services | AFRA DIGITAL">
+<meta property="og:description" content="Website design and development, web applications, AI solutions, business automation, SaaS, e-commerce, branding and digital marketing for businesses worldwide.">
 <meta property="og:image" content="https://www.afra-digital.com/assets/img/og-afra-digital-1200x630.jpg">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="AFRA DIGITAL — Design, Develop, Market. Digital solutions for businesses in Doha, Qatar and the GCC.">
+<meta property="og:image:alt" content="AFRA DIGITAL — Design, Develop, Market. Digital solutions for businesses worldwide, based in Doha, Qatar.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Digital Services in Qatar &amp; the GCC | AFRA DIGITAL">
-<meta name="twitter:description" content="Website design, web and mobile apps, AI and automation, branding and digital marketing for businesses in Doha, Qatar and the GCC. Find the right service.">
+<meta name="twitter:title" content="Website, Web App, AI &amp; Automation Services | AFRA DIGITAL">
+<meta name="twitter:description" content="Website design and development, web applications, AI solutions, business automation, SaaS, e-commerce, branding and digital marketing for businesses worldwide.">
 <meta name="twitter:image" content="https://www.afra-digital.com/assets/img/og-afra-digital-1200x630.jpg">
 <meta name="twitter:image:alt" content="AFRA DIGITAL — Design, Develop, Market.">
 <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
@@ -32,9 +32,179 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/service-page.css?v=p6d1">
+<style>
+/* =====================================================================
+   /services hub — luxury editorial layer. This page only: the shared service-page.css
+   (also used by /services/website-development) is untouched. Header, form and footer unchanged.
+   ===================================================================== */
+/* Hero: fine gold grid fading out from the headline, two-column layout from 1024px */
+.svh-hero{isolation:isolate;padding-bottom:clamp(60px,7vw,104px);}
+.svh-hero::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(rgba(212,175,55,.05) 1px,transparent 1px) 0 0/72px 72px,linear-gradient(90deg,rgba(212,175,55,.05) 1px,transparent 1px) 0 0/72px 72px;
+  -webkit-mask-image:radial-gradient(ellipse 75% 70% at 72% 28%,#000 10%,transparent 72%);mask-image:radial-gradient(ellipse 75% 70% at 72% 28%,#000 10%,transparent 72%);}
+.svh-hero-grid{display:grid;gap:36px;}
+.svh-hero .svp-lead{color:var(--gray-400);}
+.svh-hero .svp-points li{color:var(--gray-200);}
+.svh-btn-quiet{background:transparent;border-color:rgba(255,255,255,.14);backdrop-filter:none;}
+.svh-btn-quiet:hover{background:rgba(212,175,55,.06);}
+/* Service-area index (jump links to the four groups) */
+.svh-index{position:relative;border:1px solid rgba(255,255,255,.08);border-radius:var(--r-lg);padding:22px 24px 8px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01) 55%,rgba(2,6,23,.3));
+  box-shadow:0 34px 70px -40px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.04);}
+.svh-index::before{content:'';position:absolute;left:24px;right:24px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(240,207,90,.55),transparent);}
+.svh-index-k{font-size:var(--fs-min);font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gray-500);line-height:1.4;margin-bottom:6px;}
+.svh-index ol{list-style:none;}
+.svh-index li+li{border-top:1px solid var(--glass-border);}
+.svh-index a{display:flex;align-items:center;gap:16px;min-height:58px;padding:12px 2px;font-size:.95rem;font-weight:600;color:var(--gray-100);transition:color var(--t);}
+.svh-index-n{font-size:.75rem;font-weight:700;letter-spacing:.14em;color:var(--gold);font-variant-numeric:tabular-nums;}
+.svh-index-t{flex:1;}
+.svh-index-a{color:var(--gray-600);transition:transform .4s var(--ease),color var(--t);}
+.svh-index a:hover{color:var(--gold-bright);}
+.svh-index a:hover .svh-index-a{transform:translateX(4px);color:var(--gold-bright);}
+@media (min-width:1024px){
+  .svh-hero-grid{grid-template-columns:minmax(0,1.38fr) minmax(340px,.62fr);gap:clamp(40px,5vw,84px);align-items:end;}
+  .svh-hero .svp-btns{margin-bottom:0;}
+  .svh-hero .svp-btns{flex-wrap:nowrap;} /* no wrap/unwrap when the web font swaps in (layout shift) */
+  .svh-index a{min-height:66px;line-height:1.35;} /* one- or two-line names keep the same row height (no shift on font swap) */
+}
+@media (min-width:1024px) and (max-width:1280px){
+  .svh-hero .svp-points{flex-direction:column;gap:10px;} /* stacked: the points cannot wrap differently before/after the web font loads */
+}
+@media (max-width:1023px){
+  .svh-index ol{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:14px;}
+  .svh-index li+li{border-top:0;}
+  .svh-index a{flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;min-height:72px;padding:12px 14px;border:1px solid var(--glass-border);border-radius:var(--r-md);background:rgba(2,6,23,.35);font-size:.85rem;line-height:1.35;}
+  .svh-index-a{display:none;}
+}
+
+/* Section head: editorial split from 1024px (title left, intro right) */
+@media (min-width:1024px){
+  .svh-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:clamp(48px,6vw,104px);align-items:end;}
+  .svh-head>.eyebrow,.svh-head>h2{grid-column:1;}
+  .svh-head>.t1{grid-column:2;grid-row:1/span 2;align-self:end;}
+}
+
+/* Groups: numbered labels with a hairline */
+#services .c{counter-reset:svhgroup;}
+.svh-group{counter-increment:svhgroup;scroll-margin-top:96px;}
+.svh-group+.svh-group{margin-top:clamp(48px,6vw,72px);}
+.svh-group-h{gap:14px;color:var(--gray-200);margin-bottom:22px;}
+.svh-group-h::before{content:counter(svhgroup,decimal-leading-zero);color:var(--gold);letter-spacing:.14em;font-variant-numeric:tabular-nums;}
+.svh-group-h::after{background:linear-gradient(90deg,rgba(212,175,55,.28),rgba(255,255,255,.05) 40%,transparent);}
+
+/* Cards */
+.svh-card{scroll-margin-top:96px;}
+main .divider{opacity:.55;}
+.svh-grid{gap:20px;}
+.svh-card{position:relative;padding:30px 28px 16px;border-radius:var(--r-lg);border:1px solid rgba(255,255,255,.065);
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01) 62%),rgba(6,13,26,.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  transition:border-color var(--t),background var(--t),box-shadow .5s var(--ease),transform .5s var(--ease);}
+.svh-card::before{content:'';position:absolute;left:28px;right:28px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(240,207,90,.65),transparent);opacity:0;transition:opacity var(--t);}
+.svh-card:hover,.svh-card:focus-within{border-color:var(--gold-border);transform:translateY(-4px);
+  background:linear-gradient(180deg,rgba(212,175,55,.05),rgba(255,255,255,.012) 62%),rgba(6,13,26,.6);
+  box-shadow:0 28px 56px -32px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);}
+.svh-card:hover::before,.svh-card:focus-within::before{opacity:1;}
+.svh-card-top{margin-bottom:22px;}
+.svh-card .svp-ic{width:52px;height:52px;border-radius:16px;border:1px solid rgba(212,175,55,.3);
+  background:radial-gradient(120% 120% at 28% 18%,rgba(240,207,90,.2),rgba(212,175,55,.04) 62%),rgba(2,6,23,.65);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 26px -16px rgba(212,175,55,.5);}
+.svh-card .svp-ic .ic{width:24px;height:24px;}
+.svh-status{letter-spacing:.12em;padding:5px 11px;border-color:rgba(255,255,255,.08);color:var(--gray-500);}
+.svh-card h4{font-size:1.14rem;letter-spacing:-.015em;line-height:1.3;margin-bottom:10px;}
+.svh-card p{font-size:.9rem;line-height:1.75;}
+.svh-link{display:flex;align-items:center;justify-content:space-between;gap:14px;align-self:stretch;min-height:52px;margin-top:20px;padding:14px 0 8px;
+  border-top:1px solid rgba(255,255,255,.06);color:var(--gray-100);text-decoration:none;transition:color var(--t);}
+.svh-link span{color:var(--gold);transition:transform .4s var(--ease);}
+.svh-link:hover{color:var(--gold-bright);}
+.svh-link:hover span{transform:translateX(5px);}
+/* The one card with its own page */
+.svh-card-featured{border-color:rgba(212,175,55,.3);
+  background:linear-gradient(160deg,rgba(212,175,55,.1),rgba(212,175,55,.02) 46%,rgba(255,255,255,.01)),rgba(6,13,26,.6);}
+.svh-card-featured::before{opacity:1;}
+.svh-card-featured .svh-link{color:var(--gold-bright);border-top-color:rgba(212,175,55,.18);}
+
+/* Balanced grids between phone and wide desktop: no orphan card on its own row */
+@media (min-width:600px) and (max-width:1180px){
+  .svh-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .svh-grid>li:last-child:nth-child(odd){grid-column:1/-1;}
+}
+@media (min-width:1024px) and (max-width:1180px){
+  #group-ai-automation .svh-grid,#group-design-marketing .svh-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+  #group-ai-automation .svh-grid>li,#group-design-marketing .svh-grid>li{grid-column:auto;}
+}
+
+/* "Start from the problem" guide */
+.svh-guide{gap:10px;counter-reset:svhq;}
+.svh-guide li{counter-increment:svhq;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:18px;row-gap:2px;padding:18px 22px 10px;
+  border-color:rgba(255,255,255,.065);background:linear-gradient(90deg,rgba(255,255,255,.035),rgba(255,255,255,.008));transition:border-color var(--t),background var(--t);}
+.svh-guide li::before{content:counter(svhq,decimal-leading-zero);grid-row:1/span 2;padding-top:3px;font-size:.75rem;font-weight:700;letter-spacing:.14em;color:var(--gold);font-variant-numeric:tabular-nums;}
+.svh-guide li:hover,.svh-guide li:focus-within{border-color:var(--gold-border);background:linear-gradient(90deg,rgba(212,175,55,.06),rgba(255,255,255,.01));}
+.svh-guide-q,.svh-guide a{grid-column:2;}
+.svh-guide a{color:var(--gold-bright);text-decoration-color:rgba(240,207,90,.35);}
+.svh-guide a:hover{text-decoration-color:currentColor;}
+
+/* Process: outlined numerals and a gold hairline */
+#process .svp-steps{gap:20px;}
+#process .svp-steps li{overflow:hidden;padding:30px 28px 28px;border-color:rgba(255,255,255,.065);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.008));}
+#process .svp-steps li::after{content:'';position:absolute;left:0;top:0;width:64px;height:1px;background:linear-gradient(90deg,var(--gold),transparent);}
+#process .svp-steps li::before{font-size:2.75rem;font-weight:300;letter-spacing:-.02em;line-height:1;margin-bottom:20px;color:transparent;-webkit-text-stroke:1px rgba(212,175,55,.6);}
+
+/* Final CTA: framed panel; the primary button leads, WhatsApp is the quieter second action */
+.svh-cta{padding:clamp(56px,7vw,104px) 0;}
+.svh-cta::before{opacity:.05;}
+.svh-cta-panel{position:relative;padding:clamp(44px,6vw,80px) clamp(20px,5vw,72px);border:1px solid var(--gold-border);border-radius:var(--r-xl);overflow:hidden;
+  background:radial-gradient(90% 120% at 50% 0%,rgba(212,175,55,.1),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.02),rgba(2,6,23,.4));
+  box-shadow:0 40px 90px -50px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);}
+.svh-cta-panel::before{content:'';position:absolute;left:50%;top:0;width:min(320px,60%);height:1px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,var(--gold-bright),transparent);}
+.svh-cta .btn-wa{background:transparent;color:var(--gray-100);border:1px solid rgba(37,211,102,.4);box-shadow:none;}
+.svh-cta .btn-wa:hover{background:rgba(37,211,102,.08);border-color:rgba(37,211,102,.7);box-shadow:none;}
+
+/* Phones and tablets */
+@media (max-width:768px){
+  .svh-hero-grid{gap:26px;}
+  .svh-index{padding:0;border:0;background:none;box-shadow:none;}       /* phones: just the 2×2 tiles */
+  .svh-index::before{display:none;}
+  .svh-index-k{margin-bottom:10px;}
+  .svh-index ol{gap:8px;padding-bottom:0;}
+  .svh-index a{min-height:60px;padding:10px 12px;font-size:.8125rem;gap:2px;}
+  .svh-index-n{font-size:.6875rem;}
+  .svh-group+.svh-group{margin-top:40px;}
+  .svh-group-h{margin-bottom:16px;}
+  .svh-grid{gap:14px;}
+  .svh-card{padding:22px 18px 4px;}
+  .svh-card-top{margin-bottom:14px;}
+  .svh-card .svp-ic{width:44px;height:44px;border-radius:13px;}
+  .svh-card h4{margin-bottom:8px;}
+  .svh-link{min-height:48px;margin-top:10px;padding:10px 0 4px;}
+  .svh-guide li{padding:14px 16px 6px;column-gap:14px;}
+  #process .svp-steps li{padding:22px 20px 20px;}
+  #process .svp-steps li::before{font-size:1.9rem;margin-bottom:10px;}
+  .svh-cta{padding:44px 0;}
+  .svh-cta-panel{padding:36px 18px;border-radius:var(--r-lg);}
+}
+@media (hover:none){
+  .svh-card:hover{transform:none;}
+}
+@media (prefers-reduced-motion:reduce){
+  .svh-card:hover,.svh-card:focus-within,.svh-link:hover span,.svh-index a:hover .svh-index-a{transform:none;}
+}
+
+/* Footer contact: Qatar & international + India enquiries (Company column) */
+.foot-links .foot-ct{display:flex;flex-direction:column;gap:3px;}
+.foot-ct-l{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);line-height:1.4;}
+.foot-ct-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;}
+.foot-links .foot-ct a[href^="tel:"]{display:inline-flex;align-items:center;min-height:28px;color:var(--gray-200,#E2E8F0);font-size:.85rem;}
+.foot-links a.foot-ct-wa{display:inline-flex;align-items:center;min-height:32px;padding:4px 11px;border:1px solid rgba(74,222,128,.45);border-radius:999px;color:#d1fae5;font-size:.75rem;font-weight:600;}
+.foot-links a.foot-ct-wa:hover{padding-left:11px;color:#fff;border-color:rgba(74,222,128,.8);background:rgba(74,222,128,.08);}
+@media (max-width:768px){
+  .foot-links li.foot-ct{grid-column:1/-1;}
+  .foot-links .foot-ct a[href^="tel:"],.foot-links a.foot-ct-wa{min-height:44px;}
+}
+</style>
 <script src="/assets/js/analytics.js" defer></script>
-<script src="/assets/js/service-page.js?v=p6d3" defer></script>
-<script src="/assets/js/contact-form.js?v=p5b1" defer></script>
+<script src="/assets/js/service-page.js?v=p6d4" defer></script>
+<script src="/assets/js/contact-form.js?v=p5b2" defer></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -57,8 +227,8 @@
       "@type": ["WebPage", "CollectionPage"],
       "@id": "https://www.afra-digital.com/services#webpage",
       "url": "https://www.afra-digital.com/services",
-      "name": "Digital Services in Qatar & the GCC | AFRA DIGITAL",
-      "description": "Website design, web and mobile apps, AI and automation, branding and digital marketing for businesses in Doha, Qatar and the GCC. Find the right service.",
+      "name": "Website, Web App, AI & Automation Services | AFRA DIGITAL",
+      "description": "Website design and development, web applications, AI solutions, business automation, SaaS, e-commerce, branding and digital marketing for businesses worldwide.",
       "inLanguage": "en",
       "isPartOf": { "@id": "https://www.afra-digital.com/#website" },
       "about": { "@id": "https://www.afra-digital.com/#organization" },
@@ -87,7 +257,7 @@
       </a>
       <ul class="nav-links">
         <li><a href="/#about">About</a></li>
-        <li><a href="/#services" aria-current="true">Services</a></li>
+        <li><a href="/services" aria-current="page">Services</a></li>
         <li><a href="/#industries">Industries</a></li>
         <li><a href="/#portfolio">Work</a></li>
         <li><a href="/#software-products">Products</a></li>
@@ -105,7 +275,7 @@
 
 <nav id="mob-nav" aria-label="Mobile" aria-hidden="true">
   <a href="/#about">About</a>
-  <a href="/#services">Services</a>
+  <a href="/services">Services</a>
   <a href="/#industries">Industries</a>
   <a href="/#portfolio">Work</a>
   <a href="/#software-products">Products</a>
@@ -129,16 +299,29 @@
         <li><span aria-current="page">Services</span></li>
       </ol>
     </nav>
+    <div class="svh-hero-grid">
+    <div class="svh-hero-main">
     <p class="eyebrow">Our services</p>
-    <h1 class="svp-h1 svh-h1" id="page-title">Digital Services for Businesses in <span class="gold">Qatar</span> and the GCC</h1>
-    <p class="t1 svp-lead">AFRA DIGITAL designs, builds and markets websites, apps and software for businesses in Doha and across the GCC. Use this page to find the service that fits what you need, or tell us about your project and we will help you choose.</p>
+    <h1 class="svp-h1 svh-h1" id="page-title">Digital Services for Businesses <span class="gold">Worldwide</span></h1>
+    <p class="t1 svp-lead">AFRA DIGITAL designs, builds and markets websites, apps and software for clients around the world, working from Doha, Qatar. Use this page to find the service that fits what you need, or tell us about your project and we will help you choose.</p>
     <ul class="svp-points">
       <li><span class="pf-check" aria-hidden="true">✓</span>One team for design, development and marketing</li>
       <li><span class="pf-check" aria-hidden="true">✓</span>A written proposal before any work begins</li>
     </ul>
     <div class="svp-btns">
       <a href="#contact" class="btn btn-prime btn-lg" data-cta="lp_hub_hero"><span>Tell us what you need</span> <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-      <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="btn btn-ghost btn-lg"><span>Discuss on WhatsApp</span></a>
+      <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="btn btn-ghost btn-lg svh-btn-quiet"><span>Discuss on WhatsApp</span></a>
+    </div>
+    </div>
+    <nav class="svh-index" aria-label="Service areas">
+      <p class="svh-index-k">Service areas</p>
+      <ol>
+        <li><a href="#group-websites"><span class="svh-index-n" aria-hidden="true">01</span><span class="svh-index-t">Websites and online stores</span><span class="svh-index-a" aria-hidden="true">→</span></a></li>
+        <li><a href="#group-software"><span class="svh-index-n" aria-hidden="true">02</span><span class="svh-index-t">Web applications and software</span><span class="svh-index-a" aria-hidden="true">→</span></a></li>
+        <li><a href="#group-ai-automation"><span class="svh-index-n" aria-hidden="true">03</span><span class="svh-index-t">AI and automation</span><span class="svh-index-a" aria-hidden="true">→</span></a></li>
+        <li><a href="#group-design-marketing"><span class="svh-index-n" aria-hidden="true">04</span><span class="svh-index-t">Design, brand and marketing</span><span class="svh-index-a" aria-hidden="true">→</span></a></li>
+      </ol>
+    </nav>
     </div>
   </div>
 </section>
@@ -148,7 +331,7 @@
 <!-- ============================================================ SERVICES -->
 <section class="s" id="services" aria-labelledby="services-title">
   <div class="c">
-    <div class="section-head svp-head">
+    <div class="section-head svp-head svh-head">
       <p class="eyebrow">What we offer</p>
       <h2 class="d2" id="services-title" style="margin-top:16px;">Find the right <span class="gold">service</span></h2>
       <p class="t1">Our services are grouped by what you are trying to do. Website Design &amp; Development has its own detailed page. For every other service, choose “Discuss” — the service is preselected in the form below — and we will confirm scope, timeline and pricing with you in a written proposal.</p>
@@ -156,7 +339,7 @@
     <div class="svh-group" id="group-websites">
       <h3 class="svh-group-h">Websites and online stores</h3>
       <ul class="svh-grid">
-      <li class="svh-card" id="svc-website-development"><div class="svh-card-top"><div class="svp-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#globe"/></svg></div><span class="svh-status svh-status-page">Service page</span></div><h4>Website Design &amp; Development</h4><p>Mobile-responsive business websites with a basic SEO setup, planned around what you do and how customers get in touch. The Starter package begins at QAR 5,900.</p><a class="svh-link" href="/services/website-development">View the website design and development service <span aria-hidden="true">→</span></a></li>
+      <li class="svh-card svh-card-featured" id="svc-website-development"><div class="svh-card-top"><div class="svp-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#globe"/></svg></div><span class="svh-status svh-status-page">Service page</span></div><h4>Website Design &amp; Development</h4><p>Mobile-responsive business websites with a basic SEO setup, planned around what you do and how customers get in touch. The Business Website package begins from $3,499 USD.</p><a class="svh-link" href="/services/website-development">View the website design and development service <span aria-hidden="true">→</span></a></li>
       <li class="svh-card" id="svc-e-commerce"><div class="svh-card-top"><div class="svp-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#cart"/></svg></div><span class="svh-status">Enquire</span></div><h4>E-Commerce</h4><p>Online stores with payment gateways, inventory and multi-currency. Arabic and right-to-left (RTL) support can be discussed during project scoping and confirmed in the proposal.</p><a class="svh-link" href="#contact" data-service="E-Commerce Development" data-cta="lp_hub_e_commerce">Discuss E-Commerce <span aria-hidden="true">→</span></a></li>
       </ul>
     </div>
@@ -182,7 +365,7 @@
       <ul class="svh-grid">
       <li class="svh-card" id="svc-ui-ux-design"><div class="svh-card-top"><div class="svp-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#pen"/></svg></div><span class="svh-status">Enquire</span></div><h4>UI/UX Design</h4><p>Interface design, wireframes and clickable prototypes, so you can see and test how a product will work before it is built.</p><a class="svh-link" href="#contact" data-service="UI/UX Design" data-cta="lp_hub_ui_ux_design">Discuss UI/UX Design <span aria-hidden="true">→</span></a></li>
       <li class="svh-card" id="svc-branding"><div class="svh-card-top"><div class="svp-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#gem"/></svg></div><span class="svh-status">Enquire</span></div><h4>Branding</h4><p>Logo, visual identity and brand guidelines that keep your business consistent wherever it appears.</p><a class="svh-link" href="#contact" data-service="Branding" data-cta="lp_hub_branding">Discuss Branding <span aria-hidden="true">→</span></a></li>
-      <li class="svh-card" id="svc-digital-marketing"><div class="svh-card-top"><div class="svp-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#trend"/></svg></div><span class="svh-status">Enquire</span></div><h4>Digital Marketing</h4><p>SEO, paid advertising and social media campaigns for audiences in the GCC. Goals and reporting are agreed in your proposal; we do not promise specific results.</p><a class="svh-link" href="#contact" data-service="Digital Marketing" data-cta="lp_hub_digital_marketing">Discuss Digital Marketing <span aria-hidden="true">→</span></a></li>
+      <li class="svh-card" id="svc-digital-marketing"><div class="svh-card-top"><div class="svp-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#trend"/></svg></div><span class="svh-status">Enquire</span></div><h4>Digital Marketing</h4><p>SEO, paid advertising and social media campaigns for audiences in the GCC and worldwide. Goals and reporting are agreed in your proposal; we do not promise specific results.</p><a class="svh-link" href="#contact" data-service="Digital Marketing" data-cta="lp_hub_digital_marketing">Discuss Digital Marketing <span aria-hidden="true">→</span></a></li>
       </ul>
     </div>
   </div>
@@ -225,13 +408,14 @@
       <li><h3>Discovery call</h3><p>We arrange a short call to understand your goals, your customers and what you already have in place.</p></li>
       <li><h3>Written proposal</h3><p>You receive a proposal with scope, timeline and pricing. There's no commitment until you approve it.</p></li>
     </ol>
-    <p class="svp-note">Packages start with Starter at QAR 5,900. Prices are indicative starting prices in Qatari riyals; <a href="/#pricing">compare all packages</a>.</p>
+    <p class="svp-note">The Business Website package starts from $3,499 USD. Prices are indicative one-time project starting prices in US dollars (USD); <a href="/#pricing">compare all packages</a>.</p>
   </div>
 </section>
 
 <!-- ============================================================ CTA -->
-<section class="svp-cta" id="start" aria-labelledby="start-title">
+<section class="svp-cta svh-cta" id="start" aria-labelledby="start-title">
   <div class="c">
+  <div class="svh-cta-panel">
     <p class="eyebrow" style="justify-content:center;">Ready to start?</p>
     <h2 class="d2" id="start-title" style="margin-top:16px;">Let's find the right <span class="gold">starting point</span></h2>
     <p class="t1">Tell us about your business and what you want to achieve. We'll reply with a clear, no-pressure next step.</p>
@@ -239,6 +423,7 @@
       <a href="#contact" class="btn btn-prime btn-lg" data-cta="lp_hub_final">Tell us what you need <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="btn btn-wa btn-lg"><span aria-hidden="true">💬</span> WhatsApp Us</a>
     </div>
+  </div>
   </div>
 </section>
 
@@ -260,7 +445,7 @@
           <a href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#chat"/></svg></div><div><div class="cm-l">WhatsApp</div><div class="cm-v">+974 3002 9799</div></div></a>
           <a href="tel:+97430029799" class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#phone"/></svg></div><div><div class="cm-l">Phone</div><div class="cm-v">+974 3002 9799</div></div></a>
           <a href="mailto:afradigital.hello@gmail.com" class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#mail"/></svg></div><div><div class="cm-l">Email</div><div class="cm-v">afradigital.hello@gmail.com</div></div></a>
-          <div class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#pin"/></svg></div><div><div class="cm-l">Location</div><div class="cm-v">Doha, Qatar — serving the GCC</div></div></div>
+          <div class="c-method"><div class="cm-ic" aria-hidden="true"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#pin"/></svg></div><div><div class="cm-l">Location</div><div class="cm-v">Doha, Qatar — serving clients worldwide</div></div></div>
         </div>
       </div>
       <div>
@@ -308,10 +493,10 @@
                 <label class="fl" for="cf-budget">Budget <span class="opt">(optional)</span></label>
                 <select id="cf-budget" name="budget" class="fsel" aria-describedby="cf-budget-err">
                 <option value="">Select a range...</option>
-                <option value="Under QAR 10,000">Under QAR 10,000</option>
-                <option value="QAR 10,000–25,000">QAR 10,000–25,000</option>
-                <option value="QAR 25,000–50,000">QAR 25,000–50,000</option>
-                <option value="Over QAR 50,000">Over QAR 50,000</option>
+                <option value="Under $2,000">Under $2,000</option>
+                <option value="$2,000–$5,000">$2,000–$5,000</option>
+                <option value="$5,000–$10,000">$5,000–$10,000</option>
+                <option value="Over $10,000">Over $10,000</option>
                 <option value="Not sure yet">Not sure yet</option>
                 </select>
                 <p class="f-err" id="cf-budget-err" hidden></p>
@@ -367,7 +552,7 @@
           <img src="/assets/img/afra-logo-128.webp" alt="" width="55" height="55" loading="lazy" decoding="async">
           AFRA&nbsp;<span class="nav-gold">DIGITAL</span>
         </a>
-        <p class="foot-brand-d">Digital agency based in Doha, Qatar. We design, develop and market websites, apps, AI solutions and software for businesses across the GCC.</p>
+        <p class="foot-brand-d">Digital agency based in Doha, Qatar. We design, develop and market websites, apps, AI solutions and software for businesses worldwide.</p>
         <div class="foot-tagline"><span class="ftd">Design</span><span aria-hidden="true">·</span><span class="ftd">Develop</span><span aria-hidden="true">·</span><span class="ftd">Market</span></div>
         <div class="foot-socials">
           <a href="https://www.instagram.com/afradigital_" target="_blank" rel="noopener" class="foot-soc" aria-label="AFRA DIGITAL on Instagram"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#instagram"/></svg></a>
@@ -380,10 +565,10 @@
       <div>
         <h2 class="foot-col-h">Services</h2>
         <ul class="foot-links">
-          <li><a href="/#services">AI Solutions &amp; Automation</a></li><li><a href="/services/website-development">Website Development</a></li>
-          <li><a href="/#services">Web Apps &amp; Custom Software</a></li><li><a href="/#services">SaaS Development</a></li>
-          <li><a href="/#services">Mobile Apps</a></li><li><a href="/#services">UI/UX Design &amp; Branding</a></li>
-          <li><a href="/#services">E-Commerce</a></li><li><a href="/#services">Digital Marketing</a></li>
+          <li><a href="/services#group-ai-automation">AI Solutions &amp; Automation</a></li><li><a href="/services/website-development">Website Development</a></li>
+          <li><a href="/services#group-software">Web Apps &amp; Custom Software</a></li><li><a href="/services#svc-saas-development">SaaS Development</a></li>
+          <li><a href="/services#svc-mobile-apps">Mobile Apps</a></li><li><a href="/services#group-design-marketing">UI/UX Design &amp; Branding</a></li>
+          <li><a href="/services#svc-e-commerce">E-Commerce</a></li><li><a href="/services#svc-digital-marketing">Digital Marketing</a></li>
         </ul>
       </div>
       <div>
@@ -400,14 +585,15 @@
           <li><a href="/#portfolio">Work</a></li><li><a href="/#process">Process</a></li>
           <li><a href="/#pricing">Pricing</a></li><li><a href="/#faq">FAQ</a></li>
           <li><a href="#contact">Contact</a></li>
-          <li><a href="tel:+97430029799">+974 3002 9799</a></li>
+          <li class="foot-ct"><span class="foot-ct-l">Qatar &amp; international</span><a href="tel:+97430029799">+974 3002 9799</a></li>
+          <li class="foot-ct"><span class="foot-ct-l">India enquiries</span><span class="foot-ct-row"><a href="tel:+918270001230">+91 82700 01230</a><a class="foot-ct-wa" href="https://wa.me/918270001230?text=Hello%20AFRA%20DIGITAL%2C%20I%27m%20interested%20in%20a%20website%20for%20my%20business." target="_blank" rel="noopener" aria-label="WhatsApp AFRA DIGITAL India enquiries on +91 82700 01230">WhatsApp</a></span></li>
           <li><a href="mailto:afradigital.hello@gmail.com">afradigital.hello@gmail.com</a></li>
         </ul>
       </div>
     </div>
     <div class="foot-bottom">
       <div class="foot-copy">© 2026 AFRA DIGITAL. All rights reserved.</div>
-      <div class="foot-loc"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#pin"/></svg> Doha, Qatar — serving the GCC</div>
+      <div class="foot-loc"><svg class="ic" aria-hidden="true" focusable="false"><use href="/assets/img/icons.svg?v=d4#pin"/></svg> Doha, Qatar — serving clients worldwide</div>
       <div class="foot-legal"><a href="/privacy-policy">Privacy Policy</a><a href="/terms">Terms</a><a href="/privacy-policy#cookies">Cookies</a><button type="button" class="cookie-settings" data-cookie-settings>Cookie settings</button></div>
     </div>
   </div>

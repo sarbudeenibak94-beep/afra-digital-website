@@ -74,4 +74,23 @@
     if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
     t.focus({ preventScroll: true });
   });
+
+  /* ---------- LINKS FROM OTHER PAGES TO A CARD (/services#svc-…) ----------
+     The browser (smooth-)scrolls to the anchor while the web font and late layout are still settling, which can leave
+     the target partly under the fixed header. Once fonts are ready and the scroll has come to rest, re-align instantly
+     — only when the target is still close to its intended position (never pulls a visitor who has scrolled away). */
+  var hashTarget = location.hash.length > 1 && doc.getElementById(decodeURIComponent(location.hash.slice(1)));
+  if (hashTarget) {
+    var realign = function () {
+      var last = -1, still = 0, frames = 0;
+      (function tick() {
+        var y = window.pageYOffset;
+        still = y === last ? still + 1 : 0; last = y;
+        if (still < 6 && ++frames < 240) { requestAnimationFrame(tick); return; } // wait for the jump to finish (≤ ~4 s)
+        var off = hashTarget.getBoundingClientRect().top - (parseFloat(getComputedStyle(hashTarget).scrollMarginTop) || 0);
+        if (Math.abs(off) > 4 && Math.abs(off) < 160) window.scrollTo({ top: y + off, behavior: 'instant' });
+      })();
+    };
+    if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(realign); else realign();
+  }
 })();

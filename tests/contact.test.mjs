@@ -437,7 +437,7 @@ test('idempotency key is stable per submission and differs between submissions',
 // ======================================================================
 // Phase 04 Batch 1: qualification fields, plan, source, reference ID
 // ======================================================================
-const QUAL = Object.freeze({ budget: 'QAR 10,000–25,000', timeline: 'Within 1–3 months', contactPref: 'Email', plan: 'Business', source: 'pricing_business' });
+const QUAL = Object.freeze({ budget: '$2,000–$5,000', timeline: 'Within 1–3 months', contactPref: 'Email', plan: 'Business', source: 'pricing_business' });
 const ENV4 = { RESEND_API_KEY: 'test_key_not_real', RESEND_API_URL: 'https://mock.invalid/emails' };
 const uniq4 = (label, extra = {}) => ({ ...VALID, ...extra, message: `${label} ${Date.now()} ${Math.random()}` });
 
@@ -446,9 +446,16 @@ test('P4 all confirmed qualification options are accepted', () => {
   for (const timeline of core.TIMELINES) assert.equal(core.validateSubmission({ ...VALID, timeline }).ok, true, timeline);
   for (const contactPref of ['Email']) assert.equal(core.validateSubmission({ ...VALID, contactPref }).ok, true);
   for (const plan of core.PLANS) assert.equal(core.validateSubmission({ ...VALID, plan }).ok, true, plan);
-  assert.deepEqual([...core.BUDGETS], ['Under QAR 10,000', 'QAR 10,000–25,000', 'QAR 25,000–50,000', 'Over QAR 50,000', 'Not sure yet']);
+  assert.deepEqual([...core.BUDGETS], ['Under $2,000', '$2,000–$5,000', '$5,000–$10,000', 'Over $10,000', 'Not sure yet']);
   assert.deepEqual([...core.TIMELINES], ['As soon as possible', 'Within 1–3 months', 'Within 3–6 months', 'Just exploring']);
   assert.deepEqual([...core.CONTACT_PREFS], ['Email', 'WhatsApp', 'Phone']);
+});
+
+test('P4 retired QAR budget labels are still accepted (pages loaded before the USD switch) but not offered', () => {
+  assert.deepEqual([...core.LEGACY_BUDGETS], ['Under QAR 10,000', 'QAR 10,000–25,000', 'QAR 25,000–50,000', 'Over QAR 50,000']);
+  for (const budget of core.LEGACY_BUDGETS) { const r = core.validateSubmission({ ...VALID, budget }); assert.equal(r.ok, true, budget); assert.equal(r.data.budget, budget); }
+  assert.ok(core.LEGACY_BUDGETS.every(b => !core.BUDGETS.includes(b)));
+  assert.equal(core.validateSubmission({ ...VALID, budget: 'Under QAR 10,000\r\nBcc: x@y.com' }).fields.budget, 'invalid');
 });
 
 test('P4 qualification fields are optional', () => {
@@ -461,7 +468,7 @@ test('P4 values outside the allow-lists are rejected with field codes', () => {
   const r = core.validateSubmission({ ...VALID, budget: 'One million', timeline: 'Yesterday', contactPref: 'Fax', plan: 'Gold' });
   assert.equal(r.ok, false);
   assert.deepEqual(r.fields, { budget: 'invalid', timeline: 'invalid', contactPref: 'invalid', plan: 'invalid' });
-  assert.equal(core.validateSubmission({ ...VALID, budget: 'Under QAR 10,000\r\nBcc: x@y.com' }).fields.budget, 'invalid');
+  assert.equal(core.validateSubmission({ ...VALID, budget: 'Under $2,000\r\nBcc: x@y.com' }).fields.budget, 'invalid');
   assert.equal(core.validateSubmission({ ...VALID, plan: { $ne: 1 } }).fields.plan, 'invalid');
 });
 
@@ -494,7 +501,7 @@ test('P4 email includes package, budget, timeline, preferred contact, source and
   assert.match(ref, core.REFERENCE_RE);
   const b = calls[0].body;
   assert.ok(b.subject.startsWith(`Website enquiry [${ref}]: Website Development`), b.subject);
-  for (const line of ['Package:  Business', 'Budget:   QAR 10,000–25,000', 'Timeline: Within 1–3 months', 'Preferred contact: Email', `Reference: ${ref}`, 'Source:    website button "pricing_business"']) {
+  for (const line of ['Package:  Business', 'Budget:   $2,000–$5,000', 'Timeline: Within 1–3 months', 'Preferred contact: Email', `Reference: ${ref}`, 'Source:    website button "pricing_business"']) {
     assert.ok(b.text.includes(line), 'missing line: ' + line);
   }
 });

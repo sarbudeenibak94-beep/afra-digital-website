@@ -31,22 +31,59 @@ try {
         eyebrow: h.querySelector('.hero-label').textContent.trim(), h1: h.querySelector('h1').textContent.replace(/\\s+/g, ' ').trim(), sub: h.querySelector('.hero-sub').textContent.trim(), b,
         oldLogo: !!h.querySelector('.hero-logo') }; })()`);
     check('poster is the hero visual: .hero-robot inside .hero-right/.hero-dash with an alt text', r.host && r.alt === 'Black-and-gold AI robot illustration' && !r.oldLogo, JSON.stringify({ host: r.host, alt: r.alt, oldLogo: r.oldLogo }));
-    check('poster is preloaded with high priority and offered at 384/640/960 widths', r.pre === '/assets/img/hero-robot-640.webp' && r.prePrio === 'high' && r.imgPrio === 'high' && r.lazy !== 'lazy' && /384w/.test(r.srcset) && /960w/.test(r.srcset), JSON.stringify({ pre: r.pre, prePrio: r.prePrio, imgPrio: r.imgPrio }));
+    check('poster is preloaded with high priority and offered at 384/640/960 widths', r.pre === '/assets/img/hero-robot-640.webp?v=d7' && r.prePrio === 'high' && r.imgPrio === 'high' && r.lazy !== 'lazy' && /384w/.test(r.srcset) && /960w/.test(r.srcset), JSON.stringify({ pre: r.pre, prePrio: r.prePrio, imgPrio: r.imgPrio }));
     check('poster has loaded and is visible on a phone', await posterVisible(p));
-    check('hero copy unchanged (eyebrow, H1, subtitle)', r.eyebrow === 'Doha, Qatar — Design • Develop • Market' && r.h1 === 'Websites, Apps & AI Solutions for GCC Businesses' && r.sub.startsWith('AFRA DIGITAL designs, develops and markets websites, web and mobile apps, AI automation and custom software'), JSON.stringify([r.eyebrow, r.h1]));
+    check('hero copy as approved (eyebrow, H1 — global positioning, subtitle)', r.eyebrow === 'Doha, Qatar — Design • Develop • Market' && r.h1 === 'Websites, Apps & AI Solutions for Businesses Worldwide' && r.sub.startsWith('AFRA DIGITAL designs, develops and markets websites, web and mobile apps, AI automation and custom software'), JSON.stringify([r.eyebrow, r.h1]));
     check('hero CTAs unchanged: Start Your Project → #contact (data-cta hero_start_project) and WhatsApp link', JSON.stringify(r.b) === JSON.stringify([
       { href: '#contact', cta: 'hero_start_project', target: null, rel: null, text: 'Start Your Project' },
       { href: 'https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project.', cta: null, target: '_blank', rel: 'noopener', text: 'Chat on WhatsApp' }]), JSON.stringify(r.b));
     await p.close();
   }
 
-  // ---------- 3: phones and touch tablets never load the 3D module ----------
-  for (const [w, h] of [[390, 844], [1024, 768]]) {
-    const p = await browser.newPage({ width: w, height: h, mobile: true });
-    await p.goto(S + '/'); await sleep(4000);
-    const s = await state(p), canvas = await p.eval(`!!document.querySelector('.hero-robot canvas')`);
-    check(`${w}px touch device: poster only, no 3D module or reflection PNG request, no canvas`, s === 'poster' && robotRequests(p) === 0 && envRequests(p) === 0 && !canvas && await posterVisible(p), JSON.stringify({ s, req: robotRequests(p), env: envRequests(p), canvas }));
+  // ---------- 3: phones and touch tablets get the same live 3D robot (idle animation), sized below the hero copy ----------
+  for (const [w, h] of [[320, 640], [390, 844], [430, 932], [1024, 768]]) {
+    const p = await browser.newPage({ width: w, height: h, mobile: true, initScript: 'window.__afraRobotTest = true;' });
+    await p.goto(S + '/');
+    const s = await waitState(p, ['live', 'failed', 'unsupported'], 25000);
+    const a = await p.eval(`window.__afraRobot ? window.__afraRobot.pose.yaw : null`); await sleep(1500);
+    const b = await p.eval(`window.__afraRobot ? window.__afraRobot.pose.yaw : null`);
+    const r = await p.eval(`(() => { const host = document.querySelector('.hero-robot'), c = host.querySelector('canvas'), hb = host.getBoundingClientRect(), btns = document.querySelector('#hero .hero-btns').getBoundingClientRect();
+      return { canvas: !!c, hidden: c && c.getAttribute('aria-hidden'), box: Math.round(hb.width), belowCtas: hb.top >= btns.bottom - 1, sw: document.documentElement.scrollWidth, vw: innerWidth }; })()`);
+    check(`${w}px touch device: live 3D robot (reflection PNG once), decorative canvas, idle animation running`, s === 'live' && robotRequests(p) === 1 && envRequests(p) === 1 && r.canvas && r.hidden === 'true' && a !== null && Math.abs(b - a) > 0.002, JSON.stringify({ s, req: robotRequests(p), env: envRequests(p), a, b, ...r }));
+    if (w < 1024) check(`${w}px phone: robot box sized for the full body (≥ 240 px) below the hero buttons, no horizontal overflow`, r.box >= 240 && r.belowCtas && r.sw <= r.vw, JSON.stringify(r));
     check(`${w}px touch device: no console errors, exceptions or CSP violations`, errors(p).length === 0, JSON.stringify(errors(p)).slice(0, 200));
+    await p.close();
+  }
+  {
+    const p = await browser.newPage({ width: 390, height: 844, mobile: true });
+    await p.S('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await p.goto(S + '/'); await sleep(4500);
+    check('reduced motion (phone): static poster, 3D module and reflection PNG never requested', await state(p) === 'poster' && robotRequests(p) === 0 && envRequests(p) === 0 && await posterVisible(p), JSON.stringify({ s: await state(p), req: robotRequests(p) }));
+    await p.close();
+  }
+  {
+    const p = await browser.newPage({ width: 390, height: 844, mobile: true, initScript: `Object.defineProperty(navigator, 'connection', { value: { saveData: true, effectiveType: '4g' }, configurable: true });` });
+    await p.goto(S + '/'); await sleep(4500);
+    check('Save-Data (phone): static poster, 3D module never requested', await state(p) === 'poster' && robotRequests(p) === 0, JSON.stringify({ s: await state(p), req: robotRequests(p) }));
+    await p.close();
+  }
+  {
+    const p = await browser.newPage({ width: 390, height: 844, mobile: true, initScript: `Object.defineProperty(navigator, 'deviceMemory', { value: 1, configurable: true });` });
+    await p.goto(S + '/'); await sleep(4500);
+    check('low memory (phone, deviceMemory 1 GB): static poster, 3D module never requested', await state(p) === 'poster' && robotRequests(p) === 0 && await posterVisible(p), JSON.stringify({ s: await state(p), req: robotRequests(p) }));
+    await p.close();
+  }
+  {
+    // the poster stays fully visible while the robot loads and only fades once the first 3D frame is drawn
+    const p = await browser.newPage({ width: 390, height: 844, mobile: true });
+    await p.goto(S + '/');
+    const seen = [];
+    for (let i = 0; i < 120; i++) {
+      const r = await p.eval(`(() => { const h = document.querySelector('.hero-robot'), i = h.querySelector('.hero-robot-poster'), c = h.querySelector('canvas'); return [h.getAttribute('data-robot'), +getComputedStyle(i).opacity, c ? +getComputedStyle(c).opacity : -1]; })()`);
+      seen.push(r); if (r[0] === 'live') break; await sleep(150);
+    }
+    const before = seen.filter(r => r[0] !== 'live');
+    check('phone: poster fully visible until the 3D robot is ready (no canvas shown while loading)', before.length > 0 && before.every(r => r[1] > 0.99 && r[2] <= 0) && seen[seen.length - 1][0] === 'live', JSON.stringify({ samples: before.length, states: [...new Set(before.map(r => r[0]))], last: seen[seen.length - 1] }));
     await p.close();
   }
 
@@ -127,6 +164,22 @@ try {
     const s = await waitState(p, ['unsupported', 'failed', 'live'], 15000);
     check('WebGL unavailable → robot not mounted, poster stays visible, no uncaught exception', ['unsupported', 'failed'].includes(s) && await posterVisible(p) && !(await p.eval(`!!document.querySelector('.hero-robot canvas')`)) && p.log.exceptions.length === 0, JSON.stringify({ s, ex: p.log.exceptions }));
     await p.close();
+  }
+
+  // ---------- 8: the robot stands alone — no ring or background logo; robot area clear of the hero copy and on screen ----------
+  {
+    const bad = [];
+    for (const w of [320, 390, 430, 768, 1024, 1280, 1440, 1920]) {
+      const p = await browser.newPage({ width: w, height: w < 1024 ? 844 : 900, mobile: w < 1024 });
+      await p.goto(S + '/'); await sleep(1500);
+      const r = await p.eval(`(() => { const d = document.querySelector('.hero-dash'), rb = document.querySelector('.hero-robot').getBoundingClientRect();
+        const ring = ['::before', '::after'].map(x => getComputedStyle(d, x).content);
+        const hit = sel => [...document.querySelectorAll(sel)].some(e => { const q = e.getBoundingClientRect(); return q.width && !(q.right <= rb.left || q.left >= rb.right || q.bottom <= rb.top || q.top >= rb.bottom); });
+        return { ringLogo: !!document.querySelector('.hero-ring-logo'), ring, clear: !hit('#hero h1') && !hit('#hero .hero-btns a') && !hit('#hero .hero-sub'), onScreen: rb.left >= 0 && rb.right <= innerWidth, events: getComputedStyle(document.querySelector('.hero-robot')).pointerEvents, sw: document.documentElement.scrollWidth, vw: innerWidth }; })()`);
+      if (r.ringLogo || r.ring.some(c => c !== 'none') || !r.clear || !r.onScreen || r.events !== 'none' || r.sw > r.vw) bad.push(`${w}:${JSON.stringify(r)}`);
+      await p.close();
+    }
+    check('robot stands alone: no gold ring or background logo; robot area on screen, click-through, clear of heading/copy/buttons, no overflow (320–1920 px)', bad.length === 0, bad.join(' '));
   }
 
   // ---------- 7: no horizontal overflow at the D6 widths ----------

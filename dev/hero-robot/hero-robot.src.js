@@ -1,32 +1,35 @@
 // AFRA DIGITAL hero robot (Design D6) — original procedural Three.js model, no external assets.
 // Source for assets/js/hero-robot.js (bundled + minified with only the Three.js parts used): see dev/hero-robot/build.mjs.
 //
-// Loaded by assets/js/site.js only on capable desktops (≥1024 px, fine pointer, no reduced motion, no Save-Data,
-// no 2G). Everyone else keeps the static poster (assets/img/hero-robot-*.webp, rendered from this same model by
-// dev/hero-robot/render-poster.mjs). The poster stays visible until the first frame is drawn and returns if
-// WebGL fails or the context is lost.
+// Loaded by assets/js/site.js after page load on desktops and phones alike, unless the visitor prefers reduced
+// motion, has Save-Data or a 2G connection, or the device reports < 2 GB memory; those keep the static poster
+// (assets/img/hero-robot-*.webp, rendered from this same model by dev/hero-robot/render-poster.mjs). The poster stays
+// visible until the first frame is drawn and returns if WebGL fails or the context is lost. Phones and tablets get a
+// lighter renderer (pixel ratio ≤ 1.5) and the idle animation; desktops with a mouse also get head and eye tracking.
 import {
   WebGLRenderer, Scene, PerspectiveCamera, Group, Mesh, Points, Sprite,
   MeshPhysicalMaterial, MeshStandardMaterial, MeshBasicMaterial, PointsMaterial, SpriteMaterial,
-  SphereGeometry, CylinderGeometry, TorusGeometry, BoxGeometry, CapsuleGeometry, LatheGeometry, ExtrudeGeometry,
-  CircleGeometry, TubeGeometry, BufferGeometry, Float32BufferAttribute, Shape, Vector2, Vector3, CatmullRomCurve3,
-  HemisphereLight, DirectionalLight, PointLight, PMREMGenerator, BackSide, DoubleSide,
+  SphereGeometry, CylinderGeometry, TorusGeometry, BoxGeometry, CapsuleGeometry, LatheGeometry,
+  CircleGeometry, TubeGeometry, BufferGeometry, Float32BufferAttribute, Vector2, Vector3, CatmullRomCurve3,
+  HemisphereLight, DirectionalLight, PointLight, PMREMGenerator, BackSide,
   ACESFilmicToneMapping, SRGBColorSpace, AdditiveBlending, CanvasTexture,
   CubeUVReflectionMapping, Texture, DataTexture, LinearFilter, DataUtils,
 } from 'three';
 
 const GOLD = 0xd4af37, GOLD_BRIGHT = 0xf0cf5a;
+const FONT = '"Inter", "Segoe UI", Arial, sans-serif';
+const LOGO_URL = '/assets/img/afra-logo-256.webp'; // the official logo, shown unaltered on a badge on the robot's back
 
 // ---------- materials ----------
 function materials() {
   return {
-    shell: new MeshPhysicalMaterial({ color: 0x15171d, metalness: 0.9, roughness: 0.24, clearcoat: 1, clearcoatRoughness: 0.08 }),
+    shell: new MeshPhysicalMaterial({ color: 0x111318, metalness: 0.88, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.06 }),
     plate: new MeshPhysicalMaterial({ color: 0x1b1e25, metalness: 0.85, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.15 }),
-    matte: new MeshStandardMaterial({ color: 0x1a1c22, metalness: 0.6, roughness: 0.5 }),
+    matte: new MeshStandardMaterial({ color: 0x17191f, metalness: 0.6, roughness: 0.5 }),
     gold: new MeshPhysicalMaterial({ color: GOLD, metalness: 1, roughness: 0.2, clearcoat: 0.5, clearcoatRoughness: 0.12 }),
     goldSoft: new MeshPhysicalMaterial({ color: 0xb08b2a, metalness: 1, roughness: 0.34 }),
-    visor: new MeshPhysicalMaterial({ color: 0x010102, metalness: 0.2, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.02, side: DoubleSide }),
-    seam: new MeshStandardMaterial({ color: 0x050506, metalness: 0.4, roughness: 0.7, side: DoubleSide }),
+    visor: new MeshPhysicalMaterial({ color: 0x010102, metalness: 0.2, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02 }),
+    glow: new MeshBasicMaterial({ color: 0xc8902f, toneMapped: false }), // softly lit gold seams, joints and soles
     eye: new MeshBasicMaterial({ color: 0xffc24a, toneMapped: false }),
     eyeCore: new MeshBasicMaterial({ color: 0xfff3cf, toneMapped: false }),
     glowDim: new MeshBasicMaterial({ color: 0xc9962a, toneMapped: false }),
@@ -42,118 +45,203 @@ function glowTexture() {
   g.fillStyle = r; g.fillRect(0, 0, 128, 128);
   const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; return t;
 }
-
-// ---------- head geometry helpers ----------
-// Helmet profile (radius, height) from crown to chin; the head is a lathe of it, slightly deeper than wide.
-const HEAD_CTRL = [[0.001, 1.06], [0.3, 1.03], [0.55, 0.94], [0.74, 0.77], [0.85, 0.54], [0.88, 0.3], [0.86, 0.06], [0.8, -0.18], [0.7, -0.4], [0.55, -0.58], [0.35, -0.71], [0.001, -0.76]];
-const HEAD = new CatmullRomCurve3(HEAD_CTRL.map(([r, y]) => new Vector3(r, y, 0)), false, 'centripetal').getPoints(90).map(p => [Math.max(0.001, p.x), p.y]);
-const rAt = y => { for (let i = 0; i < HEAD.length - 1; i++) { const [r0, y0] = HEAD[i], [r1, y1] = HEAD[i + 1]; if (y <= y0 && y >= y1) return r0 + (r1 - r0) * (y0 - y) / (y0 - y1); } return 0.001; };
-// A band of the helmet surface between heights y0 > y1, pushed out by `off`, spanning phi in [-w, w] around the front.
-const band = (y0, y1, off, w, mat, steps = 16) => { const pts = []; for (let i = 0; i <= steps; i++) { const y = y1 + (y0 - y1) * i / steps; pts.push(new Vector2(rAt(y) + off, y)); } return new Mesh(new LatheGeometry(pts, 96, -w, 2 * w), mat); };
-// A thin ribbon on the surface at height y (for trims and seams).
-const ribbon = (y, off, h, w, mat) => new Mesh(new LatheGeometry([new Vector2(rAt(y - h) + off, y - h), new Vector2(rAt(y) + off + 0.006, y), new Vector2(rAt(y + h) + off, y + h)], 96, -w, 2 * w), mat);
-// Point on the surface at height y and angle phi (0 = front, positive = robot's left / viewer's right).
-const surf = (y, phi, off = 0) => { const r = rAt(y) + off; return new Vector3(Math.sin(phi) * r, y, Math.cos(phi) * r); };
+// Radial alpha map (white = opaque) for soft-edged floor and shadow discs.
+function radialTexture(stops) {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  for (const [o, col] of stops) r.addColorStop(o, col);
+  g.fillStyle = r; g.fillRect(0, 0, 128, 128); return new CanvasTexture(c);
+}
+// LED-dot eye: a disc of small gold dots, brighter towards the centre.
+function eyeTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  for (let y = 4; y < 128; y += 8) for (let x = 4; x < 128; x += 8) {
+    const d = Math.hypot(x - 64, y - 64) / 60; if (d > 1) continue;
+    g.fillStyle = `rgba(255,${Math.round(200 + 40 * (1 - d))},${Math.round(90 + 80 * (1 - d))},${(0.55 + 0.45 * (1 - d)).toFixed(2)})`;
+    g.beginPath(); g.arc(x, y, 3, 0, Math.PI * 2); g.fill();
+  }
+  const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; return t;
+}
+// "AFRA DIGITAL" chest lettering in gold (transparent background).
+function chestTexture() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 30, 0, 230); grad.addColorStop(0, '#fff0b8'); grad.addColorStop(0.45, '#f0cf5a'); grad.addColorStop(1, '#b8892a');
+  g.fillStyle = grad; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = 'rgba(255,190,70,0.55)'; g.shadowBlur = 10;
+  g.font = `900 132px ${FONT}`; g.fillText('AFRA', 256, 96);
+  g.font = `700 58px ${FONT}`; if ('letterSpacing' in g) g.letterSpacing = '10px'; g.fillText('DIGITAL', 261, 192);
+  const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; t.anisotropy = 4; return t;
+}
+// Back badge: champagne disc with a gold rim; the official logo is drawn on it once loaded (its dark lettering needs a
+// light ground — on the black shell it would disappear). Returns the texture and a promise that settles when drawn.
+function badgeTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  const paint = img => {
+    g.clearRect(0, 0, 512, 512);
+    g.beginPath(); g.arc(256, 256, 248, 0, Math.PI * 2); g.fillStyle = '#d4af37'; g.fill();
+    g.beginPath(); g.arc(256, 256, 232, 0, Math.PI * 2); g.fillStyle = '#f6efdc'; g.fill();
+    if (img) { g.save(); g.beginPath(); g.arc(256, 256, 226, 0, Math.PI * 2); g.clip(); g.drawImage(img, 76, 76, 360, 360); g.restore(); }
+  };
+  paint(null);
+  const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; t.anisotropy = 4;
+  const ready = new Promise(resolve => {
+    const img = new Image(); img.decoding = 'async';
+    img.onload = () => { paint(img); t.needsUpdate = true; resolve(true); };
+    img.onerror = () => resolve(false); // badge stays plain; never blocks the robot
+    img.src = LOGO_URL;
+  });
+  return { t, ready };
+}
 
 // ---------- the robot ----------
-function buildRobot(M) {
+// Full-body, black-and-gold character: large helmet with a visor face (LED eyes, smile) and headphone ear cups,
+// compact torso with "AFRA DIGITAL" on the chest and the logo badge on the back, right hand raised and pointing.
+// Units: the robot stands from y ≈ -2.2 (soles) to y ≈ 2.3 (crown); +z faces the viewer.
+const sp = (r, theta, a) => new Vector3(Math.sin(a) * Math.sin(theta) * r, Math.cos(theta) * r, Math.cos(a) * Math.sin(theta) * r); // sphere point: theta from top, a from front (+ = robot's left / viewer's right)
+const capsule = (r, len, mat, seg = 20) => new Mesh(new CapsuleGeometry(r, len, 6, seg), mat);
+const ring = (r, tube, mat, seg = 48) => new Mesh(new TorusGeometry(r, tube, 8, seg), mat);
+
+function buildArm(M, side, glowTex, pointing) {
+  // pivot at the shoulder; segments hang along -y and are posed by rotating the pivot and the elbow
+  const arm = new Group();
+  arm.add(new Mesh(new SphereGeometry(0.2, 32, 20), M.shell));
+  const paul = new Mesh(new SphereGeometry(0.29, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.5), M.shell); paul.scale.set(1.05, 0.72, 1); paul.position.y = 0.04; arm.add(paul);
+  const pTrim = ring(0.29, 0.022, M.gold, 56); pTrim.rotation.x = Math.PI / 2; pTrim.scale.set(1.05, 1, 1); pTrim.position.y = 0.04; arm.add(pTrim);
+  const paul2 = new Mesh(new SphereGeometry(0.21, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.42), M.plate); paul2.scale.set(1.05, 0.7, 0.95); paul2.position.y = 0.17; arm.add(paul2);
+  const pGlow = ring(0.2, 0.01, M.glow, 48); pGlow.rotation.x = Math.PI / 2; pGlow.position.y = 0.17 + 0.21 * Math.cos(Math.PI * 0.42) * 0.7; arm.add(pGlow);
+  const shRing = ring(0.17, 0.018, M.glow); shRing.rotation.y = Math.PI / 2; arm.add(shRing);
+  const upper = capsule(0.135, 0.3, M.plate); upper.position.y = -0.3; arm.add(upper);
+  const elbow = new Group(); elbow.position.y = -0.56; arm.add(elbow);
+  elbow.add(new Mesh(new SphereGeometry(0.125, 24, 16), M.matte));
+  const eRing = ring(0.125, 0.014, M.glow); eRing.rotation.x = Math.PI / 2; elbow.add(eRing);
+  const fore = capsule(0.13, 0.26, M.shell); fore.position.y = -0.26; elbow.add(fore);
+  const cuff = ring(0.12, 0.02, M.gold); cuff.rotation.x = Math.PI / 2; cuff.position.y = -0.44; elbow.add(cuff);
+  const hand = new Group(); hand.position.y = -0.58; elbow.add(hand);
+  const palm = new Mesh(new SphereGeometry(0.13, 24, 16), M.matte); palm.scale.set(1, 1.12, 0.78); hand.add(palm);
+  let tip = null;
+  for (let i = 0; i < 4; i++) { // fingers: curled knuckles, except the index finger when pointing
+    const x = (i - 1.5) * 0.058 * side;
+    if (pointing && i === 0) {
+      const f = capsule(0.034, 0.17, M.matte, 12); f.position.set(x, -0.2, 0.03); hand.add(f);
+      tip = new Mesh(new SphereGeometry(0.042, 16, 12), M.eye); tip.position.set(x, -0.31, 0.03); hand.add(tip);
+      const tg = new Sprite(new SpriteMaterial({ map: glowTex, color: 0xffc85a, transparent: true, opacity: 0.55, depthWrite: false, blending: AdditiveBlending }));
+      tg.scale.set(0.42, 0.42, 1); tg.position.copy(tip.position); hand.add(tg); tip.userData.glow = tg;
+    } else {
+      const k = new Mesh(new SphereGeometry(0.045, 12, 10), M.matte); k.position.set(x, -0.12, 0.06); hand.add(k);
+    }
+  }
+  const thumb = capsule(0.03, 0.08, M.matte, 10); thumb.position.set(-0.11 * side, -0.05, 0.07); thumb.rotation.z = side * 0.6; hand.add(thumb);
+  return { arm, elbow, hand, tip };
+}
+
+function buildLeg(M) {
+  const leg = new Group();
+  leg.add(new Mesh(new SphereGeometry(0.19, 24, 16), M.matte));
+  const thigh = capsule(0.17, 0.2, M.shell); thigh.position.y = -0.24; leg.add(thigh);
+  const knee = new Mesh(new SphereGeometry(0.15, 24, 16), M.plate); knee.position.y = -0.5; leg.add(knee);
+  const kneeCap = new Mesh(new SphereGeometry(0.13, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.45), M.gold); kneeCap.rotation.x = Math.PI / 2; kneeCap.scale.set(1, 1, 0.55); kneeCap.position.set(0, -0.5, 0.11); leg.add(kneeCap);
+  const kRing = ring(0.15, 0.016, M.glow); kRing.rotation.x = Math.PI / 2; kRing.position.y = -0.5; leg.add(kRing);
+  const shin = new Mesh(new LatheGeometry([[0.001, -0.5], [0.15, -0.52], [0.17, -0.7], [0.21, -0.92], [0.001, -0.94]].map(([x, y]) => new Vector2(x, y)), 32), M.shell); leg.add(shin);
+  const boot = capsule(0.19, 0.22, M.shell, 24); boot.rotation.x = Math.PI / 2; boot.scale.set(1.08, 1, 0.82); boot.position.set(0, -1.03, 0.1); leg.add(boot);
+  const toe = ring(0.165, 0.02, M.gold); toe.rotation.x = Math.PI / 2; toe.scale.set(1.12, 1.5, 1); toe.position.set(0, -0.98, 0.12); leg.add(toe);
+  const sole = ring(0.18, 0.014, M.glow); sole.rotation.x = Math.PI / 2; sole.scale.set(1.12, 1.62, 1); sole.position.set(0, -1.16, 0.1); leg.add(sole); // glowing sole rim
+  return leg;
+}
+
+// Built as a generator: each `yield` is a point where the live mount lets the browser handle input (phones take
+// several hundred ms for the whole model); the poster and dev renders run it straight through.
+function* buildRobot(M) {
   const robot = new Group();
   const glowTex = glowTexture();
+  const badge = badgeTexture();
 
-  // ---- body: torso, shoulders, chest ----
+  // ---- body: torso with chest lettering and back badge ----
   const body = new Group(); robot.add(body);
-  const torso = new Mesh(new LatheGeometry([[0.001, 0.08], [0.46, 0.08], [0.58, -0.02], [1.0, -0.36], [1.4, -0.74], [1.6, -1.15], [1.68, -1.7], [1.64, -2.4], [1.5, -3.1], [0.001, -3.1]].map(([x, y]) => new Vector2(x, y)), 96), M.shell);
-  torso.scale.set(1, 1, 0.62); body.add(torso);
-  const collar = new Mesh(new TorusGeometry(0.56, 0.07, 16, 80), M.gold); collar.rotation.x = Math.PI / 2; collar.position.y = 0.06; collar.scale.set(1, 0.62, 1); body.add(collar);
+  const torsoG = new Group(); torsoG.scale.set(1, 1, 0.78); body.add(torsoG);
+  torsoG.add(new Mesh(new LatheGeometry([[0.001, 0.58], [0.4, 0.56], [0.62, 0.42], [0.69, 0.16], [0.66, -0.18], [0.55, -0.48], [0.46, -0.62], [0.001, -0.62]].map(([x, y]) => new Vector2(x, y)), 64), M.shell));
+  const chestMat = new MeshBasicMaterial({ map: chestTexture(), transparent: true, toneMapped: false, depthWrite: false });
+  const chestText = new Mesh(new CylinderGeometry(0.7, 0.7, 0.42, 48, 1, true, -0.78, 1.56), chestMat); chestText.position.y = 0.13; torsoG.add(chestText);
+  for (const y of [0.4, -0.15]) { const t = new Mesh(new CylinderGeometry(0.7, 0.7, 0.012, 48, 1, true, -0.95, 1.9), M.glow); t.position.y = y; torsoG.add(t); }
+  const badgeMat = new MeshStandardMaterial({ map: badge.t, transparent: true, metalness: 0.25, roughness: 0.45 });
+  const back = new Mesh(new CylinderGeometry(0.705, 0.705, 0.86, 48, 1, true, Math.PI - 0.62, 1.24), badgeMat); back.position.y = 0.0; torsoG.add(back);
+  // side seams, belt and hips
+  for (const side of [-1, 1]) { const s = new Mesh(new CylinderGeometry(0.695, 0.695, 0.7, 4, 1, true, side * 1.25 - 0.02, 0.04), M.glow); s.position.y = 0.0; torsoG.add(s); }
+  const belt = ring(0.5, 0.045, M.gold, 64); belt.rotation.x = Math.PI / 2; belt.scale.set(1, 0.78, 1); belt.position.y = -0.55; body.add(belt);
+  const pelvis = new Mesh(new SphereGeometry(0.47, 40, 24, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.55), M.plate); pelvis.scale.set(1, 0.7, 0.74); pelvis.position.y = -0.55; body.add(pelvis);
+  const collar = ring(0.36, 0.05, M.gold, 64); collar.rotation.x = Math.PI / 2; collar.scale.set(1, 0.78, 1); collar.position.y = 0.58; body.add(collar);
 
-  for (const side of [-1, 1]) {
-    // layered shoulder armour
-    const sh = new Group(); sh.position.set(side * 1.48, -0.9, 0); sh.rotation.z = side * -0.34; body.add(sh);
-    const cap = new Mesh(new SphereGeometry(0.66, 64, 32, 0, Math.PI * 2, 0, Math.PI * 0.52), M.shell); cap.scale.set(1.22, 0.78, 0.95); sh.add(cap);
-    const rim = new Mesh(new TorusGeometry(0.66 * Math.sin(Math.PI * 0.52), 0.032, 12, 80), M.gold); rim.rotation.x = Math.PI / 2; rim.position.y = 0.66 * Math.cos(Math.PI * 0.52) * 0.78; rim.scale.set(1.22, 0.95, 1); sh.add(rim);
-    const cap2 = new Mesh(new SphereGeometry(0.48, 48, 24, 0, Math.PI * 2, 0, Math.PI * 0.42), M.plate); cap2.scale.set(1.15, 0.7, 0.9); cap2.position.set(side * 0.1, 0.14, 0); sh.add(cap2);
-    const rim2 = new Mesh(new TorusGeometry(0.48 * Math.sin(Math.PI * 0.42), 0.02, 10, 64), M.goldSoft); rim2.rotation.x = Math.PI / 2; rim2.position.set(side * 0.1, 0.14 + 0.48 * Math.cos(Math.PI * 0.42) * 0.7, 0); rim2.scale.set(1.15, 0.9, 1); sh.add(rim2);
-    // trapezius plates between neck and shoulder
-    const trap = new Mesh(new BoxGeometry(0.75, 0.08, 0.55), M.plate); trap.position.set(side * 0.78, -0.3, 0.05); trap.rotation.z = side * -0.6; body.add(trap);
-    const trapEdge = new Mesh(new BoxGeometry(0.75, 0.02, 0.02), M.gold); trapEdge.position.set(side * 0.78, -0.27, 0.33); trapEdge.rotation.z = side * -0.6; body.add(trapEdge);
-    // pectoral plate
-    const pec = new Shape(); pec.moveTo(0, 0); pec.lineTo(0.78, 0.08); pec.quadraticCurveTo(0.9, -0.25, 0.7, -0.55); pec.lineTo(0.08, -0.5); pec.quadraticCurveTo(-0.02, -0.25, 0, 0);
-    const pm = new Mesh(new ExtrudeGeometry(pec, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.02, bevelSegments: 3, curveSegments: 16 }), M.plate);
-    pm.position.set(side * 0.12, -0.72, 0.9); pm.scale.x = side; pm.rotation.y = side * 0.32; pm.rotation.x = -0.18; body.add(pm);
-    const pe = new Mesh(new BoxGeometry(0.66, 0.018, 0.02), M.gold); pe.position.set(side * 0.5, -0.66, 1.0); pe.rotation.z = side * 0.06; pe.rotation.y = side * 0.32; body.add(pe);
-  }
+  yield;
+  // ---- arms (robot's right = viewer's left is raised and pointing up) ----
+  const armR = buildArm(M, -1, glowTex, true); armR.arm.position.set(-0.78, 0.3, 0); body.add(armR.arm);
+  armR.arm.rotation.set(0.25, 0, -2.62); armR.elbow.rotation.z = -0.42;
+  const armL = buildArm(M, 1, glowTex, false); armL.arm.position.set(0.78, 0.3, 0); body.add(armL.arm);
+  armL.arm.rotation.set(-0.12, 0, 0.2); armL.elbow.rotation.x = -0.35;
 
-  // chest core
-  const chest = new Group(); chest.position.set(0, -1.42, 0.98); chest.rotation.x = -0.14; body.add(chest);
-  const hex = new Shape(); for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; (i ? hex.lineTo : hex.moveTo).call(hex, Math.cos(a) * 0.36, Math.sin(a) * 0.36); }
-  chest.add(new Mesh(new ExtrudeGeometry(hex, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 }), M.gold));
-  const hexIn = new Mesh(new ExtrudeGeometry(hex, { depth: 0.05, bevelEnabled: false }), M.plate); hexIn.scale.setScalar(0.82); hexIn.position.z = 0.02; chest.add(hexIn);
-  const core = new Group(); core.position.z = 0.09; chest.add(core);
-  const coreRing = new Mesh(new TorusGeometry(0.17, 0.022, 12, 48), M.gold); core.add(coreRing);
-  const coreGlowRing = new Mesh(new TorusGeometry(0.12, 0.012, 10, 48), M.glowDim); core.add(coreGlowRing);
-  const coreLight = new Mesh(new CircleGeometry(0.085, 40), M.eye.clone()); coreLight.position.z = 0.005; core.add(coreLight);
-  const coreGlow = new Sprite(new SpriteMaterial({ map: glowTex, color: 0xffc85a, transparent: true, opacity: 0.55, depthWrite: false, blending: AdditiveBlending })); coreGlow.scale.set(0.8, 0.8, 1); coreGlow.position.z = 0.04; core.add(coreGlow);
-  // sternum line
-  const stern = new Mesh(new BoxGeometry(0.02, 0.5, 0.02), M.goldSoft); stern.position.set(0, -0.98, 1.0); stern.rotation.x = -0.2; body.add(stern);
+  yield;
+  // ---- legs and floor glow ----
+  for (const side of [-1, 1]) { const leg = buildLeg(M); leg.position.set(side * 0.3, -0.78, 0); leg.rotation.z = side * 0.04; body.add(leg); }
+  const floor = new Group(); floor.position.y = -2.0; robot.add(floor);
+  const fade = radialTexture([[0, '#9a9a9a'], [0.35, '#6a6a6a'], [0.75, '#1c1c1c'], [1, '#000']]); // alpha maps read the green channel
+  const floorMat = new MeshPhysicalMaterial({ color: 0x07080b, metalness: 0.8, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.2, transparent: true, alphaMap: fade, depthWrite: false });
+  const plate = new Mesh(new CircleGeometry(1.5, 64), floorMat); plate.rotation.x = -Math.PI / 2; plate.scale.set(1.2, 1, 1); plate.position.y = -0.01; floor.add(plate);
+  const shadow = new Mesh(new CircleGeometry(0.9, 48), new MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55, alphaMap: radialTexture([[0, '#fff'], [0.5, '#888'], [1, '#000']]), depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2; shadow.scale.set(1, 0.55, 1); floor.add(shadow);
+  const floorGlow = new Sprite(new SpriteMaterial({ map: glowTex, color: 0xffb84a, transparent: true, opacity: 0.1, depthWrite: false, blending: AdditiveBlending })); floorGlow.scale.set(2.6, 0.5, 1); floor.add(floorGlow);
 
   // ---- neck ----
-  const neck = new Group(); neck.position.y = 0.06; robot.add(neck);
-  const neckCore = new Mesh(new CylinderGeometry(0.32, 0.38, 0.44, 40), M.matte); neckCore.position.y = 0.22; neck.add(neckCore);
-  for (const [i, y] of [0.08, 0.22, 0.36].entries()) { const ring = new Mesh(new TorusGeometry(0.33 - i * 0.03, 0.026, 12, 64), i === 1 ? M.gold : M.goldSoft); ring.rotation.x = Math.PI / 2; ring.position.y = y; neck.add(ring); }
-  for (const a of [0.6, -0.6, Math.PI - 0.6, Math.PI + 0.6]) {
-    const p = new Group(); p.position.set(Math.sin(a) * 0.33, 0.02, Math.cos(a) * 0.3); neck.add(p);
-    const sleeve = new Mesh(new CylinderGeometry(0.04, 0.04, 0.24, 16), M.plate); sleeve.position.y = 0.12; p.add(sleeve);
-    const rod = new Mesh(new CylinderGeometry(0.02, 0.02, 0.26, 12), M.gold); rod.position.y = 0.34; p.add(rod);
-  }
+  const neck = new Group(); neck.position.y = 0.58; robot.add(neck);
+  const neckCore = new Mesh(new CylinderGeometry(0.2, 0.24, 0.16, 32), M.matte); neckCore.position.y = 0.06; neck.add(neckCore);
+  const nRing = ring(0.21, 0.016, M.glow); nRing.rotation.x = Math.PI / 2; nRing.position.y = 0.08; neck.add(nRing);
 
+  yield;
   // ---- head (pivots at the top of the neck) ----
-  const headPivot = new Group(); headPivot.position.y = 0.5; robot.add(headPivot);
-  const head = new Group(); head.position.y = 0.72; headPivot.add(head);
-  const S = new Group(); S.scale.set(1, 1, 1.06); head.add(S);
-  S.add(new Mesh(new LatheGeometry(HEAD.map(([r, y]) => new Vector2(r, y)), 128), M.shell)); // helmet
-
-  // visor: dark glass band across the eyes with gold trims
-  const VY0 = 0.52, VY1 = 0.02, VW = 1.12;
-  S.add(band(VY0, VY1, 0.018, VW, M.visor));
-  S.add(ribbon(VY0 + 0.012, 0.03, 0.016, VW + 0.02, M.gold));
-  S.add(ribbon(VY1 - 0.012, 0.03, 0.016, VW + 0.02, M.gold));
-  for (const side of [-1, 1]) { // side caps of the visor
-    const a = surf(VY0, side * (VW + 0.02), 0.03), b = surf(VY1, side * (VW + 0.02), 0.03);
-    S.add(new Mesh(new TubeGeometry(new CatmullRomCurve3([a, surf((VY0 + VY1) / 2, side * (VW + 0.02), 0.04), b]), 16, 0.018, 8), M.gold));
-  }
-  // jaw plate with vents
-  S.add(band(-0.1, -0.5, 0.012, 0.78, M.plate));
-  S.add(ribbon(-0.09, 0.024, 0.012, 0.8, M.gold));
-  for (const y of [-0.22, -0.3, -0.38]) S.add(ribbon(y, 0.02, 0.01, 0.42 - (y + 0.22) * 0.6, M.seam));
-  // crest: gold ribbon from brow over the crown, plus a seam ring at the back
-  const crestPts = [0.56, 0.66, 0.76, 0.85, 0.92, 0.98].map(y => new Vector3(0, y, rAt(y) + 0.02));
-  S.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(crestPts), 48, 0.022, 8), M.gold));
-  S.add(ribbon(0.66, 0.008, 0.01, Math.PI, M.seam));
-  // side sensor pods
+  const headPivot = new Group(); headPivot.position.y = 0.66; robot.add(headPivot);
+  const head = new Group(); head.position.y = 0.9; head.scale.setScalar(1.13); headPivot.add(head);
+  const S = new Group(); S.scale.set(1.12, 0.98, 1); head.add(S);
+  const R = 0.92, VR = 0.932;
+  S.add(new Mesh(new SphereGeometry(R, 64, 48), M.shell));
+  // visor face: wide dark glass patch on the front of the helmet, framed with gold
+  const VA = 1.02, VT0 = 0.98, VT1 = 1.92; // half width (rad), top and bottom (rad from crown)
+  S.add(new Mesh(new SphereGeometry(VR, 64, 32, Math.PI / 2 - VA, 2 * VA, VT0, VT1 - VT0), M.visor));
+  for (const th of [VT0 - 0.02, VT1 + 0.02]) S.add(new Mesh(new SphereGeometry(VR + 0.004, 64, 2, Math.PI / 2 - VA - 0.03, 2 * VA + 0.06, th - 0.018, 0.036), M.gold));
   for (const side of [-1, 1]) {
-    const pod = new Group(); const pos = surf(0.24, side * Math.PI / 2, 0.02); pod.position.copy(pos); pod.lookAt(pos.clone().multiplyScalar(3)); S.add(pod);
-    const base = new Mesh(new CylinderGeometry(0.24, 0.27, 0.1, 48), M.plate); base.rotation.x = Math.PI / 2; pod.add(base);
-    const rim = new Mesh(new TorusGeometry(0.24, 0.024, 12, 64), M.gold); rim.position.z = 0.05; pod.add(rim);
-    const gl = new Mesh(new TorusGeometry(0.14, 0.012, 10, 48), M.glowDim); gl.position.z = 0.055; pod.add(gl);
-    const hub = new Mesh(new CylinderGeometry(0.08, 0.08, 0.04, 32), M.gold); hub.rotation.x = Math.PI / 2; hub.position.z = 0.06; pod.add(hub);
+    const pts = []; for (let i = 0; i <= 12; i++) pts.push(sp(VR + 0.006, VT0 + (VT1 - VT0) * i / 12, side * (VA + 0.015)));
+    S.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(pts), 24, 0.018, 8), M.gold));
   }
+  // crown seam
+  S.add(new Mesh(new SphereGeometry(R + 0.004, 64, 2, 0, Math.PI * 2, 0.62, 0.018), M.glowDim));
 
-  // eyes: horizontal slits in the visor; the bright core tracks the pointer
-  const eyes = [];
+  // eyes: LED-dot discs inside glowing gold rings; the bright pupil tracks the pointer
+  const eyeTex = eyeTexture(), eyes = [];
   for (const side of [-1, 1]) {
-    const pos = surf(0.27, side * 0.36, 0.024);
+    const pos = sp(VR + 0.012, 1.3, side * 0.36);
     const eye = new Group(); eye.position.copy(pos); eye.lookAt(pos.clone().multiplyScalar(3)); S.add(eye);
-    const socket = new Mesh(new CapsuleGeometry(0.075, 0.2, 8, 24), M.socket); socket.rotation.z = Math.PI / 2; socket.scale.z = 0.15; eye.add(socket);
-    const lid = new Group(); lid.position.z = 0.012; eye.add(lid);
-    const slit = new Mesh(new CapsuleGeometry(0.048, 0.19, 8, 24), M.eye); slit.rotation.z = Math.PI / 2; slit.scale.z = 0.2; lid.add(slit);
-    const iris = new Group(); iris.position.z = 0.012; lid.add(iris);
-    const core = new Mesh(new CapsuleGeometry(0.03, 0.05, 6, 16), M.eyeCore); core.rotation.z = Math.PI / 2; core.scale.z = 0.2; iris.add(core);
-    const glow = new Sprite(new SpriteMaterial({ map: glowTex, color: 0xffc85a, transparent: true, opacity: 0.9, depthWrite: false, blending: AdditiveBlending }));
-    glow.scale.set(0.75, 0.38, 1); glow.position.z = 0.03; lid.add(glow);
+    eye.add(new Mesh(new CircleGeometry(0.2, 40), M.socket));
+    const rim = ring(0.185, 0.02, M.eye, 48); rim.position.z = 0.005; eye.add(rim);
+    const lid = new Group(); lid.position.z = 0.008; eye.add(lid);
+    const dots = new Mesh(new CircleGeometry(0.165, 40), new MeshBasicMaterial({ map: eyeTex, transparent: true, toneMapped: false, depthWrite: false })); lid.add(dots);
+    const iris = new Group(); iris.position.z = 0.006; lid.add(iris);
+    const pupil = new Mesh(new CircleGeometry(0.07, 32), M.eyeCore); iris.add(pupil);
+    const glow = new Sprite(new SpriteMaterial({ map: glowTex, color: 0xffc85a, transparent: true, opacity: 0.5, depthWrite: false, blending: AdditiveBlending }));
+    glow.scale.set(0.62, 0.62, 1); glow.position.z = 0.02; lid.add(glow);
     eyes.push({ lid, iris });
   }
+  // smile
+  const smilePos = sp(VR + 0.01, 1.68, 0);
+  const smile = new Group(); smile.position.copy(smilePos); smile.lookAt(smilePos.clone().multiplyScalar(3)); S.add(smile);
+  const arc = new Mesh(new TorusGeometry(0.16, 0.016, 8, 32, Math.PI * 0.62), M.eye); arc.rotation.z = -Math.PI / 2 - Math.PI * 0.31; arc.position.y = 0.1; smile.add(arc);
 
-  return { robot, body, neck, headPivot, head, eyes, coreLight, coreGlowRing, coreGlow, glowTex };
+  // headphone ear cups with glowing rings, joined by a band over the crown
+  for (const side of [-1, 1]) {
+    const cup = new Group(); cup.position.set(side * (R * 1.12 + 0.02), -0.02, 0); cup.rotation.z = side * -Math.PI / 2; head.add(cup);
+    const shell = new Mesh(new CylinderGeometry(0.3, 0.33, 0.2, 40), M.shell); cup.add(shell);
+    const gRim = ring(0.3, 0.03, M.gold, 48); gRim.rotation.x = Math.PI / 2; gRim.position.y = -0.1; cup.add(gRim);
+    const lit = ring(0.21, 0.022, M.glow, 48); lit.rotation.x = Math.PI / 2; lit.position.y = -0.105; cup.add(lit);
+    const hub = new Mesh(new CylinderGeometry(0.13, 0.13, 0.04, 32), M.plate); hub.position.y = -0.11; cup.add(hub);
+  }
+  const bandArc = new Mesh(new TorusGeometry(1.08, 0.055, 10, 64, Math.PI), M.plate); bandArc.scale.set(1, 0.95, 1); bandArc.position.y = -0.02; bandArc.rotation.y = 0.0; head.add(bandArc);
+  const bandTrim = new Mesh(new TorusGeometry(1.08, 0.012, 6, 64, Math.PI), M.glowDim); bandTrim.scale.set(1, 0.95, 1); bandTrim.position.set(0, -0.02, 0.05); head.add(bandTrim);
+
+  return { robot, body, neck, headPivot, head, eyes, armR, tip: armR.tip, floorGlow, glowTex, logoReady: badge.ready };
 }
 
 // ---------- environment (studio reflections) ----------
@@ -243,32 +331,37 @@ export async function renderWithBakedEnvironment(size = 640, url = ENV_URL) {
 
 function particles(tex) {
   let seed = 0x5eed; const rnd = () => { seed = (seed + 0x6d2b79f5) | 0; let x = Math.imul(seed ^ (seed >>> 15), 1 | seed); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; // fixed seed: identical poster on every build
-  const n = 110, pos = [];
-  for (let i = 0; i < n; i++) { const r = 2.4 + rnd() * 1.8, a = rnd() * Math.PI * 2, y = -2 + rnd() * 4.4; pos.push(Math.cos(a) * r, y, Math.sin(a) * r * 0.7 - 0.8); }
+  const n = 18, pos = [];
+  for (let i = 0; i < n; i++) pos.push(-4.2 + rnd() * 8.4, -1.4 + rnd() * 4.4, -2.5 - rnd() * 3); // behind the robot
   const g = new BufferGeometry(); g.setAttribute('position', new Float32BufferAttribute(pos, 3));
-  return new Points(g, new PointsMaterial({ color: GOLD_BRIGHT, size: 0.065, map: tex, transparent: true, opacity: 0.7, depthWrite: false, blending: AdditiveBlending, sizeAttenuation: true }));
+  return new Points(g, new PointsMaterial({ color: GOLD_BRIGHT, size: 0.32, map: tex, transparent: true, opacity: 0.16, depthWrite: false, blending: AdditiveBlending, sizeAttenuation: true }));
 }
 
 // ---------- scene assembly ----------
 // Set-up is split into steps so the live mount can yield to the browser between them (no multi-second long task);
 // the poster renders them back to back. No shadow map: it doubled the shader work for barely visible soft shadows.
-function createRenderer({ width, height, pixelRatio, preserveDrawingBuffer = false, canvas }) {
-  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer, powerPreference: 'high-performance' });
+function createRenderer({ width, height, pixelRatio, preserveDrawingBuffer = false, canvas, antialias = true }) {
+  const renderer = new WebGLRenderer({ canvas, antialias, alpha: true, preserveDrawingBuffer, powerPreference: 'high-performance' });
   renderer.setPixelRatio(pixelRatio); renderer.setSize(width, height, false);
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
   renderer.outputColorSpace = SRGBColorSpace;
   return renderer;
 }
-function buildScene(width, height) {
+const nextTask = () => new Promise(r => setTimeout(r, 0)); // yield so input can be handled between set-up steps
+const runSync = g => { let r; while (!(r = g.next()).done); return r.value; };
+const runAsync = async g => { let r; while (!(r = g.next()).done) await nextTask(); return r.value; };
+const ROBOT_X = 0.18, ROBOT_YAW = -0.1, ROBOT_SCREEN_X = 0.53; // world x offset, body turn, robot's horizontal position in the box
+function buildScene(width, height) { return runSync(sceneSteps(width, height)); }
+function* sceneSteps(width, height) {
   const scene = new Scene();
-  const parts = buildRobot(materials());
-  parts.robot.position.y = -0.55;
+  const parts = yield* buildRobot(materials());
+  parts.robot.position.set(ROBOT_X, -0.12, 0); parts.robot.rotation.y = ROBOT_YAW;
   scene.add(parts.robot);
   scene.add(new HemisphereLight(0xfff3dc, 0x0a0806, 0.45));
   const key = new DirectionalLight(0xfff0d2, 2.9); key.position.set(-3.5, 5, 6); scene.add(key);
   // rim lights behind the robot separate the dark silhouette from the dark page
-  for (const [x, y, z, c, i] of [[-3.4, 2.8, -3.5, 0xfff0cc, 110], [3.6, 2.2, -3.5, 0xf0cf5a, 110], [0, 4.2, -3, 0xffe6b0, 50]]) {
+  for (const [x, y, z, c, i] of [[-3.4, 2.8, -3.5, 0xfff0cc, 120], [3.6, 2.2, -3.5, 0xf0cf5a, 120], [0, 4.2, -3, 0xffe6b0, 55], [-2.2, -0.6, -2.4, 0xffb84a, 35]]) {
     const l = new PointLight(c, i, 14, 2); l.position.set(x, y, z); scene.add(l);
   }
   // front fills: one for the face, one low and wide so the dark torso keeps its form (no separate eye light — its
@@ -277,7 +370,7 @@ function buildScene(width, height) {
   const torsoFill = new PointLight(0xffe6b8, 16, 9, 2); torsoFill.position.set(-1.8, -1.6, 4.2); scene.add(torsoFill);
   const dots = particles(parts.glowTex); scene.add(dots);
   const camera = new PerspectiveCamera(26, width / height, 0.1, 60);
-  camera.position.set(0, 0.6, 10.6); camera.lookAt(0, 0.0, 0);
+  camera.position.set(0, 0.3, 11.9); camera.lookAt(0, 0.0, 0);
   return { scene, camera, parts, dots };
 }
 function createStage(opts) {
@@ -294,12 +387,13 @@ function pose(stage, { yaw, pitch, eyeX, eyeY, t, blink = 0 }) {
   parts.neck.rotation.y = yaw * 0.3;
   const breath = Math.sin(t * 1.15);
   parts.body.position.y = breath * 0.012; parts.body.scale.set(1 + breath * 0.004, 1, 1 + breath * 0.004);
-  parts.head.position.y = 0.72 + Math.sin(t * 1.15 + 0.6) * 0.01;
-  for (const e of parts.eyes) { e.iris.position.x = eyeX * 0.07; e.iris.position.y = eyeY * 0.015; e.lid.scale.y = 1 - blink * 0.92; }
-  const pulse = 0.78 + 0.22 * Math.sin(t * 1.15);
-  parts.coreLight.material.color.setRGB(pulse * 1.0 + 0.15, pulse * 0.78 + 0.1, pulse * 0.35 + 0.04);
-  parts.coreGlow.material.opacity = 0.35 + 0.25 * pulse;
-  parts.coreGlowRing.rotation.z = t * 0.4;
+  parts.head.position.y = 0.9 + Math.sin(t * 1.15 + 0.6) * 0.012;
+  for (const e of parts.eyes) { e.iris.position.x = eyeX * 0.06; e.iris.position.y = eyeY * 0.04; e.lid.scale.y = 1 - blink * 0.92; }
+  // the raised arm sways gently; the pointing fingertip and the floor glow pulse
+  parts.armR.arm.rotation.z = -2.62 + Math.sin(t * 1.3) * 0.05; parts.armR.elbow.rotation.z = -0.42 + Math.sin(t * 1.3 + 0.8) * 0.04;
+  const pulse = 0.78 + 0.22 * Math.sin(t * 2);
+  parts.tip.userData.glow.material.opacity = 0.32 + 0.22 * pulse;
+  parts.floorGlow.material.opacity = 0.07 + 0.04 * pulse;
   dots.rotation.y = t * 0.03; dots.position.y = Math.sin(t * 0.4) * 0.05;
 }
 
@@ -315,8 +409,19 @@ export function renderPoster(size = 960, format = 'image/webp', quality = 0.86) 
   return url;
 }
 
+// dev only: render the robot turned by bodyYaw (π = back view) once the logo badge is drawn
+export async function renderView(size = 640, { bodyYaw = 0, ...p } = {}) {
+  const canvas = document.createElement('canvas');
+  const stage = createStage({ width: size, height: size, pixelRatio: 1, preserveDrawingBuffer: true, canvas });
+  await stage.parts.logoReady;
+  pose(stage, { ...POSTER_POSE, ...p }); stage.parts.robot.rotation.y = ROBOT_YAW + bodyYaw;
+  stage.renderer.render(stage.scene, stage.camera);
+  const url = canvas.toDataURL('image/png');
+  stage.renderer.dispose();
+  return url;
+}
+
 // ---------- live mount ----------
-const nextTask = () => new Promise(r => setTimeout(r, 0)); // yield so input can be handled between set-up steps
 export async function mount(host) {
   const envPromise = decodeBakedEnvironment(ENV_URL).catch(() => null); // fetch + off-thread decode in parallel with set-up
   const setState = s => host.setAttribute('data-robot', s);
@@ -326,10 +431,12 @@ export async function mount(host) {
   const box = () => { const r = host.getBoundingClientRect(); return [Math.max(1, Math.round(r.width)), Math.max(1, Math.round(r.height))]; };
   let [w, h] = box();
   let renderer;
-  try { renderer = createRenderer({ width: w, height: h, pixelRatio: Math.min(window.devicePixelRatio || 1, 2), canvas }); }
+  await nextTask(); // the module has just been evaluated: let pending input run before creating the WebGL context
+  const dpr = window.devicePixelRatio || 1, lite = !(window.matchMedia && window.matchMedia('(pointer: fine)').matches) || window.innerWidth < 1024;
+  try { renderer = createRenderer({ width: w, height: h, pixelRatio: Math.min(dpr, lite ? 1.5 : 2), antialias: !lite || dpr < 2, canvas }); }
   catch (e) { setState('unsupported'); return null; }
   await nextTask();
-  const stage = { renderer, ...buildScene(w, h) };
+  const stage = { renderer, ...(await runAsync(sceneSteps(w, h))) };
   await nextTask();
   await gpuIdle(renderer.getContext());
   const strips = await envPromise;
@@ -344,9 +451,17 @@ export async function mount(host) {
   if (envTex) stage.scene.environment = envTex;
   else stage.scene.environment = studioEnvironment(renderer); // fallback: runtime PMREM (blocking, as before)
   await nextTask();
+  await Promise.race([stage.parts.logoReady, new Promise(r => setTimeout(r, 2500))]); // back badge texture (never blocks > 2.5 s)
   // compile every shader before the first frame; uses KHR_parallel_shader_compile where available (non-blocking)
   try { await renderer.compileAsync(stage.scene, stage.camera); } catch (e) {}
   await nextTask();
+  const units = [...stage.parts.robot.children.filter(c => c !== stage.parts.body), ...stage.parts.body.children], per = Math.ceil(units.length / 4);
+  for (let i = 0; i < units.length; i += per) {
+    units.forEach((u, k) => { u.visible = k >= i && k < i + per; });
+    try { renderer.render(stage.scene, stage.camera); } catch (e) {}
+    await nextTask();
+  }
+  units.forEach(u => { u.visible = true; });
   if (renderer.getContext().isContextLost()) { renderer.dispose(); setState('context-lost'); return null; }
   host.appendChild(canvas);
 
@@ -359,7 +474,7 @@ export async function mount(host) {
   const onMove = e => {
     if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
     const r = host.getBoundingClientRect();
-    const cx = r.left + r.width / 2, cy = r.top + r.height * 0.35;
+    const cx = r.left + r.width * ROBOT_SCREEN_X, cy = r.top + r.height * 0.35;
     // normalise by the distance to the viewport edge on each side, so both directions reach the full (clamped) range
     const dx = e.clientX - cx, dy = e.clientY - cy;
     const nx = Math.max(-1, Math.min(1, dx / Math.max(80, dx < 0 ? cx : window.innerWidth - cx)));
