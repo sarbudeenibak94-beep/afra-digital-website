@@ -96,7 +96,7 @@ try {
     const site = read('assets/js/site.js').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''); // code only, comments removed
     const tags = [...idx.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map(m => m[1]);
     check('homepage loads analytics.js, site.js and contact-form.js (deferred, in that order; changed files versioned)',
-      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js', '/assets/js/site.js?v=p7r4', '/assets/js/contact-form.js?v=p5b2']), tags.join(' | '));
+      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js', '/assets/js/site.js?v=p7r5', '/assets/js/contact-form.js?v=p5b2']), tags.join(' | '));
     check('form logic lives only in contact-form.js (site.js has none; no double binding)', !/contact-form|cf-source|form-btn|generate_lead/.test(site) && /getElementById\('contact-form'\)/.test(cf) && /generate_lead/.test(cf));
     check('homepage no longer says "Alongside client projects"', !/Alongside client projects/i.test(idx));
     // The homepage services grid (with its Website Development card) was removed as a duplicate of /services; the header

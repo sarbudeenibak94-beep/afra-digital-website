@@ -15,6 +15,12 @@ const posterVisible = p => p.eval(`(() => { const i = document.querySelector('.h
 const robotRequests = p => p.log.requests.filter(r => ROBOT_JS.test(r.url)).length;
 const ENV_PNG = /\/assets\/img\/hero-robot-env\.png/; // baked reflections (D6.1)
 const envRequests = p => p.log.requests.filter(r => ENV_PNG.test(r.url)).length;
+// Live-robot pages run with a cleared but enabled HTTP cache: site.js prefetches the reflection PNG after the load event,
+// and the module's own fetch must then be served from that cache — two requests, exactly one network download.
+async function coldPage(opts) { const p = await browser.newPage({ ...opts, disableCache: false }); await p.S('Network.clearBrowserCache'); return p; }
+const envFetches = p => p.eval(`(() => { const nav = performance.getEntriesByType('navigation')[0], e = performance.getEntriesByType('resource').filter(x => /hero-robot-env\.png/.test(x.name));
+  return { n: e.length, net: e.filter(x => x.transferSize > 0).length, hit: e.filter(x => x.transferSize === 0 && x.decodedBodySize > 0).length, afterLoad: e.length > 0 && e.every(x => x.startTime >= nav.loadEventStart) }; })()`);
+const envDownloadedOnce = (p, f) => envRequests(p) === 2 && f.n === 2 && f.net === 1 && f.hit === 1 && f.afterLoad;
 const errors = p => p.log.exceptions.concat(p.log.console.filter(c => /^error/.test(c)), p.log.cspViolations);
 
 for (let i = 0; i < 60; i++) { try { if ((await fetch(S + '/')).ok) break; } catch {} await sleep(250); }
@@ -42,14 +48,15 @@ try {
 
   // ---------- 3: phones and touch tablets get the same live 3D robot (idle animation), sized below the hero copy ----------
   for (const [w, h] of [[320, 640], [390, 844], [430, 932], [1024, 768]]) {
-    const p = await browser.newPage({ width: w, height: h, mobile: true, initScript: 'window.__afraRobotTest = true;' });
+    const p = await coldPage({ width: w, height: h, mobile: true, initScript: 'window.__afraRobotTest = true;' });
     await p.goto(S + '/');
     const s = await waitState(p, ['live', 'failed', 'unsupported'], 25000);
     const a = await p.eval(`window.__afraRobot ? window.__afraRobot.pose.yaw : null`); await sleep(1500);
     const b = await p.eval(`window.__afraRobot ? window.__afraRobot.pose.yaw : null`);
     const r = await p.eval(`(() => { const host = document.querySelector('.hero-robot'), c = host.querySelector('canvas'), hb = host.getBoundingClientRect(), btns = document.querySelector('#hero .hero-btns').getBoundingClientRect();
       return { canvas: !!c, hidden: c && c.getAttribute('aria-hidden'), box: Math.round(hb.width), belowCtas: hb.top >= btns.bottom - 1, sw: document.documentElement.scrollWidth, vw: innerWidth }; })()`);
-    check(`${w}px touch device: live 3D robot (reflection PNG once), decorative canvas, idle animation running`, s === 'live' && robotRequests(p) === 1 && envRequests(p) === 1 && r.canvas && r.hidden === 'true' && a !== null && Math.abs(b - a) > 0.002, JSON.stringify({ s, req: robotRequests(p), env: envRequests(p), a, b, ...r }));
+    const ef = await envFetches(p);
+    check(`${w}px touch device: live 3D robot (reflection PNG prefetched after load, downloaded once), decorative canvas, idle animation running`, s === 'live' && robotRequests(p) === 1 && envDownloadedOnce(p, ef) && r.canvas && r.hidden === 'true' && a !== null && Math.abs(b - a) > 0.002, JSON.stringify({ s, req: robotRequests(p), env: envRequests(p), ef, a, b, ...r }));
     if (w < 1024) check(`${w}px phone: robot box sized for the full body (≥ 240 px) below the hero buttons, no horizontal overflow`, r.box >= 240 && r.belowCtas && r.sw <= r.vw, JSON.stringify(r));
     check(`${w}px touch device: no console errors, exceptions or CSP violations`, errors(p).length === 0, JSON.stringify(errors(p)).slice(0, 200));
     await p.close();
@@ -89,12 +96,13 @@ try {
 
   // ---------- 2 + 7(motion): eligible desktop goes live, tracks the pointer within limits, pauses off-screen ----------
   {
-    const p = await browser.newPage({ width: 1440, height: 900, initScript: 'window.__afraRobotTest = true;' });
+    const p = await coldPage({ width: 1440, height: 900, initScript: 'window.__afraRobotTest = true;' });
     await p.goto(S + '/');
     const s = await waitState(p, ['live', 'failed', 'unsupported']);
     const r = await p.eval(`(() => { const host = document.querySelector('.hero-robot'), c = host.querySelector('canvas'); return { canvas: !!c, hidden: c && c.getAttribute('aria-hidden'), w: c && c.width, cssW: Math.round(host.getBoundingClientRect().width), loadDone: document.readyState }; })()`);
     check('1440px desktop: module loads after the page and the robot goes live', s === 'live' && robotRequests(p) === 1 && r.canvas, JSON.stringify({ s, req: robotRequests(p), ...r }));
-    check('baked reflections: the environment PNG is requested once (no in-browser PMREM)', envRequests(p) === 1, JSON.stringify({ env: envRequests(p) }));
+    const ef = await envFetches(p);
+    check('baked reflections: the environment PNG is prefetched after load and downloaded once (cache hit on use; no in-browser PMREM)', envDownloadedOnce(p, ef), JSON.stringify({ env: envRequests(p), ef }));
     check('live canvas is decorative (aria-hidden) and fills the hero visual box', r.hidden === 'true' && r.w >= r.cssW, JSON.stringify(r));
     await sleep(1200);
     check('poster fades out once the robot is live (no double image)', await p.eval(`parseFloat(getComputedStyle(document.querySelector('.hero-robot-poster')).opacity) < 0.05`));

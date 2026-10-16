@@ -130,8 +130,11 @@
       s.onerror = function () { host.setAttribute('data-robot', 'failed'); };
       doc.head.appendChild(s);
     }
+    // Warm the HTTP cache right after the load event with the baked reflection map only (ENV_URL in hero-robot.src.js;
+    // lowest-priority prefetch, download only), so it is already cached when set-up starts. The module is not prefetched.
+    function warm() { var l = doc.createElement('link'); l.rel = 'prefetch'; l.href = '/assets/img/hero-robot-env.png?v=d61'; doc.head.appendChild(l); }
     // 1.5 s after load, then on idle: keeps set-up away from the visitor's first clicks (the poster shows meanwhile)
-    function whenIdle() { setTimeout(function () { if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 3000 }); else load(); }, 1500); }
+    function whenIdle() { warm(); setTimeout(function () { if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 3000 }); else load(); }, 1500); }
     if (doc.readyState === 'complete') whenIdle(); else window.addEventListener('load', whenIdle, { once: true });
   })();
 
