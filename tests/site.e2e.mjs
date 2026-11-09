@@ -195,10 +195,10 @@ try {
     }
 
     // Reduced motion: no homepage animation loops or keeps running (infinite animations end after one 0.01ms cycle via
-    // animation-iteration-count:1); content and the loader still reach their final state. Normal motion keeps all 20 loops (Design D6 replaced the hero logo, and with it one of the two 'logoFloat' loops; the robot redesign removed the hero rings and their two 'ringRotate*' loops;
+    // animation-iteration-count:1); content and the loader still reach their final state. Normal motion keeps all 25 loops (the hero robot environment added five: two 'heOrbit' light trails, two 'heFloat' glass panels, 'heDrift' particles; Design D6 replaced the hero logo, and with it one of the two 'logoFloat' loops; the robot redesign removed the hero rings and their two 'ringRotate*' loops;
     // the contact "Location" visual added five slow transform/opacity loops: two 'mapDrift' skyline layers, 'mapGlow', 'mapPinFloat', 'mapPulse' — none with reduced motion).
     {
-      const LOOPS = ['bgZoom', 'borderMove', 'dustMove', 'goldGlowMove', 'goldWaveMove', 'logoFloat', 'mapDrift', 'mapDrift', 'mapGlow', 'mapPinFloat', 'mapPulse', 'mq', 'particlesMove', 'raysMove',
+      const LOOPS = ['bgZoom', 'borderMove', 'dustMove', 'goldGlowMove', 'goldWaveMove', 'heDrift', 'heFloat', 'heFloat', 'heOrbit', 'heOrbit', 'logoFloat', 'mapDrift', 'mapDrift', 'mapGlow', 'mapPinFloat', 'mapPulse', 'mq', 'particlesMove', 'raysMove',
         'spGlowPulse', 'spGlowPulse', 'spGoldBorderMove', 'spGoldBorderMove', 'spTypeCursor', 'waFloat'];
       const probe = `(() => { const all = document.getAnimations().filter(a => a.effect); const inf = all.filter(a => a.effect.getComputedTiming().iterations === Infinity);
         return { infinite: inf.map(a => a.animationName).sort(), running: all.filter(a => a.playState === 'running').map(a => a.animationName),
@@ -213,7 +213,7 @@ try {
       }
       const r = res.reduce, n = res['no-preference'];
       check('prefers-reduced-motion: no homepage animation loops or is still running; heading visible and loader gone', r.infinite.length === 0 && r.running.length === 0 && r.heroVisible && r.loaderGone, JSON.stringify(r));
-      check('normal motion: the 20 decorative homepage loops are present and running', JSON.stringify(n.infinite) === JSON.stringify(LOOPS) && LOOPS.every(x => n.running.includes(x)) && n.heroVisible && n.loaderGone, JSON.stringify({ infinite: n.infinite.length, missing: LOOPS.filter(x => !n.infinite.includes(x)) }));
+      check('normal motion: the 25 decorative homepage loops are present and running', JSON.stringify(n.infinite) === JSON.stringify(LOOPS) && LOOPS.every(x => n.running.includes(x)) && n.heroVisible && n.loaderGone, JSON.stringify({ infinite: n.infinite.length, missing: LOOPS.filter(x => !n.infinite.includes(x)) }));
     }
 
     // Reduced motion: in-page menu jumps are instant (html{scroll-behavior:smooth} is overridden in the reduced-motion
@@ -270,7 +270,7 @@ try {
           belowCount: below.length, belowVisible: below.filter(e => +getComputedStyle(e).opacity > 0.5).length, belowOn: below.filter(e => e.classList.contains('on')).length,
           allRv: document.querySelectorAll('[rv]').length, allRvVisible: [...document.querySelectorAll('[rv]')].filter(e => +getComputedStyle(e).opacity > 0.5).length }; })()`;
       // Fast load: site.js hides and removes the loader; hero visible; scroll reveal untouched.
-      { const p = await browser.newPage({ width: 1440, height: 900 }); await p.goto(A + '/'); await sleep(2500); const s = await p.eval(state);
+      { const p = await browser.newPage({ width: 1440, height: 900 }); await p.goto(A + '/'); await sleep(3500); /* welcome held to 2.4 s after navigation start + 0.6 s fade */ const s = await p.eval(state);
         check('loader (fast load): removed by site.js, hero visible, html.js set', s.loader === 'removed' && s.h1 > 0.99 && s.js, JSON.stringify(s));
         check('reveal (fast load): below-the-fold sections still wait for scroll (reveal effect intact)', s.belowCount > 5 && s.belowVisible === 0, JSON.stringify(s));
         await p.close(); }

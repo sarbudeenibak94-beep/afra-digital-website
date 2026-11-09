@@ -42,26 +42,39 @@
 
   /* ---------- WELCOME SCREEN (#loader) — first entry per browser session, never waits for images ----------
      assets/js/welcome.js decides before the first paint (html.afra-welcome-seen = already shown this session). This
-     script is deferred, so the page is ready here: the welcome is held until ~1.2 s after navigation start so the
-     orbital animation reads, then fades (0.6 s) — at most ~1.8 s after readiness, and straight away when the page
-     became ready later than that. Reduced motion, a key press or a tap dismisses it at once. The CSS safety net hides
-     it if this script never runs. */
+     script is deferred, so the page is ready here: the welcome is held until 2.4 s after navigation start, then fades
+     (0.6 s) — about 2.5–3 s on screen on a fast visit — and is dismissed straight away when the page became ready
+     later than that, so a slow load never holds the visitor. Reduced motion, a key press or a tap dismisses it at once.
+     The CSS safety net (1.8 s) only hides it if this script never runs: it is cancelled here while still pending. */
   (function () {
     var loader = doc.getElementById('loader');
     if (!loader) return;
     function remove() { if (loader.parentNode) loader.parentNode.removeChild(loader); }
     if (root.classList.contains('afra-welcome-seen')) { remove(); return; }
-    var done = false;
-    function hide() {
+    var since = window.performance && performance.now ? performance.now() : 2400;
+    var done = false, removeTimer, fade;
+    function unlisten() { window.removeEventListener('keydown', skip); loader.removeEventListener('pointerdown', skip); }
+    function hide() { // immediate fade (transition)
       if (done) return; done = true;
-      loader.classList.add('hidden');
-      window.removeEventListener('keydown', hide); loader.removeEventListener('pointerdown', hide);
-      setTimeout(remove, 700);
+      if (fade) fade.cancel(); // a skip before 2.4 s: the pinned fade must not replay
+      loader.style.animation = 'none'; loader.classList.add('hidden');
+      unlisten(); clearTimeout(removeTimer); setTimeout(remove, 700);
     }
-    window.addEventListener('keydown', hide); loader.addEventListener('pointerdown', hide);
-    var since = window.performance && performance.now ? performance.now() : 1200;
-    if (reduceMotion) hide(); // synchronously: not after the rest of this script's start-up work
-    else setTimeout(hide, Math.max(0, 1200 - since));
+    // Late start (slow load or reduced motion): fade out now. Otherwise the scheduled fade replaces the CSS safety net
+    // (still pending: it starts at 1.8 s) and is pinned to 2.4 s after navigation start on the document timeline
+    // (explicit startTime), so a busy main thread — the 3D robot's set-up often starts around then — cannot push it
+    // back; at worst a late frame joins the fade part-way and it still ends at ~3.0 s.
+    if (reduceMotion || since >= 1700) { hide(); return; }
+    var FADE_AT = 2400, fadeIn = Math.round(FADE_AT - since);
+    loader.style.animation = 'none';
+    if (loader.animate && doc.timeline) {
+      fade = loader.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(1.02)', visibility: 'hidden', pointerEvents: 'none' }],
+        { duration: 600, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' });
+      fade.startTime = FADE_AT; // document timeline time = ms since navigation start
+    } else { removeTimer = setTimeout(hide, fadeIn); }
+    removeTimer = removeTimer || setTimeout(function () { done = true; unlisten(); remove(); }, fadeIn + 700);
+    function skip() { if (performance.now() < FADE_AT) hide(); } // a key or tap before the fade: dismiss now
+    window.addEventListener('keydown', skip); loader.addEventListener('pointerdown', skip);
   })();
 
   /* ---------- HERO CANVAS — interactive constellation ---------- (particles use --color-electric-cyan, 0,198,255: canvas cannot read CSS variables) */

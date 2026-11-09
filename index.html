@@ -39,7 +39,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap" rel="stylesheet">
 <script src="/assets/js/analytics.js?v=p8m2" defer></script>
-<script src="/assets/js/site.js?v=p8m2" defer></script>
+<script src="/assets/js/site.js?v=p8m3" defer></script>
 <script src="/assets/js/contact-form.js?v=p5b2" defer></script>
 <noscript><style>[rv]{opacity:1!important;transform:none!important}#loader{display:none!important}.faq-a{max-height:none!important}</style></noscript>
 <script type="application/ld+json">
@@ -781,7 +781,7 @@ html:not(.js) [rv]:not(.on){animation:rvFallback .3s ease 8s forwards;}
 
     inset:0;
 
-    background-image:url("/assets/img/ai-background-mr-1300.webp");
+    background-image:url("/assets/img/ai-background-1300.webp");
 
     background-size:cover;
 
@@ -1009,7 +1009,7 @@ html:not(.js) [rv]:not(.on){animation:rvFallback .3s ease 8s forwards;}
 
     background:
         linear-gradient(rgb(var(--rgb-midnight) / .45),rgb(var(--rgb-midnight) / .20)),
-        url("/assets/img/ai-background-mr-1300.webp");
+        url("/assets/img/ai-background-1300.webp");
 
     background-size:cover;
     background-position:center;
@@ -3189,7 +3189,7 @@ body.menu-open{overflow:hidden;}
 /* About heading */
 .about-title{margin:0;}
 /* Smaller about-panel background on phones */
-@media (max-width:768px){.ai-bg{background-image:linear-gradient(rgb(var(--rgb-midnight) / .45),rgb(var(--rgb-midnight) / .20)),url("/assets/img/ai-background-mr-800.webp");}}
+@media (max-width:768px){.ai-bg{background-image:linear-gradient(rgb(var(--rgb-midnight) / .45),rgb(var(--rgb-midnight) / .20)),url("/assets/img/ai-background-800.webp");}}
 
 /* Services: per-service enquiry link */
 .svc-link{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:.8rem;font-weight:600;color:var(--accent);}
@@ -3399,12 +3399,64 @@ html{scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));} /* key
 .hero-robot[data-robot="live"] .hero-robot-poster{opacity:0;}
 @media (prefers-reduced-motion:reduce){.hero-robot-poster,.hero-robot-canvas{transition:none;}}
 .hero-dash::before,.hero-dash::after{content:none;} /* the robot stands alone: no decorative rings behind it */
-/* About panel (Who We Are): the ai-background photo (Midnight Royal recolour, ai-background-mr-*) shown clearly, a thin bright accent
+/* Hero robot environment (decorative, aria-hidden, behind the robot): ambient light, a faint connected network,
+   two tilted orbital rings with light trails, a holographic floor, two small glass panels and drifting particles.
+   Transform/opacity animations only (composited); everything stays inside #hero (overflow hidden) and never covers
+   the copy. The robot, its box and its animation are untouched. Reduced motion: all loops stop (global rule). */
+.hero-env{position:absolute;inset:-12% -10% -14%;z-index:0;pointer-events:none;}
+.he-glow{position:absolute;inset:0;background:
+  radial-gradient(42% 38% at 50% 44%,rgb(var(--rgb-royal) / .32),transparent 72%),
+  radial-gradient(30% 26% at 50% 40%,rgb(var(--rgb-cyan) / .12),transparent 70%),
+  radial-gradient(34% 14% at 50% 86%,rgb(var(--rgb-brand-gold) / .16),transparent 75%),
+  radial-gradient(26% 24% at 86% 18%,rgb(var(--rgb-violet) / .12),transparent 72%);}
+.he-net{position:absolute;inset:4%;width:92%;height:92%;opacity:.55;}
+.he-net-lines path{fill:none;stroke:rgb(var(--rgb-cyan) / .22);stroke-width:.8;}
+.he-net-nodes circle{fill:rgb(var(--rgb-cyan) / .7);}
+.he-net-gold circle{fill:var(--brand-gold);opacity:.85;}
+.he-orbit{position:absolute;left:50%;top:60%;width:92%;aspect-ratio:1;translate:-50% -50%;border-radius:50%;
+  border:1px solid rgb(var(--rgb-cyan) / .22);transform:perspective(900px) rotateX(74deg);}
+.he-orbit::before{content:'';position:absolute;inset:-1px;border-radius:50%;
+  background:conic-gradient(from 0deg,transparent 0 70%,rgb(var(--rgb-cyan) / .75) 84%,rgb(var(--rgb-royal) / .5) 92%,transparent 96%);
+  -webkit-mask:radial-gradient(closest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));mask:radial-gradient(closest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));
+  animation:heOrbit 7s linear infinite;}
+.he-orbit-2{top:66%;width:70%;border-color:rgb(var(--rgb-brand-gold) / .14);}
+.he-orbit-2::before{background:conic-gradient(from 180deg,transparent 0 74%,rgb(var(--rgb-brand-gold) / .7) 88%,transparent 95%);animation-duration:11s;animation-direction:reverse;}
+.he-floor{position:absolute;left:50%;bottom:8%;width:62%;aspect-ratio:1;translate:-50% 50%;border-radius:50%;transform:perspective(800px) rotateX(78deg);
+  background:radial-gradient(closest-side,rgb(var(--rgb-cyan) / .2),rgb(var(--rgb-royal) / .08) 55%,transparent 72%),
+    repeating-radial-gradient(closest-side,transparent 0 14%,rgb(var(--rgb-cyan) / .14) 14.4% 15%);
+  -webkit-mask:radial-gradient(closest-side,#000 70%,transparent 100%);mask:radial-gradient(closest-side,#000 70%,transparent 100%);}
+.he-panel{position:absolute;display:flex;flex-direction:column;gap:7%;padding:5% 6%;border-radius:12px;
+  background:linear-gradient(150deg,rgb(var(--rgb-glass-blue) / .5),rgb(var(--rgb-deep-blue) / .25));border:1px solid rgb(var(--rgb-cyan) / .24);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 12px 30px rgba(0,0,0,.35);animation:heFloat 7s ease-in-out infinite alternate;}
+.he-panel i{display:block;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--color-electric-cyan),var(--color-royal-blue));opacity:.75;}
+.he-panel i:nth-child(1){width:72%;}.he-panel i:nth-child(2){width:46%;opacity:.5;}.he-panel i:nth-child(3){width:60%;opacity:.4;}
+.he-panel b{display:block;margin-top:auto;height:28%;border-radius:6px;background:linear-gradient(0deg,rgb(var(--rgb-cyan) / .18),transparent),
+  repeating-linear-gradient(90deg,rgb(var(--rgb-cyan) / .55) 0 3px,transparent 3px 9px);-webkit-mask:linear-gradient(0deg,#000,transparent);mask:linear-gradient(0deg,#000,transparent);}
+.he-panel-a{left:2%;top:12%;width:27%;aspect-ratio:1.25;transform:perspective(700px) rotateY(22deg);}
+.he-panel-b{right:1%;top:48%;width:22%;aspect-ratio:1.15;transform:perspective(700px) rotateY(-22deg);animation-duration:9s;animation-delay:-3s;border-color:rgb(var(--rgb-brand-gold) / .26);}
+.he-panel-b b{background:linear-gradient(0deg,rgb(var(--rgb-brand-gold) / .16),transparent),repeating-linear-gradient(90deg,rgb(var(--rgb-brand-gold) / .55) 0 3px,transparent 3px 9px);}
+.he-dust{position:absolute;inset:0;opacity:.7;background-image:
+  radial-gradient(1.4px 1.4px at 14% 70%,var(--color-electric-cyan),transparent),radial-gradient(1.2px 1.2px at 24% 34%,var(--brand-gold),transparent),
+  radial-gradient(1.6px 1.6px at 78% 28%,var(--color-electric-cyan),transparent),radial-gradient(1.2px 1.2px at 86% 64%,var(--brand-gold),transparent),
+  radial-gradient(1px 1px at 62% 12%,var(--color-white),transparent),radial-gradient(1.4px 1.4px at 40% 84%,var(--color-electric-cyan),transparent),
+  radial-gradient(1px 1px at 70% 80%,var(--color-violet),transparent),radial-gradient(1.2px 1.2px at 8% 46%,var(--color-white),transparent);
+  animation:heDrift 12s ease-in-out infinite alternate;}
+@keyframes heOrbit{to{rotate:360deg;}}
+@keyframes heFloat{from{translate:0 -6px;}to{translate:0 8px;}}
+@keyframes heDrift{from{translate:0 6px;opacity:.5;}to{translate:0 -10px;opacity:.85;}}
+@media (max-width:1023px){ /* phones/tablets: robot sits below the buttons — fewer, smaller elements */
+  .hero-env{inset:-4% -6% -10%;}
+  .he-panel-a{left:0;top:14%;width:24%;}
+  .he-panel-b{right:0;top:52%;width:20%;}
+  .he-net{opacity:.4;}
+}
+@media (max-width:480px){.he-panel{display:none;}.he-orbit{width:100%;}}
+/* About panel (Who We Are): the original gold ai-background photo on deep navy (panel uses .theme-warm: gold accents), a thin bright accent
    frame and controlled accent light; the logo stays square and sharp. height:auto keeps the square logo square (the
    width/height attributes otherwise forced a 1:1.55 stretch). */
 .about-left-panel{border:1px solid rgb(var(--accent-rgb) / .62);backdrop-filter:none;box-shadow:0 0 0 1px rgb(var(--accent-rgb) / .10),0 0 26px rgb(var(--accent-rgb) / .24),0 26px 70px rgba(0,0,0,.55);}
-.ai-bg{background:url("/assets/img/ai-background-mr-1300.webp") center/cover no-repeat;filter:brightness(1.45) contrast(1.1) saturate(1.15);}
-@media (max-width:768px){.ai-bg{background:url("/assets/img/ai-background-mr-800.webp") center 62%/cover no-repeat;}}
+.ai-bg{background:url("/assets/img/ai-background-1300.webp") center/cover no-repeat;filter:brightness(1.45) contrast(1.1) saturate(1.15);}
+@media (max-width:768px){.ai-bg{background:url("/assets/img/ai-background-800.webp") center 62%/cover no-repeat;}}
 /* one light vignette instead of the two dark overlays (black 15–55 % + navy 28–55 %) that hid the photo, plus a soft navy
    ellipse only behind the wordmark/tagline so they stay readable over the bright wave band */
 .about-bg-animation .gold-overlay{background:radial-gradient(ellipse 46% 9% at 50% 63.5%,rgb(var(--rgb-midnight) / .72),rgb(var(--rgb-midnight) / .35) 60%,transparent 100%),radial-gradient(ellipse 65% 50% at 50% 50%,rgb(var(--accent-rgb) / .16),transparent 70%),linear-gradient(180deg,transparent 55%,rgb(var(--rgb-midnight) / .32));}
@@ -3425,6 +3477,7 @@ html{scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));} /* key
 #about .about-bg-animation .gold-overlay{background:
   radial-gradient(ellipse 54% 14% at 50% 71%,rgb(var(--rgb-midnight) / .86),rgb(var(--rgb-midnight) / .5) 60%,transparent 100%),   /* behind the wordmark + tagline */
   radial-gradient(ellipse 58% 44% at 50% 46%,rgb(var(--accent-rgb) / .12),transparent 70%),                     /* restrained gold light behind the mark */
+  radial-gradient(ellipse 75% 32% at 50% 102%,rgb(255 166 77 / .14),transparent 72%),                 /* warm amber light rising from the floor */
   radial-gradient(ellipse 90% 85% at 50% 48%,transparent 52%,rgb(var(--rgb-midnight) / .72) 100%);}                   /* cinematic vignette */
 #about .about-bg-animation .gold-wave{opacity:.3;}
 #about .about-bg-animation .gold-grid{opacity:.28;}
@@ -3691,6 +3744,16 @@ html{scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));} /* key
       </div>
       <div class="hero-right">
         <div style="position:relative;width:100%;max-width:470px;">
+          <div class="hero-env" aria-hidden="true">
+            <div class="he-glow"></div>
+            <svg class="he-net" viewBox="0 0 400 400" focusable="false"><g class="he-net-lines"><path d="M34 92 96 58 150 104 M96 58 112 18 M150 104 92 160 34 92 M300 40 352 86 330 150 M352 86 392 70 M330 150 384 196 M58 300 18 252 M58 300 104 346 M330 300 380 328 352 372"/></g><g class="he-net-nodes"><circle cx="34" cy="92" r="2"/><circle cx="96" cy="58" r="2.4"/><circle cx="150" cy="104" r="1.8"/><circle cx="112" cy="18" r="1.6"/><circle cx="92" cy="160" r="1.8"/><circle cx="300" cy="40" r="1.8"/><circle cx="352" cy="86" r="2.4"/><circle cx="392" cy="70" r="1.6"/><circle cx="330" cy="150" r="2"/><circle cx="384" cy="196" r="1.6"/><circle cx="58" cy="300" r="2"/><circle cx="18" cy="252" r="1.6"/><circle cx="104" cy="346" r="1.6"/><circle cx="330" cy="300" r="1.8"/><circle cx="380" cy="328" r="1.6"/><circle cx="352" cy="372" r="1.8"/></g><g class="he-net-gold"><circle cx="96" cy="58" r="2.4"/><circle cx="352" cy="86" r="2.4"/><circle cx="58" cy="300" r="2"/></g></svg>
+            <div class="he-orbit he-orbit-1"></div>
+            <div class="he-orbit he-orbit-2"></div>
+            <div class="he-floor"></div>
+            <div class="he-panel he-panel-a"><i></i><i></i><i></i><b></b></div>
+            <div class="he-panel he-panel-b"><i></i><i></i><b></b></div>
+            <div class="he-dust"></div>
+          </div>
           <div class="hero-dash">
             <div class="hero-robot" data-robot="poster">
               <img class="hero-robot-poster" src="/assets/img/hero-robot-640.webp?v=d7" srcset="/assets/img/hero-robot-384.webp?v=d7 384w, /assets/img/hero-robot-640.webp?v=d7 640w, /assets/img/hero-robot-960.webp?v=d7 960w" sizes="(max-width: 480px) 350px, (max-width: 768px) 360px, (max-width: 900px) 610px, (max-width: 1023px) 450px, (max-width: 1180px) 530px, 610px" alt="Black-and-gold AI robot illustration" width="640" height="640" fetchpriority="high" decoding="async">
@@ -4236,7 +4299,7 @@ html{scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));} /* key
     <div class="about-grid">
       <div rv="l">
 
-      <div class="about-left-panel">
+      <div class="about-left-panel theme-warm">
 
       <div class="about-bg-animation" aria-hidden="true">
 
