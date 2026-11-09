@@ -208,7 +208,7 @@
     if (cssPromise) return cssPromise;
     cssPromise = new Promise(function (resolve) {
       var l = doc.createElement('link');
-      l.id = 'afra-consent-css'; l.rel = 'stylesheet'; l.href = '/assets/css/consent.css';
+      l.id = 'afra-consent-css'; l.rel = 'stylesheet'; l.href = '/assets/css/consent.css?v=p8m2'; // bump with consent.css changes (analytics.js itself is versioned in each page)
       var done = false;
       function finish() { if (!done) { done = true; resolve(); } }
       l.onload = finish; l.onerror = finish;

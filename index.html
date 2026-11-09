@@ -9,6 +9,7 @@
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="author" content="AFRA DIGITAL">
 <meta name="theme-color" content="#080E1C">
+<script src="/assets/js/welcome.js?v=p8m2"></script>
 <meta name="geo.region" content="QA">
 <meta name="geo.placename" content="Doha, Qatar">
 
@@ -37,8 +38,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap" rel="stylesheet">
-<script src="/assets/js/analytics.js" defer></script>
-<script src="/assets/js/site.js?v=p8m1" defer></script>
+<script src="/assets/js/analytics.js?v=p8m2" defer></script>
+<script src="/assets/js/site.js?v=p8m2" defer></script>
 <script src="/assets/js/contact-form.js?v=p5b2" defer></script>
 <noscript><style>[rv]{opacity:1!important;transform:none!important}#loader{display:none!important}.faq-a{max-height:none!important}</style></noscript>
 <script type="application/ld+json">
@@ -291,41 +292,57 @@ body:has(button:hover) #cursor-ring{
   width:52px;height:52px;border-color:var(--accent);
 }
 
-/* ---- LOADING SCREEN ---- */
+/* ---- WELCOME SCREEN (#loader) ----
+   Full-screen Midnight Royal welcome on the first entry of a browser session (assets/js/welcome.js decides before the
+   first paint; site.js dismisses it). Logo shown once — the emblem part of the original artwork, cropped by CSS, so the
+   wordmark and tagline are not repeated next to the heading. Indeterminate orbital loader (no fake percentages).
+   Transform/opacity animations only; removed from the DOM after it fades. */
 #loader{
-  position:fixed;inset:0;z-index:100000;
-  background:var(--bg);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:24px;
+  position:fixed;inset:0;z-index:100000;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;padding:24px 16px;
+  background:
+    radial-gradient(60% 45% at 50% 40%,rgb(var(--rgb-royal) / 0.16),transparent 70%),
+    radial-gradient(42% 36% at 15% 88%,rgb(var(--rgb-violet) / 0.16),transparent 70%),
+    radial-gradient(40% 34% at 86% 10%,rgb(var(--rgb-cyan) / 0.1),transparent 70%),
+    var(--color-midnight);
   transition:opacity 0.6s var(--ease),transform 0.6s var(--ease);
 }
-#loader.hidden{opacity:0;transform:translateY(-20px);pointer-events:none;}
-.loader-logo{
-  display:flex;align-items:center;gap:12px;
-  font-size:1.3rem;font-weight:900;letter-spacing:0.08em;
-}
-.loader-mark{
-    width:56px;
-    height:56px;
-    border-radius:14px;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    background:transparent;
-    box-shadow:none;
-}
-
-.loader-mark img{
-    width:100%;
-    height:100%;
-    object-fit:contain;
-}
-@keyframes loaderPulse{0%,100%{box-shadow:0 8px 32px rgb(var(--accent-rgb) / 0.5);}50%{box-shadow:0 8px 48px rgb(var(--accent-rgb) / 0.8);}}
-.loader-bar-track{width:200px;height:2px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;}
-.loader-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-bright));border-radius:2px;animation:loadFill 1.8s var(--ease) forwards;}
-@keyframes loadFill{from{width:0;}to{width:100%;}}
-.loader-text{font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gray-600);}
+#loader.hidden{opacity:0;transform:scale(1.02);pointer-events:none;}
+.afra-welcome-seen #loader{display:none;}
+/* flowing light: two thin arcs sweeping slowly around the composition */
+.wl-light{position:absolute;left:50%;top:46%;width:min(150vw,1100px);aspect-ratio:1;translate:-50% -50%;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 0deg,transparent 0 62%,rgb(var(--rgb-cyan) / 0.42) 72%,rgb(var(--rgb-violet) / 0.36) 80%,transparent 88%);
+  -webkit-mask:radial-gradient(closest-side,transparent calc(100% - 3px),#000 calc(100% - 2px),#000 99%,transparent 100%);
+  mask:radial-gradient(closest-side,transparent calc(100% - 3px),#000 calc(100% - 2px),#000 99%,transparent 100%);
+  animation:wlSpin 9s linear infinite;}
+.wl-light-2{width:min(112vw,800px);opacity:0.55;animation-duration:13s;animation-direction:reverse;}
+.wl-inner{position:relative;display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2.2vh,18px);text-align:center;max-width:100%;animation:wlIn 0.7s var(--ease) both;}
+.wl-emblem{width:clamp(84px,22vw,148px);aspect-ratio:384/258;overflow:hidden;filter:drop-shadow(0 6px 22px rgb(var(--rgb-brand-gold) / 0.22));}
+.wl-emblem img{display:block;width:100%;height:auto;}
+.wl-title{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.05;}
+.wl-pre{font-size:clamp(1rem,3.6vw,1.35rem);font-weight:600;color:var(--color-white);letter-spacing:0.01em;}
+.wl-brand{font-size:clamp(2rem,9vw,3.6rem);font-weight:900;letter-spacing:0.04em;color:var(--color-white);white-space:nowrap;}
+.wl-gold{color:var(--brand-gold);}
+.wl-tag{margin:0;font-size:clamp(0.72rem,2.6vw,0.95rem);font-weight:500;letter-spacing:0.3em;padding-left:0.3em;color:var(--color-muted);white-space:nowrap;}
+.wl-tag b{color:var(--color-electric-cyan);font-weight:700;margin:0 0.45em;}
+.wl-orbit{position:relative;width:clamp(150px,min(48vw,30vh),230px);aspect-ratio:1;margin-top:clamp(6px,2vh,16px);}
+.wl-orbit::after{content:'';position:absolute;left:12%;right:12%;bottom:-16%;height:14%;border-radius:50%;background:radial-gradient(closest-side,rgb(var(--rgb-cyan) / 0.3),transparent);}
+.wl-ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.wl-track{fill:none;stroke:rgb(var(--rgb-cyan) / 0.16);stroke-width:2;}
+.wl-track-in{stroke:rgb(var(--rgb-royal) / 0.12);stroke-width:1;}
+.wl-seg-a{filter:drop-shadow(0 0 6px rgb(var(--rgb-cyan) / 0.55));animation:wlSpin 2.2s linear infinite;}
+.wl-seg-b{filter:drop-shadow(0 0 6px rgb(var(--rgb-violet) / 0.5));animation:wlSpin 3.4s linear infinite reverse;}
+.wl-spark{position:absolute;inset:0;animation:wlSpin 1.6s linear infinite;}
+.wl-spark i{position:absolute;left:50%;top:6%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--color-white);
+  box-shadow:0 0 10px 3px rgb(var(--rgb-cyan) / 0.8),0 0 22px 6px rgb(var(--rgb-cyan) / 0.3);}
+.wl-core{position:absolute;inset:18%;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:10%;
+  background:radial-gradient(circle at 35% 28%,rgb(var(--rgb-glass-blue) / 0.75),rgb(var(--rgb-deep-blue) / 0.6) 60%,rgb(var(--rgb-midnight) / 0.7));
+  border:1px solid rgb(var(--rgb-cyan) / 0.22);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),inset 0 0 24px rgb(var(--rgb-cyan) / 0.1),0 10px 30px rgba(0,0,0,0.35);}
+.wl-core span{font-size:clamp(0.68rem,2.4vw,0.8rem);font-weight:600;line-height:1.35;letter-spacing:0.03em;color:var(--color-white);}
+@keyframes wlSpin{to{rotate:360deg;}}
+@keyframes wlIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@media (max-width:380px){.wl-tag{letter-spacing:0.2em;padding-left:0.2em;}.wl-tag b{margin:0 0.3em;}}
 
 /* ---- NAVBAR ---- */
 #nav{
@@ -1407,14 +1424,6 @@ display:none;
   #hero,section,footer,.mq-wrap,.cta-strip{overflow-x:hidden;}
 }
 
-/* ─── LOADER ──────────────────────────────────────────────── */
-@media (max-width:768px){
-  .loader-logo{font-size:1.1rem;gap:10px;}
-  .loader-mark{width:42px;height:42px;border-radius:10px;}
-  .loader-mark img{width:100%;height:100%;object-fit:contain;}
-  .loader-bar-track{width:150px;}
-  .loader-text{font-size:0.65rem;}
-}
 
 /* ─── NAVBAR ─────────────────────────────────────────────── */
 @media (max-width:768px){
@@ -3134,11 +3143,10 @@ section[id],.sp-product-block[id],#platform-fit{scroll-margin-top:84px;}
 .cursor-on #cursor,.cursor-on #cursor-ring{opacity:1;}
 html:not(.fine-pointer) #cursor,html:not(.fine-pointer) #cursor-ring{display:none;}
 
-/* Loader: short brand intro. site.js hides it as soon as it runs; this CSS safety net hides it 1 s after the
-   first frame even if JS fails (was 2.5 s). */
-#loader{animation:loaderAutoHide .5s ease 1s forwards;}
+/* Welcome screen safety net: site.js dismisses it ~1.2 s after navigation start; if site.js never runs, this hides it
+   1.8 s after the first frame (invisible and not clickable by ~2.3 s). */
+#loader{animation:loaderAutoHide .5s ease 1.8s forwards;}
 @keyframes loaderAutoHide{to{opacity:0;visibility:hidden;pointer-events:none;}}
-.loader-bar-fill{animation-duration:.5s;}
 
 /* Hero: canvas fills the section; headline column gets more room */
 #hero-canvas{width:100%;height:100%;}
@@ -3602,13 +3610,19 @@ html{scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));} /* key
 <div id="cursor-ring" aria-hidden="true"></div>
 
 <div id="loader" aria-hidden="true">
-  <div class="loader-logo">
-    <div class="loader-mark">
-      <img src="/assets/img/afra-logo-128.webp" alt="" width="56" height="56">
+  <div class="wl-light"></div><div class="wl-light wl-light-2"></div>
+  <div class="wl-inner">
+    <div class="wl-emblem"><img src="/assets/img/afra-logo-256.webp" srcset="/assets/img/afra-logo-128.webp 128w, /assets/img/afra-logo-256.webp 256w, /assets/img/afra-logo-384.webp 384w" sizes="(max-width:672px) 22vw, 148px" alt="" width="256" height="256" decoding="async"></div>
+    <p class="wl-title"><span class="wl-pre">Welcome to</span><span class="wl-brand">AFRA <span class="wl-gold">DIGITAL</span></span></p>
+    <p class="wl-tag">Design<b>•</b>Develop<b>•</b>Market</p>
+    <div class="wl-orbit">
+      <svg class="wl-ring" viewBox="0 0 200 200" focusable="false"><circle class="wl-track" cx="100" cy="100" r="88"/><circle class="wl-track wl-track-in" cx="100" cy="100" r="76"/></svg>
+      <svg class="wl-ring wl-seg-a" viewBox="0 0 200 200" focusable="false"><defs><linearGradient id="wl-ga" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00C6FF"/><stop offset="1" stop-color="#3978F6"/></linearGradient></defs><circle cx="100" cy="100" r="88" stroke="url(#wl-ga)" stroke-width="4" stroke-linecap="round" stroke-dasharray="150 403" fill="none"/></svg>
+      <svg class="wl-ring wl-seg-b" viewBox="0 0 200 200" focusable="false"><defs><linearGradient id="wl-gb" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#3978F6"/></linearGradient></defs><circle cx="100" cy="100" r="88" stroke="url(#wl-gb)" stroke-width="3" stroke-linecap="round" stroke-dasharray="92 461" stroke-dashoffset="-260" fill="none"/></svg>
+      <div class="wl-spark"><i></i></div>
+      <div class="wl-core"><span>Loading your experience...</span></div>
     </div>
-    <span>AFRA <span style="color:var(--brand-gold)">DIGITAL</span></span>
   </div>
-  <div class="loader-bar-track"><div class="loader-bar-fill"></div></div>
 </div>
 
 <a id="wa-float" href="https://wa.me/97430029799?text=Hello%20AFRA%20DIGITAL%2C%20I%20would%20like%20to%20discuss%20a%20project." target="_blank" rel="noopener" aria-label="Chat with AFRA DIGITAL on WhatsApp"><span aria-hidden="true">💬</span></a>
@@ -3776,7 +3790,7 @@ html{scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));} /* key
       </div>
       <div class="port-card" rv="u" d1>
         <div class="port-vis pv pv-brand" aria-hidden="true"><div class="port-glow" style="background:var(--orange);left:20%;bottom:20%;"></div><div class="pv-desk pv-site"><div class="pv-bar"><i></i><i></i><i></i><span>afra-digital.com</span></div><div class="pv-web"><div class="pv-nav"><img src="/assets/img/afra-logo-128.webp" alt="" width="128" height="128" loading="lazy" decoding="async"><b>AFRA <em>DIGITAL</em></b><i></i><i></i><i></i></div><div class="pv-hero"><div class="pv-copy"><small>Doha, Qatar</small><strong>Websites, Apps <em>&amp; AI Solutions</em></strong><span class="pv-btn"></span><span class="pv-btn ghost"></span></div><img class="pv-robot" src="/assets/img/hero-robot-384.webp?v=d7" alt="" width="384" height="384" loading="lazy" decoding="async"></div></div></div><div class="pv-phone pv-ph-site"><div class="pv-notch"></div><img src="/assets/img/afra-logo-128.webp" alt="" width="128" height="128" loading="lazy" decoding="async"><strong>Websites, Apps <em>&amp; AI Solutions</em></strong><span class="pv-btn"></span><span class="pv-btn ghost"></span></div></div>
-        <div class="port-info"><div class="port-cat">AFRA DIGITAL brand · Identity &amp; website</div><h3 class="port-name">AFRA DIGITAL Brand &amp; Website</h3><div class="port-desc">Our own brand identity and this website: logo, black-and-gold visual system and responsive web design.</div></div>
+        <div class="port-info"><div class="port-cat">AFRA DIGITAL brand · Identity &amp; website</div><h3 class="port-name">AFRA DIGITAL Brand &amp; Website</h3><div class="port-desc">Our own brand identity and this website: logo and premium visual identity, and responsive web design.</div></div>
       </div>
     </div>
   </div>

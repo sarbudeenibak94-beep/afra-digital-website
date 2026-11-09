@@ -40,18 +40,28 @@
     doc.addEventListener('mouseleave', function () { root.classList.remove('cursor-on'); shown = false; });
   })();
 
-  /* ---------- LOADER — brief brand intro that never waits for images ---------- */
+  /* ---------- WELCOME SCREEN (#loader) — first entry per browser session, never waits for images ----------
+     assets/js/welcome.js decides before the first paint (html.afra-welcome-seen = already shown this session). This
+     script is deferred, so the page is ready here: the welcome is held until ~1.2 s after navigation start so the
+     orbital animation reads, then fades (0.6 s) — at most ~1.8 s after readiness, and straight away when the page
+     became ready later than that. Reduced motion, a key press or a tap dismisses it at once. The CSS safety net hides
+     it if this script never runs. */
   (function () {
     var loader = doc.getElementById('loader');
     if (!loader) return;
+    function remove() { if (loader.parentNode) loader.parentNode.removeChild(loader); }
+    if (root.classList.contains('afra-welcome-seen')) { remove(); return; }
+    var done = false;
     function hide() {
-      if (!loader.parentNode) return;
+      if (done) return; done = true;
       loader.classList.add('hidden');
-      setTimeout(function () { if (loader.parentNode) loader.parentNode.removeChild(loader); }, 700);
+      window.removeEventListener('keydown', hide); loader.removeEventListener('pointerdown', hide);
+      setTimeout(remove, 700);
     }
-    // This script is deferred, so the DOM is already parsed here. The loader has already shown the
-    // brand while CSS/fonts loaded; hide it straight away (it fades out) instead of waiting for images.
-    hide();
+    window.addEventListener('keydown', hide); loader.addEventListener('pointerdown', hide);
+    var since = window.performance && performance.now ? performance.now() : 1200;
+    if (reduceMotion) hide(); // synchronously: not after the rest of this script's start-up work
+    else setTimeout(hide, Math.max(0, 1200 - since));
   })();
 
   /* ---------- HERO CANVAS — interactive constellation ---------- (particles use --color-electric-cyan, 0,198,255: canvas cannot read CSS variables) */
