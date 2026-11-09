@@ -96,7 +96,7 @@ try {
     const site = read('assets/js/site.js').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''); // code only, comments removed
     const tags = [...idx.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map(m => m[1]);
     check('homepage loads analytics.js, site.js and contact-form.js (deferred, in that order; changed files versioned)',
-      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js', '/assets/js/site.js?v=p7r5', '/assets/js/contact-form.js?v=p5b2']), tags.join(' | '));
+      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js', '/assets/js/site.js?v=p8m1', '/assets/js/contact-form.js?v=p5b2']), tags.join(' | '));
     check('form logic lives only in contact-form.js (site.js has none; no double binding)', !/contact-form|cf-source|form-btn|generate_lead/.test(site) && /getElementById\('contact-form'\)/.test(cf) && /generate_lead/.test(cf));
     check('homepage no longer says "Alongside client projects"', !/Alongside client projects/i.test(idx));
     // The homepage services grid (with its Website Development card) was removed as a duplicate of /services; the header
@@ -211,7 +211,7 @@ try {
       check(`${path}: FAQ items open with the keyboard (native details/summary)`, await p.eval(`document.querySelector('.svp-faq details').open === true`));
       // contrast of body text against the page background
       const contrast = await p.eval(`(() => { const lum = c => { const v = c.match(/[\\d.]+/g).slice(0, 3).map(Number).map(x => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
-        const bg = lum('rgb(2,6,23)'); const out = [];
+        const bg = lum('rgb(8,14,28)'); const out = [];
         ['.t1', '.svp-card p', '.svp-steps p', '.svp-note', '.price-feat:not(.dim)', '.price-per', '.fl', '.foot-links a', '.foot-copy', '.svp-crumbs a', '.ci-s', '.svp-checks li', '.svp-text p', '.form-note', '.svp-related a'].forEach(sel => {
           const el = document.querySelector(sel); if (!el) { out.push({ sel, missing: true }); return; }
           const L = lum(getComputedStyle(el).color); out.push({ sel, ratio: +((Math.max(L, bg) + 0.05) / (Math.min(L, bg) + 0.05)).toFixed(2) }); });

@@ -54,7 +54,7 @@
     hide();
   })();
 
-  /* ---------- HERO CANVAS — interactive constellation ---------- */
+  /* ---------- HERO CANVAS — interactive constellation ---------- (particles use --color-electric-cyan, 0,198,255: canvas cannot read CSS variables) */
   (function () {
     var cv = doc.getElementById('hero-canvas');
     var hero = doc.getElementById('hero');
@@ -84,7 +84,7 @@
           if (d2 < LINK * LINK) {
             var d = Math.sqrt(d2);
             ctx.beginPath();
-            ctx.strokeStyle = 'rgba(212,175,55,' + ((1 - d / LINK) * 0.2) + ')';
+            ctx.strokeStyle = 'rgba(0,198,255,' + ((1 - d / LINK) * 0.2) + ')';
             ctx.lineWidth = 0.7;
             ctx.moveTo(nodes[a].x, nodes[a].y);
             ctx.lineTo(nodes[b].x, nodes[b].y);
@@ -93,7 +93,7 @@
         }
         ctx.beginPath();
         ctx.arc(nodes[a].x, nodes[a].y, nodes[a].r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(212,175,55,0.5)';
+        ctx.fillStyle = 'rgba(0,198,255,0.5)';
         ctx.fill();
       }
     }
@@ -377,7 +377,7 @@
 
   /* Touch feedback for feature chips */
   doc.querySelectorAll('.sp-feat').forEach(function (el) {
-    el.addEventListener('touchstart', function () { el.style.background = 'var(--gold-dim)'; }, { passive: true });
+    el.addEventListener('touchstart', function () { el.style.background = 'var(--accent-dim)'; }, { passive: true });
     el.addEventListener('touchend', function () { setTimeout(function () { el.style.background = ''; }, 300); }, { passive: true });
   });
 
@@ -413,14 +413,14 @@
           if (d2 < 12100) {
             var dist = Math.sqrt(d2);
             ctx.beginPath();
-            ctx.strokeStyle = 'rgba(212,175,55,' + (0.08 * (1 - dist / 110)) + ')';
+            ctx.strokeStyle = 'rgba(0,198,255,' + (0.08 * (1 - dist / 110)) + ')';
             ctx.lineWidth = 0.5;
             ctx.moveTo(q.x, q.y); ctx.lineTo(r.x, r.y); ctx.stroke();
           }
         }
         ctx.beginPath();
         ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(212,175,55,' + q.alpha + ')';
+        ctx.fillStyle = 'rgba(0,198,255,' + q.alpha + ')';
         ctx.fill();
       }
       rafId = requestAnimationFrame(draw);
