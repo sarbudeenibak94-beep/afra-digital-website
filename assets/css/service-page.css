@@ -162,6 +162,12 @@ body.menu-open{overflow:hidden;}
 .form-error a{color:var(--accent-bright);text-decoration:underline;}
 .form-note{font-size:.75rem;color:var(--gray-500);margin:4px 0 16px;line-height:1.6;}
 .form-note a{color:var(--accent);text-decoration:underline;}
+/* Cloudflare Turnstile widget (contact form): space reserved so the widget does not shift the button below it */
+.ts-wrap{margin:6px 0 14px;max-width:100%;container-type:inline-size;}
+.ts-widget{min-height:73px;max-width:100%;}                       /* flexible widget height */
+@container (max-width:299px){.ts-widget{min-height:148px;}}     /* compact widget (contact-form.js picks it below 300px) */
+.ts-msg{font-size:.82rem;line-height:1.55;color:#FCA5A5;margin:8px 0 0;}
+.ts-msg a{color:var(--accent);text-decoration:underline;}
 .plan-chip{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 17px;padding:6px 6px 6px 14px;border:1px solid var(--accent-border);border-radius:var(--r-sm);background:var(--accent-dim);font-size:.85rem;color:var(--gray-100);}
 .plan-chip strong{color:var(--accent-bright);}
 .plan-chip-clear{min-width:36px;min-height:36px;border-radius:8px;font-size:1.25rem;line-height:1;color:var(--gray-100);cursor:pointer;}

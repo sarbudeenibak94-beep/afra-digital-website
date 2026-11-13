@@ -75,7 +75,73 @@
     var GENERIC = 'Sorry, your message could not be sent right now. Please contact us on WhatsApp or by email.';
     var FIELDS = ['firstName', 'lastName', 'email', 'phone', 'company', 'service', 'budget', 'timeline', 'contactPref', 'plan', 'source', 'message'];
 
-    form.addEventListener('focusin', function () { if (!started) { started = true; track('contact_form_start', { form_id: 'contact' }); } });
+    form.addEventListener('focusin', function () { loadTurnstile(); if (!started) { started = true; track('contact_form_start', { form_id: 'contact' }); } });
+
+    /* ---------- Cloudflare Turnstile (Managed mode) — spam protection ----------
+       The public site key comes from /api/form-config (server env TURNSTILE_SITE_KEY; there is no build step). The
+       Cloudflare script is loaded only when the form is near the viewport, focused or submitted. Most visitors never
+       see a challenge. Every token is single-use and is verified by /api/contact on the server; the widget is reset
+       after every server response so the next attempt gets a fresh token. */
+    var TS_SLOT = doc.getElementById('cf-turnstile'), tsMsg = doc.getElementById('cf-ts-msg');
+    var ts = { state: 'idle', id: null, token: '', waiters: [], action: 'contact' };
+    var TS_UNAVAILABLE = 'Our security check could not load. Please refresh the page and try again, or contact us on WhatsApp or by email.';
+    function tsNote(msg) { if (!tsMsg) return; tsMsg.textContent = msg || ''; tsMsg.hidden = !msg; }
+    function tsSettle(token) { var w = ts.waiters; ts.waiters = []; w.forEach(function (fn) { fn(token); }); }
+    function tsFail() { ts.state = 'unavailable'; tsNote(TS_UNAVAILABLE); tsSettle(''); }
+    function renderTurnstile(siteKey) {
+      if (!window.turnstile || !TS_SLOT) return tsFail();
+      try {
+        ts.id = window.turnstile.render(TS_SLOT, {
+          sitekey: siteKey, action: ts.action, theme: 'dark', language: 'en',
+          size: TS_SLOT.clientWidth && TS_SLOT.clientWidth < 300 ? 'compact' : 'flexible',
+          'refresh-expired': 'auto', 'response-field': false,
+          callback: function (token) { ts.token = token; ts.state = 'ready'; tsNote(''); tsSettle(token); },
+          'expired-callback': function () { ts.token = ''; },
+          'timeout-callback': function () { ts.token = ''; tsNote('The security check timed out. Please complete it again.'); },
+          'error-callback': function () { ts.token = ''; tsNote('The security check could not be completed. Please try again, or contact us on WhatsApp or by email.'); tsSettle(''); return true; },
+        });
+        ts.state = 'rendered';
+      } catch (e) { tsFail(); }
+    }
+    function loadTurnstile() {
+      if (ts.state !== 'idle' || !TS_SLOT) return;
+      ts.state = 'loading';
+      var guard = setTimeout(function () { if (ts.state === 'loading') tsFail(); }, 15000);
+      fetch('/api/form-config', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (cfg) {
+          var key = cfg && typeof cfg.turnstileSiteKey === 'string' ? cfg.turnstileSiteKey : '';
+          if (!key) { clearTimeout(guard); return tsFail(); }
+          if (cfg.turnstileAction) ts.action = String(cfg.turnstileAction);
+          window.afraTurnstileReady = function () { clearTimeout(guard); renderTurnstile(key); };
+          var sc = doc.createElement('script');
+          sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=afraTurnstileReady';
+          sc.async = true; sc.defer = true;
+          sc.onerror = function () { clearTimeout(guard); tsFail(); };
+          doc.head.appendChild(sc);
+        })
+        .catch(function () { clearTimeout(guard); tsFail(); });
+    }
+    // Resolves with a fresh token, or '' if none arrives in time (the submission is then not sent).
+    function getToken(timeoutMs) {
+      if (ts.token) return Promise.resolve(ts.token);
+      loadTurnstile();
+      if (ts.state === 'unavailable') return Promise.resolve('');
+      return new Promise(function (resolve) {
+        var done = false;
+        function finish(t) { if (!done) { done = true; resolve(t || ''); } }
+        ts.waiters.push(finish);
+        setTimeout(function () { finish(ts.token); }, timeoutMs);
+      });
+    }
+    function resetTurnstile() { // a token is consumed by the server on every submission
+      ts.token = '';
+      if (window.turnstile && ts.id !== null) { try { window.turnstile.reset(ts.id); } catch (e) { /* re-rendered on the next load */ } }
+    }
+    if (TS_SLOT && 'IntersectionObserver' in window) {
+      var tsIo = new IntersectionObserver(function (en) { if (en.some(function (x) { return x.isIntersecting; })) { tsIo.disconnect(); loadTurnstile(); } }, { rootMargin: '600px 0px' });
+      tsIo.observe(form);
+    }
 
     function fieldEl(name) { return form.elements[name]; }
     function setFieldError(name, code) {
@@ -142,6 +208,21 @@
 
       setLoading(true);
       track('form_submit_attempt', { form_id: 'contact' });
+      getToken(15000).then(function (token) {
+        if (!token) {
+          setLoading(false);
+          showFormError(ts.state === 'unavailable' ? TS_UNAVAILABLE : 'Please complete the security check above, then send your message again.');
+          errBox.focus();
+          track('form_error', { form_id: 'contact', error_code: ts.state === 'unavailable' ? 'turnstile_unavailable' : 'turnstile_pending' });
+          return;
+        }
+        payload['cf-turnstile-response'] = token;
+        ts.token = ''; // single-use: never sent twice
+        sendPayload(payload, d);
+      });
+    });
+
+    function sendPayload(payload, d) {
       var controller = window.AbortController ? new AbortController() : null;
       var timer = setTimeout(function () { if (controller) controller.abort(); }, 20000);
 
@@ -156,6 +237,7 @@
       }).then(function (r) {
         clearTimeout(timer);
         setLoading(false);
+        resetTurnstile();
         if (r.status === 200 && r.body && r.body.ok === true) {
           form.hidden = true;
           var refBox = doc.getElementById('form-ref'), refCode = doc.getElementById('form-ref-code');
@@ -182,6 +264,7 @@
       }).catch(function (err) {
         clearTimeout(timer);
         setLoading(false);
+        resetTurnstile();
         var aborted = err && err.name === 'AbortError';
         showFormError(aborted
           ? 'Sending is taking too long and your message may not have been delivered. Please contact us on WhatsApp or by email.'
@@ -189,6 +272,6 @@
         errBox.focus();
         track('form_error', { form_id: 'contact', error_code: aborted ? 'client_timeout' : 'network' });
       });
-    });
+    }
   })();
 })();

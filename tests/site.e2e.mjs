@@ -9,12 +9,18 @@ import { launch, sleep, MOBILE_THROTTLE } from './lib/cdp.mjs';
 
 const ROOT = new URL('..', import.meta.url);
 const PROD = 'https://www.afra-digital.com';
+// Turnstile: the form fetches a Cloudflare token before it posts, so wait until it has settled (success or error).
+const settled = async (p, ms = 25000) => { for (let t = 0; t < ms; t += 250) { if (await p.eval(`!document.getElementById('form-success').hidden || !document.getElementById('form-error').hidden`)) return; await sleep(250); } };
 const results = []; let failed = 0;
 function check(name, ok, detail = '') { results.push({ name, ok, detail }); if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); }
 
 const procs = [];
+// Cloudflare Turnstile TEST configuration: Cloudflare's published always-pass test keys (never real keys) and the local
+// mock Siteverify.
+const TS_ENV = { TURNSTILE_SITE_KEY: '1x00000000000000000000AA', TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+  TURNSTILE_VERIFY_URL: 'http://localhost:4182/siteverify', TURNSTILE_ALLOWED_HOSTNAMES: 'localhost' };
 function start(args, env = {}) {
-  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, ...TS_ENV, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
   p.stderr.on('data', d => { const s = String(d); if (!/\[contact\]/.test(s)) process.stderr.write(s); });
   procs.push(p); return p;
 }
@@ -343,7 +349,7 @@ try {
     {
       const p = await browser.newPage({ width: 1280, height: 900 });
       await p.goto(A + '/'); await sleep(3000);
-      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await sleep(1500);
+      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await settled(p);
       const s = await state(p);
       check('not configured: truthful error + alternatives, NO success shown', !s.success && /temporarily unavailable/.test(s.error) && !s.dl.includes('generate_lead'), s.error);
       check('failure tracked as form_error (no PII)', s.dl.includes('form_error') && !/e2e-test|Automated|0000/.test(s.dlRaw), s.dl.join(','));
@@ -355,7 +361,7 @@ try {
       const p = await browser.newPage({ width: 1280, height: 900 });
       await setMode('success');
       await p.goto(B + '/'); await sleep(200);
-      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await sleep(1200);
+      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await settled(p);
       const s = await state(p);
       check('submission within 2.5 s is rejected (anti-bot), no success', !s.success && /wait a few seconds/.test(s.error), s.error);
       await p.close();
@@ -369,7 +375,7 @@ try {
       await fill(p);
       await p.eval(`(() => { const b = document.getElementById('form-btn'); b.click(); b.click(); document.getElementById('contact-form').requestSubmit(); })()`);
       const mid = await state(p);
-      await sleep(1500);
+      await settled(p); await sleep(800); // extra time so a second request would be caught
       const s = await state(p);
       const received = (await (await fetch(`${MOCK}/__received`)).json()).slice(before);
       check('loading state shown while sending', /Sending/.test(mid.btn) && mid.disabled, mid.btn);
@@ -387,7 +393,7 @@ try {
       const p = await browser.newPage({ width: 1280, height: 900 });
       await setMode(mode);
       await p.goto(B + '/'); await sleep(3000);
-      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await sleep(1500);
+      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await settled(p);
       const s = await state(p);
       const kept = await p.eval(`(() => { const f = document.getElementById('contact-form'); return !f.hidden && f.email.value === 'e2e-test@example.org' && f.firstName.value === 'Test' && /AUTOMATED E2E TEST/.test(f.message.value); })()`);
       const attempts = (await (await fetch(`${MOCK}/__received`)).json()).length - before;
@@ -401,7 +407,7 @@ try {
       const p = await browser.newPage({ width: 1280, height: 900 });
       await setMode('fail');
       await p.goto(B + '/'); await sleep(3000);
-      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await sleep(2500);
+      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await settled(p);
       const s = await state(p);
       check('provider 500: error with WhatsApp/email alternatives, NO success', !s.success && /could not be sent/.test(s.error), s.error);
       const links = await p.eval(`[...document.querySelectorAll('#form-error a')].map(a => a.getAttribute('href').split('?')[0])`);
@@ -414,7 +420,7 @@ try {
       await setMode('slow');
       await p.goto(B + '/'); await sleep(3000);
       await fill(p); await p.eval(`document.getElementById('form-btn').click()`);
-      await sleep(10500);
+      await settled(p);
       const s = await state(p);
       check('provider timeout: "may not have been delivered" error, NO success', !s.success && /may not have been delivered/.test(s.error), s.error);
       await setMode('success');
@@ -425,7 +431,7 @@ try {
       const p = await browser.newPage({ width: 1280, height: 900 });
       await p.goto(B + '/'); await sleep(3000);
       await p.S('Network.setBlockedURLs', { urls: ['*/api/contact'] });
-      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await sleep(1500);
+      await fill(p); await p.eval(`document.getElementById('form-btn').click()`); await settled(p);
       const s = await state(p);
       check('network failure: honest error, NO success', !s.success && /could not reach our server/.test(s.error), s.error);
       await p.close();

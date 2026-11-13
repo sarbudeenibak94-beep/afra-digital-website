@@ -11,8 +11,12 @@ const results = []; let failed = 0;
 function check(name, ok, detail = '') { results.push({ name, ok }); if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); }
 
 const procs = [];
+// Cloudflare Turnstile TEST configuration: Cloudflare's published always-pass test keys (never real keys) and the local
+// mock Siteverify.
+const TS_ENV = { TURNSTILE_SITE_KEY: '1x00000000000000000000AA', TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+  TURNSTILE_VERIFY_URL: 'http://localhost:4197/siteverify', TURNSTILE_ALLOWED_HOSTNAMES: 'localhost' };
 function start(args, env = {}) {
-  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '', ANALYTICS_DISABLED: '', ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, ...TS_ENV, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '', ANALYTICS_DISABLED: '', ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
   p.stderr.on('data', d => { const s = String(d); if (!/\[contact\]/.test(s)) process.stderr.write(s); });
   procs.push(p); return p;
 }
@@ -281,8 +285,8 @@ try {
     const r = await fetch(C + '/');
     const csp = r.headers.get('content-security-policy') || '';
     const scriptSrc = (csp.match(/script-src ([^;]+)/) || [])[1] || '';
-    check('T15 CSP script-src allows only self + googletagmanager; no unsafe-inline/eval for scripts',
-      scriptSrc.trim() === "'self' https://www.googletagmanager.com" && !/unsafe-eval/.test(csp), scriptSrc);
+    check('T15 CSP script-src allows only self + googletagmanager + Cloudflare Turnstile; no unsafe-inline/eval for scripts',
+      scriptSrc.trim() === "'self' https://www.googletagmanager.com https://challenges.cloudflare.com" && !/unsafe-eval/.test(csp), scriptSrc);
     check('T15 other directives unchanged (frame-ancestors none, object-src none, form-action self, base-uri self)',
       /frame-ancestors 'none'/.test(csp) && /object-src 'none'/.test(csp) && /form-action 'self'/.test(csp) && /base-uri 'self'/.test(csp) && r.headers.get('x-frame-options') === 'DENY' && r.headers.get('x-content-type-options') === 'nosniff');
     const cfg = await (await fetch(C + '/api/analytics-config')).json();

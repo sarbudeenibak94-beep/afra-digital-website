@@ -8,12 +8,18 @@ import { launch, sleep } from './lib/cdp.mjs';
 const ROOT = new URL('..', import.meta.url);
 // Phase 03 mobile page height at 390x844 (measured with this same method before Phase 04).
 const BASELINE_MOBILE_HEIGHT = 25134;
+// Turnstile: the form fetches a Cloudflare token before it posts, so wait until it has settled (success or error).
+const settled = async (p, ms = 25000) => { for (let t = 0; t < ms; t += 250) { if (await p.eval(`!document.getElementById('form-success').hidden || !document.getElementById('form-error').hidden`)) return; await sleep(250); } };
 const results = []; let failed = 0;
 function check(name, ok, detail = '') { results.push({ name, ok }); if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); }
 
 const procs = [];
+// Cloudflare Turnstile TEST configuration: Cloudflare's published always-pass test keys (never real keys) and the local
+// mock Siteverify.
+const TS_ENV = { TURNSTILE_SITE_KEY: '1x00000000000000000000AA', TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+  TURNSTILE_VERIFY_URL: 'http://localhost:4203/siteverify', TURNSTILE_ALLOWED_HOSTNAMES: 'localhost' };
 function start(args, env = {}) {
-  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '', ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, ...TS_ENV, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '', ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
   p.stderr.on('data', d => { const s = String(d); if (!/\[contact\]/.test(s)) process.stderr.write(s); });
   procs.push(p); return p;
 }
@@ -119,7 +125,7 @@ try {
     await p.eval(`(() => { const f = document.getElementById('contact-form'); f.budget.value = '$5,000–$10,000'; f.timeline.value = 'Within 1–3 months'; f.contactPref.value = 'WhatsApp';
       f.phone.value = '+974 5555 0000'; f.service.value = 'Website Development'; f.message.value = 'P4 AUTOMATED TEST please ignore ' + Date.now();
       window.afraEvents.length = 0; const b = document.getElementById('form-btn'); b.click(); b.click(); return true; })()`);
-    await sleep(2000);
+    await settled(p); await sleep(500);
     const done = await p.eval(`({ success: !document.getElementById('form-success').hidden, ref: document.getElementById('form-ref').hidden ? null : document.getElementById('form-ref-code').textContent,
       events: window.afraEvents.map(e => ({ e: e.event, p: e.params })), focus: document.activeElement.id })`);
     const got = (await received()).slice(before);

@@ -5,7 +5,11 @@ import { launch, sleep } from './lib/cdp.mjs';
 
 const ROOT = new URL('..', import.meta.url);
 const S = 'http://localhost:4230';
-const srv = spawn(process.execPath, ['dev/server.mjs', '4230'], { cwd: ROOT, env: { ...process.env, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '' }, stdio: 'ignore' });
+// Cloudflare Turnstile TEST configuration: Cloudflare's published always-pass test keys (never real keys) and the local
+// mock Siteverify (this suite never submits the form: port 1 refuses connections, so a submission would fail closed).
+const TS_ENV = { TURNSTILE_SITE_KEY: '1x00000000000000000000AA', TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+  TURNSTILE_VERIFY_URL: 'http://localhost:1/siteverify', TURNSTILE_ALLOWED_HOSTNAMES: 'localhost' };
+const srv = spawn(process.execPath, ['dev/server.mjs', '4230'], { cwd: ROOT, env: { ...process.env, ...TS_ENV, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '' }, stdio: 'ignore' });
 let pass = 0, fail = 0;
 const check = (name, ok, info = '') => { ok ? pass++ : fail++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${info ? '  — ' + info : ''}`); };
 const ROBOT_JS = /\/assets\/js\/hero-robot\.js/;

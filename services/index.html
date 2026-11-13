@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/service-page.css?v=p8m1">
+<link rel="stylesheet" href="/assets/css/service-page.css?v=p9t1">
 <style>
 /* =====================================================================
    /services hub — luxury editorial layer. This page only: the shared service-page.css
@@ -205,7 +205,7 @@ main .divider{opacity:.55;}
 <script src="/assets/js/analytics.js?v=p8m2" defer></script>
 <script src="/assets/js/welcome.js?v=p8m2" defer></script>
 <script src="/assets/js/service-page.js?v=p6d4" defer></script>
-<script src="/assets/js/contact-form.js?v=p5b2" defer></script>
+<script src="/assets/js/contact-form.js?v=p9t1" defer></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -527,6 +527,11 @@ main .divider{opacity:.55;}
             <div class="fg"><label class="fl" for="cf-message">Project Brief <span class="opt">(optional)</span></label><textarea id="cf-message" name="message" class="fta" maxlength="5000" placeholder="Tell us about your project, goals and timeline..." style="min-height:110px;" aria-describedby="cf-message-err"></textarea><p class="f-err" id="cf-message-err" hidden></p></div>
             <div class="hp-field" aria-hidden="true"><label for="cf-hp">Leave this field empty</label><input id="cf-hp" name="hp" type="text" tabindex="-1" autocomplete="off"></div>
             <input type="hidden" name="elapsed" id="cf-elapsed" value="">
+            <div class="ts-wrap">
+              <div id="cf-turnstile" class="ts-widget"></div>
+              <p id="cf-ts-msg" class="ts-msg" role="status" aria-live="polite" hidden></p>
+              <noscript><p class="ts-msg">Our contact form needs JavaScript for a quick security check. Please enable JavaScript, or contact us on <a href="https://wa.me/97430029799" target="_blank" rel="noopener">WhatsApp +974 3002 9799</a> or by email at <a href="mailto:afradigital.hello@gmail.com">afradigital.hello@gmail.com</a>.</p></noscript>
+            </div>
             <p class="form-note">By sending this form you agree that AFRA DIGITAL may use your details to reply to your enquiry. See our <a href="/privacy-policy">Privacy Policy</a>. Please don’t include sensitive personal information.</p>
             <button type="submit" class="btn btn-prime btn-full btn-lg" id="form-btn"><span class="btn-label">Send Message →</span></button>
           </form>

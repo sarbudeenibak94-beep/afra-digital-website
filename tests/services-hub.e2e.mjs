@@ -37,8 +37,12 @@ const results = []; let failed = 0;
 function check(name, ok, detail = '') { results.push({ name, ok }); if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); }
 
 const procs = [];
+// Cloudflare Turnstile TEST configuration: Cloudflare's published always-pass test keys (never real keys) and the local
+// mock Siteverify (this suite never submits the form: port 1 refuses connections, so a submission would fail closed).
+const TS_ENV = { TURNSTILE_SITE_KEY: '1x00000000000000000000AA', TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+  TURNSTILE_VERIFY_URL: 'http://localhost:1/siteverify', TURNSTILE_ALLOWED_HOSTNAMES: 'localhost' };
 function start(args, env = {}) {
-  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '', ANALYTICS_DISABLED: '', RESEND_API_KEY: '', ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, ...TS_ENV, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '', ANALYTICS_DISABLED: '', RESEND_API_KEY: '', ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
   p.stderr.on('data', d => process.stderr.write(String(d)));
   procs.push(p); return p;
 }
@@ -64,7 +68,7 @@ try {
   // ======================= A. HTTP + static checks =======================
   const html = read(FILE);
   { const r = await get(PATH); const csp = r.headers.get('content-security-policy') || '';
-    check(`${PATH}: 200 text/html with the site security headers`, r.status === 200 && /text\/html/.test(r.headers.get('content-type') || '') && /script-src 'self' https:\/\/www\.googletagmanager\.com;/.test(csp) && /frame-ancestors 'none'/.test(csp) &&
+    check(`${PATH}: 200 text/html with the site security headers`, r.status === 200 && /text\/html/.test(r.headers.get('content-type') || '') && /script-src 'self' https:\/\/www\.googletagmanager\.com https:\/\/challenges\.cloudflare\.com;/.test(csp) && /frame-ancestors 'none'/.test(csp) &&
       r.headers.get('x-content-type-options') === 'nosniff' && r.headers.get('x-frame-options') === 'DENY' && !!r.headers.get('referrer-policy') && !!r.headers.get('permissions-policy'), `${r.status} ${r.headers.get('content-type')}`);
     const body = await r.text(); check(`${PATH}: serves services/index.html`, body === html); }
   { const r = await get(PATH + '/'); check(`${PATH}/ -> 308 ${PATH} (trailingSlash: false)`, r.status === 308 && r.headers.get('location') === PATH, `${r.status} ${r.headers.get('location')}`); }
@@ -95,8 +99,8 @@ try {
   { const wd = read('services/website-development.html');
     check('website-development: breadcrumb "Services" and "All services" link to /services; its BreadcrumbList item 2 = /services',
       /<li><a href="\/services">Services<\/a><\/li>/.test(wd) && /<a href="\/services">All services/.test(wd) && wd.includes(`{ "@type": "ListItem", "position": 2, "name": "Services", "item": "${CANONICAL}" }`)); }
-  { const r = await get('/assets/css/service-page.css?v=p8m1'); const css = await r.text();
-    check('hub stylesheet version p8m1 served (.svh-* rules; bumped for the Midnight Royal theme) with the /assets cache policy', r.status === 200 && /max-age=604800/.test(r.headers.get('cache-control') || '') && /\.svh-card\{/.test(css) && /service-page\.css\?v=p8m1/.test(html)); }
+  { const r = await get('/assets/css/service-page.css?v=p9t1'); const css = await r.text();
+    check('hub stylesheet version p9t1 served (.svh-* rules; bumped for the Turnstile widget styles) with the /assets cache policy', r.status === 200 && /max-age=604800/.test(r.headers.get('cache-control') || '') && /\.svh-card\{/.test(css) && /service-page\.css\?v=p9t1/.test(html)); }
 
   // ======================= B. Desktop browser checks =======================
   {

@@ -13,6 +13,7 @@ const VALID = Object.freeze({
   firstName: 'Test', lastName: 'Enquiry', email: 'TEST.enquiry@example.org', phone: '+974 0000 0000',
   company: 'Automated Test (not a real lead)', service: 'Website Development',
   message: 'AUTOMATED TEST — please ignore.\nSecond line.', hp: '', elapsed: 9000,
+  'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX', // Cloudflare's published dummy token (test keys)
 });
 
 let ipCounter = 0;
@@ -38,7 +39,27 @@ const ENV = { RESEND_API_KEY: 'test_key_not_real', RESEND_API_URL: 'https://mock
 function okFetch(calls) {
   return async (url, init) => { calls.push({ url, init, body: JSON.parse(init.body) }); return { status: 200, json: async () => ({ id: 'x' }) }; };
 }
-async function run(reqOpts, deps) { const res = mockRes(); await handler(mockReq(reqOpts), res, deps); return res; }
+// Cloudflare Turnstile: Siteverify is stubbed (no network). TS_SECRET is Cloudflare's published always-pass TEST secret,
+// never a real key. withTs() adds it and a passing verifier to every handler call unless a test overrides them.
+const TS_SECRET = '1x0000000000000000000000000000000AA';
+const TS_TOKEN = VALID['cf-turnstile-response'];
+const TS_OK = { success: true, challenge_ts: '2026-11-13T10:00:00.000Z', hostname: 'www.afra-digital.com', action: 'contact', 'error-codes': [] };
+function tsFetch({ status = 200, body = TS_OK, calls, delayMs, throwErr, badJson, bodies } = {}) {
+  let n = 0;
+  return (url, init) => {
+    if (calls) calls.push({ url, init, form: Object.fromEntries(new URLSearchParams(init.body)) });
+    const b = bodies ? bodies[Math.min(n++, bodies.length - 1)] : body;
+    const answer = () => ({ status, json: async () => { if (badJson) throw new SyntaxError('not json'); return b; } });
+    if (throwErr) return Promise.reject(throwErr);
+    if (delayMs) return new Promise((resolve, reject) => {
+      const t = setTimeout(() => resolve(answer()), delayMs);
+      if (init.signal) init.signal.addEventListener('abort', () => { clearTimeout(t); reject(Object.assign(new Error('aborted'), { name: 'AbortError' })); });
+    });
+    return Promise.resolve(answer());
+  };
+}
+function withTs(deps = {}) { return { turnstileFetch: tsFetch(), ...deps, env: { TURNSTILE_SECRET_KEY: TS_SECRET, ...(deps.env || {}) } }; }
+async function run(reqOpts, deps) { const res = mockRes(); await handler(mockReq(reqOpts), res, withTs(deps)); return res; }
 
 // ---------- validation ----------
 test('valid submission passes and is normalised', () => {
@@ -182,7 +203,7 @@ test('oversized body -> 413', async () => {
 
 test('pre-parsed body (Vercel helpers) is accepted', async () => {
   const res = mockRes();
-  await handler(mockReq({ preParsed: { ...VALID, message: 'preparsed ' + Date.now() } }), res, { env: ENV, fetch: okFetch([]) });
+  await handler(mockReq({ preParsed: { ...VALID, message: 'preparsed ' + Date.now() } }), res, withTs({ env: ENV, fetch: okFetch([]) }));
   assert.equal(res.statusCode, 200);
 });
 
@@ -240,7 +261,7 @@ test('provider request: secret only in Authorization header, configured recipien
 });
 
 test('no-JS form post (urlencoded) works and returns HTML', async () => {
-  const params = new URLSearchParams({ firstName: 'Test', lastName: 'NoJS', email: 'nojs@example.org', message: 'nojs ' + Date.now(), hp: '' });
+  const params = new URLSearchParams({ firstName: 'Test', lastName: 'NoJS', email: 'nojs@example.org', message: 'nojs ' + Date.now(), hp: '', 'cf-turnstile-response': TS_TOKEN });
   const res = await run({ raw: params.toString(), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, { env: ENV, fetch: okFetch([]) });
   assert.equal(res.statusCode, 200);
   assert.match(res.headers['content-type'], /text\/html/);
@@ -269,10 +290,10 @@ const respond = (status, body) => ({ status, json: async () => body });
 
 /** Run the handler while capturing console.error output. */
 async function runLogged(reqOpts, deps) {
-  const logs = []; const orig = console.error;
-  console.error = (...a) => logs.push(a.join(' '));
-  try { const res = mockRes(); await handler(mockReq(reqOpts), res, deps); return { res, logs: logs.join('\n') }; }
-  finally { console.error = orig; }
+  const logs = []; const orig = console.error, origWarn = console.warn;
+  console.error = (...a) => logs.push(a.join(' ')); console.warn = (...a) => logs.push(a.join(' '));
+  try { const res = mockRes(); await handler(mockReq(reqOpts), res, withTs(deps)); return { res, logs: logs.join('\n') }; }
+  finally { console.error = orig; console.warn = origWarn; }
 }
 const uniq = label => ({ ...VALID, message: `${label} ${Date.now()} ${Math.random()}` });
 function assertNoLeak(res, logs) {
@@ -534,7 +555,7 @@ test('P4 invalid qualification value -> 400 and nothing sent', async () => {
 });
 
 test('P4 no-JS success page shows the reference', async () => {
-  const params = new URLSearchParams({ firstName: 'Test', lastName: 'NoJS', email: 'nojs4@example.org', budget: 'Not sure yet', message: 'p4 nojs ' + Date.now(), hp: '' });
+  const params = new URLSearchParams({ firstName: 'Test', lastName: 'NoJS', email: 'nojs4@example.org', budget: 'Not sure yet', message: 'p4 nojs ' + Date.now(), hp: '', 'cf-turnstile-response': TS_TOKEN });
   const res = await run({ raw: params.toString(), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, { env: ENV4, fetch: okFetch([]) });
   assert.equal(res.statusCode, 200);
   assert.match(res.body, /Your reference: <strong>AFRA-[2-9A-HJ-NP-Z]{6}<\/strong>/);
@@ -556,4 +577,219 @@ test('P5 service-page source ids are accepted and shown in the enquiry email', a
   const b = calls[0].body;
   assert.ok(b.text.includes('Source:    website button "lp_web_pricing_starter"'), b.text);
   assert.ok(b.text.includes('Package:  Starter'), b.text);
+});
+
+// =====================================================================================================================
+// Cloudflare Turnstile — mandatory server-side verification (api/_lib/turnstile.js, api/contact.js)
+// Siteverify is stubbed with tsFetch(); no network. Every failure path asserts: no email, no reference.
+// =====================================================================================================================
+const turnstileLib = require('../api/_lib/turnstile.js');
+const formConfigApi = require('../api/form-config.js');
+const nodeFs = require('node:fs');
+const nodePath = require('node:path');
+const REPO = nodePath.resolve(nodePath.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
+const readRepo = p => nodeFs.readFileSync(nodePath.join(REPO, p), 'utf8');
+
+const tsBody = label => ({ ...VALID, message: `ts ${label} ${Date.now()} ${Math.random()}` });
+async function tsRun(label, tsOpts = {}, extra = {}) {
+  const calls = [], ver = [];
+  const { res, logs } = await runLogged({ body: { ...tsBody(label), ...(extra.body || {}) }, headers: extra.headers },
+    { env: { ...ENV, ...(extra.env || {}) }, fetch: okFetch(calls), turnstileFetch: tsFetch({ ...tsOpts, calls: ver }), turnstileTimeoutMs: extra.timeoutMs });
+  return { res, calls, ver, logs };
+}
+function assertRejected(r, status, error) {
+  assert.equal(r.res.statusCode, status, r.res.body);
+  assert.equal(r.res.json.ok, false);
+  assert.equal(r.res.json.error, error);
+  assert.equal(r.res.json.reference, undefined, 'no reference on failure');
+  assert.equal(r.calls.length, 0, 'no email may be sent when verification fails');
+  assert.ok(!r.res.body.includes(TS_SECRET) && !r.res.body.includes(TS_TOKEN), 'response must not echo the secret or token');
+  assert.ok(!r.logs.includes(TS_SECRET) && !r.logs.includes(TS_TOKEN), 'logs must not contain the secret or token');
+}
+
+test('TS1 valid token: verified once with secret, token and visitor IP; email sent; reference returned', async () => {
+  const r = await tsRun('valid');
+  assert.equal(r.res.statusCode, 200); assert.equal(r.res.json.ok, true); assert.match(r.res.json.reference, core.REFERENCE_RE);
+  assert.equal(r.ver.length, 1); assert.equal(r.calls.length, 1);
+  assert.equal(r.ver[0].url, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+  assert.equal(r.ver[0].init.method, 'POST'); assert.match(r.ver[0].init.headers['Content-Type'], /x-www-form-urlencoded/);
+  assert.equal(r.ver[0].form.secret, TS_SECRET); assert.equal(r.ver[0].form.response, TS_TOKEN); assert.match(r.ver[0].form.remoteip, /^203\.0\.113\./);
+  assert.ok(!JSON.stringify(r.calls[0].body).includes(TS_TOKEN), 'the token is not part of the enquiry email');
+});
+
+test('TS2 missing token → 400 verification_required, Siteverify not called', async () => {
+  for (const tok of [undefined, '', '   ', 123, null]) {
+    const r = await tsRun('missing', {}, { body: { 'cf-turnstile-response': tok } });
+    assertRejected(r, 400, 'verification_required'); assert.equal(r.ver.length, 0);
+  }
+});
+
+test('TS3 invalid token → 400 verification_failed', async () => {
+  assertRejected(await tsRun('invalid', { body: { success: false, 'error-codes': ['invalid-input-response'] } }), 400, 'verification_failed');
+});
+
+test('TS3b malformed token (too long / whitespace) → 400 without calling Siteverify', async () => {
+  for (const tok of ['a'.repeat(2049), 'abc def', 'tok\nen']) {
+    const r = await tsRun('badtoken', {}, { body: { 'cf-turnstile-response': tok } });
+    assertRejected(r, 400, 'verification_failed'); assert.equal(r.ver.length, 0);
+  }
+});
+
+test('TS4 expired token (timeout-or-duplicate) → 400 verification_failed', async () => {
+  assertRejected(await tsRun('expired', { body: { success: false, 'error-codes': ['timeout-or-duplicate'] } }), 400, 'verification_failed');
+});
+
+test('TS5 reused token: first submission accepted, the same token again → 400, only one email', async () => {
+  const calls = [], ver = [];
+  const fetchTs = tsFetch({ calls: ver, bodies: [TS_OK, { success: false, 'error-codes': ['timeout-or-duplicate'] }] });
+  const deps = { env: ENV, fetch: okFetch(calls), turnstileFetch: fetchTs };
+  const ip = { 'x-real-ip': '198.51.100.231' }; // not used by any other test
+  const a = await run({ body: tsBody('reuse-a'), headers: ip }, deps);
+  const b = await run({ body: tsBody('reuse-b'), headers: ip }, deps);
+  assert.equal(a.statusCode, 200); assert.equal(b.statusCode, 400); assert.equal(b.json.error, 'verification_failed');
+  assert.equal(b.json.reference, undefined); assert.equal(calls.length, 1); assert.equal(ver.length, 2);
+});
+
+test('TS6 hostname mismatch → 400 (only afra-digital.com and www.afra-digital.com accepted in production)', async () => {
+  for (const hostname of ['attacker.example', 'afra-digital.com.evil.test', '', undefined]) {
+    assertRejected(await tsRun('host', { body: { ...TS_OK, hostname } }), 400, 'verification_failed');
+  }
+  const apex = await tsRun('apex', { body: { ...TS_OK, hostname: 'afra-digital.com' } });
+  assert.equal(apex.res.statusCode, 200);
+});
+
+test('TS7 action mismatch or missing action → 400', async () => {
+  for (const action of ['login', '', undefined]) assertRejected(await tsRun('action', { body: { ...TS_OK, action } }), 400, 'verification_failed');
+});
+
+test('TS8 Siteverify timeout → 503 verification_unavailable (fails closed)', async () => {
+  const r = await tsRun('timeout', { delayMs: 2000 }, { timeoutMs: 60 });
+  assertRejected(r, 503, 'verification_unavailable');
+});
+
+test('TS9 Siteverify unavailable (HTTP 5xx, network error, internal-error) → 503 verification_unavailable', async () => {
+  assertRejected(await tsRun('down500', { status: 500, body: {} }), 503, 'verification_unavailable');
+  assertRejected(await tsRun('down503', { status: 503, body: {} }), 503, 'verification_unavailable');
+  assertRejected(await tsRun('neterr', { throwErr: new TypeError('fetch failed') }), 503, 'verification_unavailable');
+  assertRejected(await tsRun('internal', { body: { success: false, 'error-codes': ['internal-error'] } }), 503, 'verification_unavailable');
+});
+
+test('TS10 malformed Siteverify response → 503 (never treated as success)', async () => {
+  assertRejected(await tsRun('notjson', { badJson: true }), 503, 'verification_unavailable');
+  assertRejected(await tsRun('empty', { body: {} }), 503, 'verification_unavailable');
+  assertRejected(await tsRun('string', { body: { ...TS_OK, success: 'true' } }), 503, 'verification_unavailable');
+  assertRejected(await tsRun('null', { body: null }), 503, 'verification_unavailable');
+});
+
+test('TS10b server misconfiguration (bad or missing secret) → 503 and an operator hint without the secret', async () => {
+  const bad = await tsRun('badsecret', { body: { success: false, 'error-codes': ['invalid-input-secret'] } });
+  assertRejected(bad, 503, 'verification_unavailable'); assert.match(bad.logs, /reason=misconfigured/);
+  const none = await tsRun('nosecret', {}, { env: { TURNSTILE_SECRET_KEY: '' } });
+  assertRejected(none, 503, 'verification_unavailable'); assert.equal(none.ver.length, 0); assert.match(none.logs, /TURNSTILE_SECRET_KEY is not set/);
+});
+
+test('TS11 successful verified enquiry: one email whose subject carries the returned reference', async () => {
+  const r = await tsRun('success');
+  assert.equal(r.res.statusCode, 200); assert.equal(r.calls.length, 1);
+  assert.ok(r.calls[0].body.subject.includes(r.res.json.reference));
+});
+
+test('TS12 Resend failure after successful verification → 502, no reference', async () => {
+  const calls = [], ver = [];
+  const res = await run({ body: tsBody('resendfail') }, { env: ENV, fetch: async (u, i) => { calls.push(i); return respond(500, { message: 'down' }); }, turnstileFetch: tsFetch({ calls: ver }), retryDelayMs: 1 });
+  assert.equal(res.statusCode, 502); assert.equal(res.json.error, 'delivery_failed'); assert.equal(res.json.reference, undefined);
+  assert.equal(ver.length, 1); assert.ok(calls.length >= 1);
+});
+
+test('TS13 honeypot is rejected before Siteverify (no call, no email)', async () => {
+  const r = await tsRun('hp', {}, { body: { hp: 'http://spam.example' } });
+  assertRejected(r, 400, 'rejected'); assert.equal(r.ver.length, 0);
+});
+
+test('TS14 minimum fill time (2.5 s) is still enforced before Siteverify', async () => {
+  const r = await tsRun('fast', {}, { body: { elapsed: 900 } });
+  assertRejected(r, 400, 'too_fast'); assert.equal(r.ver.length, 0);
+});
+
+test('TS15 duplicate submission: verified again, answered as duplicate, no second email', async () => {
+  const calls = [], ver = [];
+  const body = tsBody('dup'); const deps = { env: ENV, fetch: okFetch(calls), turnstileFetch: tsFetch({ calls: ver }) };
+  const a = await run({ body }, deps); const b = await run({ body }, deps);
+  assert.equal(a.statusCode, 200); assert.equal(b.statusCode, 200); assert.equal(b.json.duplicate, true);
+  assert.equal(calls.length, 1); assert.equal(ver.length, 2, 'a duplicate still needs its own verified token');
+});
+
+test('TS15b duplicate of an earlier enquiry is NOT answered without a valid token', async () => {
+  const calls = [];
+  const body = tsBody('dup-unverified');
+  await run({ body }, { env: ENV, fetch: okFetch(calls) });
+  const again = await run({ body }, { env: ENV, fetch: okFetch(calls), turnstileFetch: tsFetch({ body: { success: false, 'error-codes': ['invalid-input-response'] } }) });
+  assert.equal(again.statusCode, 400); assert.equal(again.json.reference, undefined); assert.equal(calls.length, 1);
+});
+
+test('TS16 per-IP send limit still applies to verified submissions (6th within 10 min → 429)', async () => {
+  const calls = []; const headers = { 'x-real-ip': '192.0.2.200' };
+  const deps = { env: ENV, fetch: okFetch(calls) };
+  const statuses = [];
+  for (let i = 0; i < 6; i++) statuses.push((await run({ body: tsBody('limit' + i), headers }, deps)).statusCode);
+  assert.deepEqual(statuses, [200, 200, 200, 200, 200, 429]); assert.equal(calls.length, 5);
+});
+
+test('TS17 no-JS form post without a token → 400 HTML explaining the JavaScript check, with WhatsApp and email', async () => {
+  const calls = [];
+  const params = new URLSearchParams({ firstName: 'Test', lastName: 'NoJS', email: 'nojs-ts@example.org', message: 'nojs ts ' + Date.now(), hp: '' });
+  const res = await run({ raw: params.toString(), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, { env: ENV, fetch: okFetch(calls) });
+  assert.equal(res.statusCode, 400); assert.match(res.headers['content-type'], /text\/html/);
+  assert.match(res.body, /Message not sent/); assert.match(res.body, /needs JavaScript for a quick security check/);
+  assert.match(res.body, /wa\.me\/97430029799/); assert.match(res.body, /mailto:afradigital\.hello@gmail\.com/);
+  assert.equal(calls.length, 0);
+});
+
+test('TS18 config: production ignores TURNSTILE_VERIFY_URL; Preview adds only its own Vercel hostnames', () => {
+  const prod = turnstileLib.turnstileConfig({ TURNSTILE_SECRET_KEY: TS_SECRET, VERCEL_ENV: 'production', TURNSTILE_VERIFY_URL: 'https://evil.example/ok', VERCEL_URL: 'x-abc.vercel.app' });
+  assert.equal(prod.verifyUrl, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+  assert.deepEqual([...prod.allowedHostnames].sort(), ['afra-digital.com', 'www.afra-digital.com']);
+  const prev = turnstileLib.turnstileConfig({ TURNSTILE_SECRET_KEY: TS_SECRET, VERCEL_ENV: 'preview', VERCEL_URL: 'afra-x1.vercel.app', VERCEL_BRANCH_URL: 'afra-git-b.vercel.app' });
+  assert.ok(prev.allowedHostnames.has('afra-x1.vercel.app') && prev.allowedHostnames.has('afra-git-b.vercel.app') && prev.allowedHostnames.has('www.afra-digital.com'));
+  assert.equal(turnstileLib.turnstileConfig({}).configured, false);
+});
+
+test('TS19 the secret never reaches the browser: /api/form-config returns only the public site key; no frontend file references the secret', () => {
+  const cfg = formConfigApi.formConfig({ TURNSTILE_SITE_KEY: '1x00000000000000000000AA', TURNSTILE_SECRET_KEY: TS_SECRET });
+  assert.deepEqual(cfg, { turnstileSiteKey: '1x00000000000000000000AA', turnstileAction: 'contact' });
+  assert.ok(!JSON.stringify(cfg).includes(TS_SECRET));
+  assert.equal(formConfigApi.formConfig({ TURNSTILE_SITE_KEY: '<script>alert(1)</script>' }).turnstileSiteKey, null);
+  const pub = ['index.html', 'services/index.html', 'services/website-development.html', 'privacy-policy.html', 'terms.html', '404.html',
+    ...nodeFs.readdirSync(nodePath.join(REPO, 'assets/js')).map(f => 'assets/js/' + f)];
+  for (const p of pub) { const src = readRepo(p); assert.ok(!/TURNSTILE_SECRET|siteverify|[?&]secret=/i.test(src), `${p} must not reference the secret or Siteverify`); }
+  assert.ok(!/TURNSTILE_SECRET_KEY/.test(readRepo('api/form-config.js').replace(/^\/\/.*$/gm, '')), 'form-config must not read the secret');
+});
+
+test('TS20 all three contact forms include the Turnstile widget, status message and a no-JS notice; the script sends the token', () => {
+  for (const p of ['index.html', 'services/index.html', 'services/website-development.html']) {
+    const html = readRepo(p);
+    const form = html.slice(html.indexOf('<form id="contact-form"'), html.indexOf('</form>', html.indexOf('<form id="contact-form"')));
+    assert.match(form, /action="\/api\/contact" method="post"/, p);
+    assert.match(form, /<div id="cf-turnstile" class="ts-widget"><\/div>/, p);
+    assert.match(form, /<p id="cf-ts-msg" class="ts-msg" role="status" aria-live="polite" hidden><\/p>/, p);
+    assert.match(form, /<noscript><p class="ts-msg">Our contact form needs JavaScript[\s\S]*wa\.me\/97430029799[\s\S]*mailto:afradigital\.hello@gmail\.com[\s\S]*<\/noscript>/, p);
+    assert.ok(form.indexOf('id="cf-turnstile"') < form.indexOf('id="form-btn"'), `${p}: widget before the submit button`);
+    assert.match(html, /<script src="\/assets\/js\/contact-form\.js\?v=p9t1" defer><\/script>/, p);
+  }
+  const js = readRepo('assets/js/contact-form.js');
+  assert.ok(js.includes("'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=afraTurnstileReady'"));
+  assert.ok(js.includes("payload['cf-turnstile-response'] = token"));
+  assert.ok(js.includes("fetch('/api/form-config'"));
+});
+
+test('TS21 CSP allows exactly Cloudflare Turnstile (script + frame) and keeps every existing restriction', () => {
+  const vj = JSON.parse(readRepo('vercel.json'));
+  const csp = vj.headers.find(h => h.source === '/(.*)').headers.find(h => h.key === 'Content-Security-Policy').value;
+  const dir = name => ((csp.match(new RegExp(`(?:^|; )${name} ([^;]+)`)) || [])[1] || '').split(' ');
+  assert.deepEqual(dir('script-src'), ["'self'", 'https://www.googletagmanager.com', 'https://challenges.cloudflare.com']);
+  assert.deepEqual(dir('frame-src'), ["'self'", 'https://challenges.cloudflare.com']);
+  assert.deepEqual(dir('default-src'), ["'self'"]); assert.deepEqual(dir('object-src'), ["'none'"]);
+  assert.deepEqual(dir('base-uri'), ["'self'"]); assert.deepEqual(dir('frame-ancestors'), ["'none'"]); assert.deepEqual(dir('form-action'), ["'self'"]);
+  assert.ok(!/cloudflare\.com\/\*|\*\.cloudflare\.com|unsafe-eval/.test(csp), 'no wildcards or unsafe-eval for Cloudflare');
+  assert.ok(!/script-src[^;]*unsafe-inline/.test(csp));
 });

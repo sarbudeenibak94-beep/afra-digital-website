@@ -21,12 +21,18 @@ const PAGES = [{
 }];
 const OTHER_PAGES = ['index.html', 'privacy-policy.html', 'terms.html', '404.html'];
 
+// Turnstile: the form fetches a Cloudflare token before it posts, so wait until it has settled (success or error).
+const settled = async (p, ms = 25000) => { for (let t = 0; t < ms; t += 250) { if (await p.eval(`!document.getElementById('form-success').hidden || !document.getElementById('form-error').hidden`)) return; await sleep(250); } };
 const results = []; let failed = 0;
 function check(name, ok, detail = '') { results.push({ name, ok }); if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); }
 
 const procs = [];
+// Cloudflare Turnstile TEST configuration: Cloudflare's published always-pass test keys (never real keys) and the local
+// mock Siteverify.
+const TS_ENV = { TURNSTILE_SITE_KEY: '1x00000000000000000000AA', TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+  TURNSTILE_VERIFY_URL: 'http://localhost:4211/siteverify', TURNSTILE_ALLOWED_HOSTNAMES: 'localhost' };
 function start(args, env = {}) {
-  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '', ANALYTICS_DISABLED: '', ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const p = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, ...TS_ENV, VERCEL: '', GA4_MEASUREMENT_ID: '', SPEED_INSIGHTS: '', ANALYTICS_DISABLED: '', ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
   p.stderr.on('data', d => { const s = String(d); if (!/\[contact\]/.test(s)) process.stderr.write(s); });
   procs.push(p); return p;
 }
@@ -59,7 +65,7 @@ try {
     const path = `/services/${pg.slug}`, canonical = PROD + path, html = read(pg.file);
     { const r = await get(path); check(`${path}: 200 text/html`, r.status === 200 && /text\/html/.test(r.headers.get('content-type') || ''), `${r.status} ${r.headers.get('content-type')}`);
       const csp = r.headers.get('content-security-policy') || '';
-      check(`${path}: security headers present (CSP script-src 'self', nosniff, DENY, referrer, permissions)`, /script-src 'self' https:\/\/www\.googletagmanager\.com;/.test(csp) && /frame-ancestors 'none'/.test(csp) && r.headers.get('x-content-type-options') === 'nosniff' && r.headers.get('x-frame-options') === 'DENY' && !!r.headers.get('referrer-policy') && !!r.headers.get('permissions-policy')); }
+      check(`${path}: security headers present (CSP script-src 'self', nosniff, DENY, referrer, permissions)`, /script-src 'self' https:\/\/www\.googletagmanager\.com https:\/\/challenges\.cloudflare\.com;/.test(csp) && /frame-ancestors 'none'/.test(csp) && r.headers.get('x-content-type-options') === 'nosniff' && r.headers.get('x-frame-options') === 'DENY' && !!r.headers.get('referrer-policy') && !!r.headers.get('permissions-policy')); }
     { const r = await get(path + '.html'); check(`${path}.html -> 308 ${path} (cleanUrls)`, r.status === 308 && r.headers.get('location') === path, `${r.status} ${r.headers.get('location')}`); }
     const title = decode(meta(html, /<title>([^<]*)<\/title>/) || '');
     const desc = decode(meta(html, /<meta name="description" content="([^"]*)"/) || '');
@@ -96,7 +102,7 @@ try {
     const site = read('assets/js/site.js').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''); // code only, comments removed
     const tags = [...idx.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map(m => m[1]);
     check('homepage loads analytics.js, site.js and contact-form.js (deferred, in that order; changed files versioned)',
-      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js?v=p8m2', '/assets/js/site.js?v=p8m3', '/assets/js/contact-form.js?v=p5b2']), tags.join(' | '));
+      JSON.stringify(tags) === JSON.stringify(['/assets/js/analytics.js?v=p8m2', '/assets/js/site.js?v=p8m3', '/assets/js/contact-form.js?v=p9t1']), tags.join(' | '));
     check('form logic lives only in contact-form.js (site.js has none; no double binding)', !/contact-form|cf-source|form-btn|generate_lead/.test(site) && /getElementById\('contact-form'\)/.test(cf) && /generate_lead/.test(cf));
     check('homepage no longer says "Alongside client projects"', !/Alongside client projects/i.test(idx));
     // The homepage services grid (with its Website Development card) was removed as a duplicate of /services; the header
@@ -262,7 +268,7 @@ try {
       await p.eval(`(() => { const f = document.getElementById('contact-form'); f.contactPref.value = 'Email'; f.contactPref.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`); await sleep(100);
       check(`${path}: switching to Email clears the phone error`, await p.eval(`document.getElementById('cf-phone').getAttribute('aria-invalid') === null`));
       await p.eval(`(() => { window.afraEvents.length = 0; const b = document.getElementById('form-btn'); b.click(); b.click(); return true; })()`);
-      await sleep(2000);
+      await settled(p); await sleep(500);
       const done = await p.eval(`({ success: !document.getElementById('form-success').hidden, ref: document.getElementById('form-ref').hidden ? null : document.getElementById('form-ref-code').textContent, events: window.afraEvents.map(e => ({ e: e.event, p: e.params })) })`);
       const got = (await received()).slice(before); const pl = got[0] && got[0].payload;
       check(`${path}: default submission → exactly one email; reference shown only after acceptance and matches the subject`, done.success && got.length === 1 && /^AFRA-[2-9A-HJ-NP-Z]{6}$/.test(done.ref || '') && pl.subject.startsWith(`Website enquiry [${done.ref}]: ${pg.service} — Svc Pagetest`), JSON.stringify({ ref: done.ref, n: got.length, subject: pl && pl.subject }));
@@ -278,7 +284,7 @@ try {
       await p.eval(`document.documentElement.style.scrollBehavior = 'auto'; document.querySelector('a[data-cta="lp_web_pricing_starter"]').click(); true`); await sleep(2200);
       await p.eval(`(() => { const f = document.getElementById('contact-form'); f.firstName.value = 'Svc'; f.lastName.value = 'Starter'; f.email.value = 'p5-starter@example.org';
         f.budget.value = 'Under $2,000'; f.timeline.value = 'Within 1–3 months'; f.message.value = 'P5 AUTOMATED TEST starter ' + Date.now(); window.afraEvents.length = 0; document.getElementById('form-btn').click(); return true; })()`);
-      await sleep(2000);
+      await settled(p); await sleep(500);
       const done = await p.eval(`({ success: !document.getElementById('form-success').hidden, ref: document.getElementById('form-ref-code').textContent, lead: window.afraEvents.filter(e => e.event === 'generate_lead').map(e => e.params) })`);
       const got = (await received()).slice(before); const pl = got[0] && got[0].payload;
       check(`${path}: pricing CTA submission → email has Package Starter, source lp_web_pricing_starter, budget and timeline`, done.success && got.length === 1 && pl.text.includes('Package:  Starter') && pl.text.includes('Source:    website button "lp_web_pricing_starter"') && pl.text.includes('Budget:   Under $2,000') && pl.text.includes('Timeline: Within 1–3 months'), pl && pl.text.split('\n').slice(2, 14).join(' | '));
@@ -290,7 +296,7 @@ try {
       const p = await browser.newPage({ width: 1280, height: 900 });
       await p.goto(S + path); await sleep(2600); await blockNav(p);
       await p.eval(`(() => { const f = document.getElementById('contact-form'); f.firstName.value = 'Svc'; f.lastName.value = 'Failure'; f.email.value = 'p5-fail@example.org'; f.message.value = 'P5 AUTOMATED TEST failure ' + Date.now(); window.afraEvents.length = 0; document.getElementById('form-btn').click(); return true; })()`);
-      await sleep(4000);
+      await settled(p);
       const r = await p.eval(`({ success: !document.getElementById('form-success').hidden, ref: !document.getElementById('form-ref').hidden, error: document.getElementById('form-error').hidden ? '' : document.getElementById('form-error-msg').textContent, kept: document.getElementById('contact-form').email.value, lead: window.afraEvents.filter(e => e.event === 'generate_lead').length })`);
       check(`${path}: provider failure → honest error, no success, no reference, input kept, no generate_lead`, !r.success && !r.ref && /could not be sent|try again|WhatsApp/i.test(r.error) && r.kept === 'p5-fail@example.org' && r.lead === 0, JSON.stringify(r));
       await setMode('success');

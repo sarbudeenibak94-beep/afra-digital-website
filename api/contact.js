@@ -1,11 +1,15 @@
 'use strict';
 // POST /api/contact — receives website enquiries and delivers them by email.
 // Vercel Node.js serverless function (no npm dependencies).
-// Required server-side env var: RESEND_API_KEY. Optional: CONTACT_FROM_EMAIL, CONTACT_SENDER_DOMAIN,
-// CONTACT_TO_EMAIL, CONTACT_ALLOWED_ORIGINS, RESEND_API_URL (tests only). See README.md / .env.example.
+// Required server-side env vars: RESEND_API_KEY, TURNSTILE_SECRET_KEY. Optional: CONTACT_FROM_EMAIL, CONTACT_SENDER_DOMAIN,
+// CONTACT_TO_EMAIL, CONTACT_ALLOWED_ORIGINS, TURNSTILE_ALLOWED_HOSTNAMES, RESEND_API_URL / TURNSTILE_VERIFY_URL (tests only).
+// See README.md / .env.example.
 const core = require('./_lib/contact-core');
+const turnstile = require('./_lib/turnstile');
 
-// Per-instance, best-effort limits (serverless instances are short-lived and may run in parallel).
+// Per-instance, best-effort limits (serverless instances are short-lived and may run in parallel). They are NOT shared
+// between instances or regions and reset on cold starts; Cloudflare Turnstile is the main protection against automated
+// submissions.
 const requestLimiter = createLimiterSafe(30, 10 * 60 * 1000); // any request per IP
 const sendLimiter = createLimiterSafe(5, 10 * 60 * 1000);     // valid submissions per IP
 const globalSendLimiter = createLimiterSafe(60, 10 * 60 * 1000);
@@ -26,7 +30,12 @@ const MESSAGES = {
   method_not_allowed: 'Method not allowed.',
   unsupported_type: 'Unsupported request format.',
   too_large: 'Your message is too long. Please shorten it and try again.',
+  verification_required: 'Please complete the security check and send your message again.',
+  verification_failed: 'The security check could not be completed. Please try again, or contact us on WhatsApp or by email.',
+  verification_unavailable: 'Our security check is temporarily unavailable. Please try again in a moment, or contact us on WhatsApp or by email.',
 };
+// Without JavaScript the Turnstile widget cannot run, so a native form post never carries a token.
+const NO_JS_MESSAGE = 'Our contact form needs JavaScript for a quick security check. Please enable JavaScript and try again, or contact us on WhatsApp or by email.';
 
 // Server-log hints for operators (never sent to the browser).
 const CONFIG_HINTS = {
@@ -35,6 +44,13 @@ const CONFIG_HINTS = {
   test_sender_not_allowed: 'resend.dev test sender only delivers to the Resend account owner; use an address on the verified domain',
   sender_domain_mismatch: 'CONTACT_FROM_EMAIL must use the verified sender domain (CONTACT_SENDER_DOMAIN)',
   invalid_to: 'CONTACT_TO_EMAIL must be a single valid address',
+};
+const TURNSTILE_HINTS = {
+  not_configured: 'TURNSTILE_SECRET_KEY is not set for this Vercel environment; add it and redeploy',
+  misconfigured: 'Cloudflare rejected the secret key or request - check TURNSTILE_SECRET_KEY for this environment',
+  unavailable: 'Cloudflare Siteverify returned an error or could not be reached',
+  timeout: 'no response from Cloudflare Siteverify in time',
+  malformed: 'unexpected Siteverify response',
 };
 const DELIVERY_HINTS = {
   auth: 'Resend rejected the API key (missing, invalid, revoked or restricted) - check RESEND_API_KEY for this environment',
@@ -153,6 +169,22 @@ async function handler(req, res, deps = {}) {
   const result = core.validateSubmission(body);
   if (!result.ok) return fail(res, 400, 'validation', mode, {}, result.fields);
   const data = result.data;
+
+  // Cloudflare Turnstile: mandatory server-side verification before any success response, reference or email.
+  // The token is single-use; a frontend-reported result is never trusted. Failures to verify fail closed (503).
+  const ts = await turnstile.verifyTurnstile(turnstile.tokenFrom(body), {
+    config: turnstile.turnstileConfig(env), remoteIp: ip, fetchImpl: deps.turnstileFetch || fetch, timeoutMs: deps.turnstileTimeoutMs || 4000,
+  });
+  if (!ts.ok) {
+    // Reason and Cloudflare error codes only — never the token or the secret.
+    console.warn(`[contact] turnstile verification failed reason=${ts.reason}${ts.codes && ts.codes.length ? ' codes=' + ts.codes.join(',') : ''}` +
+      (TURNSTILE_HINTS[ts.reason] ? ` hint="${TURNSTILE_HINTS[ts.reason]}"` : '') + ` env=${env.VERCEL_ENV || 'unknown'}`);
+    if (ts.status === 503) return fail(res, 503, 'verification_unavailable', mode);
+    if (ts.reason === 'missing') {
+      return mode === 'form' ? send(res, 400, { ok: false, error: 'verification_required', message: NO_JS_MESSAGE }, mode) : fail(res, 400, 'verification_required', mode);
+    }
+    return fail(res, 400, 'verification_failed', mode);
+  }
 
   if (duplicates.isDuplicate(data)) {
     const prev = duplicates.referenceFor(data);
