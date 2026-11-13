@@ -86,12 +86,22 @@ function readRawBody(req, limit) {
   });
 }
 
+// Body size limit: at most core.MAX_BODY_BYTES (20 KB = 20,480) bytes of UTF-8 are accepted; anything larger is a 413.
+// Measured as bytes, never characters: the raw body when the function reads it, and — because Vercel usually parses
+// JSON/urlencoded bodies before the function runs — the UTF-8 byte length of the parsed body's JSON form as well.
+const tooLarge = () => Object.assign(new Error('too large'), { code: 'too_large' });
+
 async function readBody(req, type) {
-  // On Vercel the body may already be parsed (req.body); locally we read the stream.
+  // A declared Content-Length above the limit is refused before the body is touched.
+  const declared = Number((req.headers || {})['content-length']);
+  if (Number.isFinite(declared) && declared > core.MAX_BODY_BYTES) throw tooLarge();
+  // On Vercel the body may already be parsed (req.body; reading it throws on malformed JSON, which the caller turns
+  // into a 400); locally we read the stream.
   let raw = req.body;
   if (raw === undefined) raw = await readRawBody(req, core.MAX_BODY_BYTES);
   if (Buffer.isBuffer(raw)) raw = raw.toString('utf8');
-  if (typeof raw === 'string' && Buffer.byteLength(raw) > core.MAX_BODY_BYTES) throw Object.assign(new Error('too large'), { code: 'too_large' });
+  if (typeof raw === 'string' && Buffer.byteLength(raw, 'utf8') > core.MAX_BODY_BYTES) throw tooLarge();
+  if (raw && typeof raw === 'object' && Buffer.byteLength(JSON.stringify(raw), 'utf8') > core.MAX_BODY_BYTES) throw tooLarge();
   if (type === 'form') {
     if (raw && typeof raw === 'object') return raw;
     return Object.fromEntries(new URLSearchParams(raw || ''));
